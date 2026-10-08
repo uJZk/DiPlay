@@ -55,9 +55,21 @@
 
 ## 特斯拉浏览器 CarPlay：其余待定事项
 
-- [ ] 收集特斯拉浏览器探测报告：WebCodecs 对 H.264/HEVC/AV1 的硬解支持、Canvas 2D/WebGL/WebGPU 渲染耗时、挂 D 挡后 canvas 是否继续、私有 IP 能否访问、WebTransport 是否可用。
-  探测页源码只放在会话临时目录，没有提交。需要时重新生成。
+- [x] 收集特斯拉浏览器探测报告（报告 `d73a0959`，2026-10-08）。探测页源码只放在会话临时目录，没有提交，需要时重新生成。
+  - 车辆：Model Y，AMD Ryzen（GPU：Radeon Vega），Chromium 148，HTTPS 安全上下文。屏幕 1254×784，视口 773×601，DPR 1.53。8 核。
+  - 硬解：H.264、HEVC、VP9 都支持。1080p60 实时解码 60 fps，解码延迟 p50 0.9 ms、p95 约 1.5 ms；极限吞吐 210–225 fps。
+  - AV1：只有软解，60 fps，延迟 p50 7.4 ms。不作为主路径。
+  - HEVC 只能硬解，没有软解。
+  - 渲染：WebGL 绘制 p95 0.4 ms，Canvas 2D 0.6 ms。WebGPU API 存在但拿不到 adapter。Worker 比主线程的偶发尖峰小（max 30 ms 对 51 ms）。
+  - 挂 D 挡：用户目测画面和声音都正常。报告里没有 D 挡标记，所以这一项没有数据佐证。
+  - 私有 IP：`http://10.176.81.135:8080` 打不开，与"拦截 RFC1918"一致。还没排除热点 AP 隔离的可能。
+  - API：WebTransport、WebRTC、OffscreenCanvas、WASM SIMD、AudioWorklet 都有；SharedArrayBuffer 没有。
+  - 声音：Web Audio 能出声，基础延迟 42.7 ms。
+  - 触摸：最多 10 点，移动事件约 306 次/秒。
+  - WSS 往返和 WebRTC 数据通道没有测。
+- [ ] 确认私有 IP 被拦截不是 AP 隔离造成的：从另一台设备访问同一个地址；再用 root 把热点改成 100.64.0.0/10 网段，复测。
 - [ ] 确认 iPhone 发来的码流格式：在诊断日志中记录配置头的格式标记（`avcC`/`hvcC`/其他）。
-- [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流通过 WSS 送给浏览器；浏览器在 Worker 里用 WebCodecs 解码，画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
+- [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 WSS 送给浏览器；浏览器在 Worker 里用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
+  分辨率按浏览器上报的视口 × DPR 协商，60 fps。
 - [ ] 网络（手机已 root）：手机自己提供页面，用自有域名加 Let's Encrypt（DNS-01）证书；如果特斯拉拦截 RFC1918 私有地址，热点改用 100.64.0.0/10 网段。
 - [ ] 触摸：Pointer Events 多点触控，每次 `requestAnimationFrame` 合并发送一次，换算后调用 `CarPlayController.sendTouch`。
