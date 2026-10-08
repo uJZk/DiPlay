@@ -66,7 +66,8 @@
   - API：WebTransport、WebRTC、OffscreenCanvas、WASM SIMD、AudioWorklet 都有；SharedArrayBuffer 没有。
   - 声音：Web Audio 能出声，基础延迟 42.7 ms。
   - 触摸：最多 10 点，移动事件约 306 次/秒。
-  - WSS 往返和 WebRTC 数据通道没有测。
+  - 补测（报告 `a98934e0`）：WSS 可用，到 Cloudflare 往返中位 178 ms（走公网，不代表热点内延迟），下行 96 Mbps；WebRTC 数据通道可用。这次视口为 1256×706，说明浏览器窗口大小会变，需要监听 resize 重新协商分辨率。
+  - 挂 D 挡的逐秒数据仍然缺失，待用补测页补齐。
 - [ ] 确认私有 IP 被拦截不是 AP 隔离造成的：从另一台设备访问同一个地址；再用 root 把热点改成 100.64.0.0/10 网段，复测。
 - [ ] 确认 iPhone 发来的码流格式：在诊断日志中记录配置头的格式标记（`avcC`/`hvcC`/其他）。
 - [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 WSS 送给浏览器；浏览器在 Worker 里用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
