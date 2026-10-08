@@ -73,3 +73,21 @@
   分辨率按浏览器上报的视口 × DPR 协商，60 fps。
 - [ ] 网络（手机已 root）：手机自己提供页面，用自有域名加 Let's Encrypt（DNS-01）证书；如果特斯拉拦截 RFC1918 私有地址，热点改用 100.64.0.0/10 网段。
 - [ ] 触摸：Pointer Events 多点触控，每次 `requestAnimationFrame` 合并发送一次，换算后调用 `CarPlayController.sendTouch`。
+
+## 已定的决定
+
+- **传输层保持 WSS**：手机热点到车只有一跳，码流约 5–15 Mbps，WSS 足够。
+  - 协议层按"每帧一条消息 + 帧头（时间戳、关键帧标记、序号）"设计，传输层做成可替换的接口。
+  - 延迟靠这些手段控制：TCP_NODELAY、小发送缓冲、积压时丢帧到下一个关键帧、关闭 Wi-Fi 省电、热点固定 5 GHz 信道。
+  - 只有在热点内实测发现帧延迟 p95 超过约 16 ms，或者每分钟多次出现超过 100 ms 的卡顿且确认由 TCP 重传造成时，才考虑换成 WebTransport。
+- **以 DiPlay 为基础开发，不以 [WheelPlay](https://github.com/fython/wheelplay) 为基础**：
+  - WheelPlay 基于较旧的 DiPlay 快照，没有共同 git 历史，缺少后来的热点和无线可靠性修复，难以再合并上游修复。
+  - 它的主视频路线是 WebRTC → `<video>` → `drawImage`，按其他项目的报告，特斯拉挂挡后 `<video>` 会暂停（推断，未在本车验证）。
+  - 它的音频走安卓或浏览器，和"声音走车辆蓝牙"的方案不同。
+- [ ] 从 WheelPlay 按需移植以下组件（GPL-3.0，保留署名）：
+  - `LanWebServer`、`LanTls`：局域网网页服务和 HTTPS 证书处理。
+  - `QrPairing`、`RememberedBrowsers`、`TouchLease`：扫码配对、记住已配对浏览器、单一控制端。
+  - `EncodedVideoSink`、`CompressedVideoFrame`：从媒体层接出不解码的码流，作为 `WebMediaSink` 的基础。
+  - 触摸坐标换算，以及浏览器端统计面板（参考 `window.wheelplayStats`）。
+  - 不移植：WebRTC 原生代码（`rtc_bridge.cpp`、libdatachannel）、`<video>` 转画布渲染、JPEG 兼容模式、浏览器音频。
+- [ ] 增加"手机 + 浏览器"运行模式：跳过 BYD HUD、仪表、ADB、方向盘按键等车机专属功能。
