@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_hotspot_address_checking">جارٍ البحث عن نقطة اتصال هذا الهاتف…</string>
+    <string name="settings_hotspot_current_address">عنوان نقطة الاتصال: %1$s</string>
+    <string name="settings_hotspot_address_blocked">غالبًا لا يستطيع متصفح Tesla فتح هذا العنوان. شغّل العنوان الإضافي لنقطة الاتصال أدناه.</string>
+    <string name="settings_hotspot_not_found">لم يُعثر على نقطة اتصال. شغّل نقطة اتصال هذا الهاتف.</string>
+    <string name="settings_hotspot_extra_address">عنوان إضافي لنقطة الاتصال (تجريبي)</string>
+    <string name="settings_hotspot_extra_address_description">يتطلب صلاحيات الجذر (root). يضيف %1$s إلى نقطة اتصال هذا الهاتف ليتمكن متصفح Tesla من الوصول إلى TiPlay، ويعيد إضافته بعد إعادة تشغيل نقطة الاتصال. يُطبَّق فورًا ولا تلزم إعادة الاتصال.</string>
+    <string name="settings_hotspot_extra_address_value">العنوان</string>
+    <string name="settings_hotspot_extra_address_value_hint">عنوان ضمن 100.64.0.0/10، وهو النطاق الذي يفتحه متصفح Tesla. يُطبَّق فورًا.</string>
+    <string name="settings_hotspot_extra_address_invalid">أدخل عنوانًا ضمن 100.64.0.0/10، مثل 100.109.220.253.</string>
+    <string name="settings_hotspot_extra_address_root_checking">جارٍ طلب صلاحيات الجذر…</string>
+    <string name="settings_hotspot_extra_address_root_refused">لم يحصل TiPlay على صلاحيات الجذر، لذا يبقى العنوان الإضافي مُعطّلًا. اسمح لـ TiPlay في مدير صلاحيات الجذر، مثل Magisk، ثم شغّله مرة أخرى.</string>
+    <string name="settings_hotspot_extra_address_added">أُضيف العنوان إلى %1$s.</string>
+    <string name="settings_hotspot_extra_address_waiting">في انتظار نقطة اتصال هذا الهاتف.</string>
+    <string name="settings_hotspot_extra_address_no_root">رُفضت صلاحيات الجذر، فتوقف TiPlay عن المحاولة. أوقف الإعداد ثم شغّله للمحاولة مجددًا.</string>
+    <string name="settings_hotspot_extra_address_failed">تعذّرت إضافة العنوان. سيحاول TiPlay مجددًا بعد قليل.</string>
+    <string name="settings_hotspot_extra_address_paused">متوقف مؤقتًا. يضيف TiPlay العنوان مجددًا عند فتحه أو عند الاتصال.</string>
+    <string name="settings_hotspot_extra_address_manual_only">يعمل فقط عندما يستخدم الاتصال «%1$s».</string>
+</resources>

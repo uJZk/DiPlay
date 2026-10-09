@@ -29,7 +29,7 @@ Ask which goal the driver has when they look for the setting. Use the first row 
 
 | Category | Put a setting here when it controls… | Examples |
 | --- | --- | --- |
-| Connection | how the iPhone connects and how TeslaPlay starts | connection setup, connect on open, start with the car, USB permissions, car hotspot automation, iPhone choice, Android permissions, Tesla browser and the phone + browser run mode |
+| Connection | how the iPhone connects and how TeslaPlay starts | connection setup, connect on open, start with the car, USB permissions, car hotspot automation, iPhone choice, Android permissions, Tesla browser, the phone + browser run mode and the extra hotspot address |
 | Display | how CarPlay looks on the head-unit screen | day/night mode, picture, size, resolution, frame rate, dock, system bars, multi-window resolution |
 | Audio | what the driver hears | media and navigation streams, music buffer |
 | Navigation | location and turn-by-turn guidance | location to iPhone, BYD HUD and cluster guidance |

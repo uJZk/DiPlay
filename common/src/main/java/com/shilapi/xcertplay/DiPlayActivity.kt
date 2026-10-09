@@ -384,6 +384,7 @@ class DiPlayActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        HotspotExtraAddressSettings.sync(this) // phone + browser mode: keep the car browser's hotspot address
         // Returning from another activity can bring the head unit's own density back.
         if (enforceInterfaceSize()) render()
         if (Build.VERSION.SDK_INT < 33 && AppLocale.preference(this) != languagePreferenceAtCreate) {
@@ -1232,6 +1233,7 @@ class DiPlayActivity : ComponentActivity() {
             toggle(card, getString(R.string.settings_phone_browser_mode),
                 getString(R.string.settings_phone_browser_mode_description), phoneBrowser) {
                 AirPlayPersistence.saveRunMode(this, if (it) CarPlayRunMode.PHONE_BROWSER else CarPlayRunMode.HEAD_UNIT)
+                HotspotExtraAddressSettings.sync(this) // the extra hotspot address exists only in phone mode
                 render() // the head-unit cards come and go with the mode
                 markReconnectNeeded()
             }
@@ -1688,7 +1690,14 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun hotspotAddressSettings(parent: LinearLayout) {
-        // Hotspot address and the root-only extra address: added with the hotspot address keeper.
+        // The search index gets the titles only: no hotspot probe and no root call.
+        HotspotExtraAddressCard(this, indexing = searchIndexSink != null,
+            colors = HotspotExtraAddressCard.Colors(muted = MUTED, warning = WARNING, ready = READY),
+            note = { text -> label(text, 14, MUTED) },
+            toggle = { card, title, description, checked, enabled, save -> toggle(card, title, description, checked, enabled, save) },
+            settingRow = { card, text, click -> card.addView(button(text, false, click), matchButton(0, 60)) },
+            rerender = ::render,
+        ).build(parent)
     }
 
     private fun about(content: LinearLayout) {
@@ -3949,6 +3958,7 @@ class DiPlayActivity : ComponentActivity() {
                     appendLine("Saved car Bluetooth sound (may differ from active session; phone + browser mode only): ${AirPlayPersistence.loadCarBluetoothAudio(appContext)}")
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
+                    appendLine(HotspotExtraAddressSettings.diagnosticLine(appContext))
                     appendLine()
                     appendLine("--- Current cluster display diagnostics (even when disabled) ---")
                     appendLine(ClusterMapPresentation.diagnosticReport(appContext))

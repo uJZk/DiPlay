@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_hotspot_address_checking">Looking for this phone’s hotspot…</string>
+    <string name="settings_hotspot_current_address">Hotspot address: %1$s</string>
+    <string name="settings_hotspot_address_blocked">The Tesla browser probably cannot open this address. Turn on the extra hotspot address below.</string>
+    <string name="settings_hotspot_not_found">No hotspot found. Turn on this phone’s hotspot.</string>
+    <string name="settings_hotspot_extra_address">Extra hotspot address (experimental)</string>
+    <string name="settings_hotspot_extra_address_description">Needs root. Adds %1$s to this phone’s hotspot so the Tesla browser can reach TiPlay, and adds it again after the hotspot restarts. Applies at once; no reconnect needed.</string>
+    <string name="settings_hotspot_extra_address_value">Address</string>
+    <string name="settings_hotspot_extra_address_value_hint">An address in 100.64.0.0/10, the range the Tesla browser opens. Applies at once.</string>
+    <string name="settings_hotspot_extra_address_invalid">Enter an address in 100.64.0.0/10, for example 100.109.220.253.</string>
+    <string name="settings_hotspot_extra_address_root_checking">Asking for root access…</string>
+    <string name="settings_hotspot_extra_address_root_refused">TiPlay did not get root access, so the extra address stays off. Allow TiPlay in your root manager, such as Magisk, and turn it on again.</string>
+    <string name="settings_hotspot_extra_address_added">Address added to %1$s.</string>
+    <string name="settings_hotspot_extra_address_waiting">Waiting for this phone’s hotspot.</string>
+    <string name="settings_hotspot_extra_address_no_root">Root access was refused, so TiPlay stopped trying. Turn the setting off and on to try again.</string>
+    <string name="settings_hotspot_extra_address_failed">Could not add the address. TiPlay tries again shortly.</string>
+    <string name="settings_hotspot_extra_address_paused">Paused. TiPlay adds the address again when it opens or connects.</string>
+    <string name="settings_hotspot_extra_address_manual_only">Works only when the connection uses “%1$s”.</string>
+</resources>

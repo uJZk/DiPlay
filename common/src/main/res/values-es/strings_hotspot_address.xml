@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_hotspot_address_checking">Buscando el punto de acceso de este teléfono…</string>
+    <string name="settings_hotspot_current_address">Dirección del punto de acceso: %1$s</string>
+    <string name="settings_hotspot_address_blocked">Es probable que el navegador del Tesla no pueda abrir esta dirección. Activa abajo la dirección adicional del punto de acceso.</string>
+    <string name="settings_hotspot_not_found">No se encontró ningún punto de acceso. Activa el punto de acceso de este teléfono.</string>
+    <string name="settings_hotspot_extra_address">Dirección adicional del punto de acceso (experimental)</string>
+    <string name="settings_hotspot_extra_address_description">Requiere root. Añade %1$s al punto de acceso de este teléfono para que el navegador del Tesla pueda llegar a TiPlay, y la vuelve a añadir cuando el punto de acceso se reinicia. Se aplica al instante; no hace falta reconectar.</string>
+    <string name="settings_hotspot_extra_address_value">Dirección</string>
+    <string name="settings_hotspot_extra_address_value_hint">Una dirección dentro de 100.64.0.0/10, el rango que abre el navegador del Tesla. Se aplica al instante.</string>
+    <string name="settings_hotspot_extra_address_invalid">Introduce una dirección dentro de 100.64.0.0/10, por ejemplo 100.109.220.253.</string>
+    <string name="settings_hotspot_extra_address_root_checking">Solicitando acceso root…</string>
+    <string name="settings_hotspot_extra_address_root_refused">TiPlay no obtuvo acceso root, así que la dirección adicional sigue desactivada. Permite TiPlay en tu gestor de root, como Magisk, y vuelve a activarla.</string>
+    <string name="settings_hotspot_extra_address_added">Dirección añadida a %1$s.</string>
+    <string name="settings_hotspot_extra_address_waiting">Esperando al punto de acceso de este teléfono.</string>
+    <string name="settings_hotspot_extra_address_no_root">Se denegó el acceso root, así que TiPlay dejó de intentarlo. Desactiva y vuelve a activar el ajuste para intentarlo de nuevo.</string>
+    <string name="settings_hotspot_extra_address_failed">No se pudo añadir la dirección. TiPlay lo volverá a intentar en breve.</string>
+    <string name="settings_hotspot_extra_address_paused">En pausa. TiPlay vuelve a añadir la dirección cuando se abre o se conecta.</string>
+    <string name="settings_hotspot_extra_address_manual_only">Solo funciona cuando la conexión usa «%1$s».</string>
+</resources>

@@ -48,7 +48,12 @@ class DiPlaySessionService : Service() {
             }
             startForeground(1, notification, types)
         } else startForeground(1, notification)
+        HotspotExtraAddressSettings.sync(this) // phone + browser mode: keep the car browser's hotspot address
         return START_NOT_STICKY
+    }
+    override fun onDestroy() {
+        HotspotExtraAddressSettings.onSessionServiceStopped(this) // keeps the address for the car's page
+        super.onDestroy()
     }
     override fun onTaskRemoved(rootIntent: Intent?) {
         // BYD's recents force-stops the package ~10 ms after removing the task: end guidance first.
