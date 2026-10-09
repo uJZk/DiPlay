@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_HOST, FLAG, HEADER_BYTES, MAX_PAYLOAD, RECORD, RecordError, RecordParser, Samples, addressSpaceFor,
   backoffDelay, buildLink, chooseDecoderConfig, choosePath, createControlOutbox, createRecordStream, createTouchSlots,
-  encodeRecord, flatStats, letterbox, mapPoint, newSessionId, normalizeHost, parseLinkHash, supportedCodecs, viewportFor,
+  encodeRecord, flatStats, hostParam, letterbox, linkLocation, mapPoint, newSessionId, normalizeHost, parseLinkHash,
+  parseLinkSearch, supportedCodecs, viewportFor,
 } from '../../site/play/link.js';
 
 const utf8 = text => new TextEncoder().encode(text);
@@ -33,12 +34,37 @@ test('link hash carries an IPv4 host with port and a six-digit code', () => {
   }
 });
 
-test('built links round-trip and drop an earlier fragment', () => {
+test('built links put the phone in ?t= for bookmarks and the code in the fragment', () => {
   const link = buildLink('https://example.test/play/#old', { host: DEFAULT_HOST, code: '987654' });
-  assert.equal(link, 'https://example.test/play/#h=100.109.220.253:8080&c=987654');
-  assert.deepEqual(parseLinkHash(new URL(link).hash), { host: DEFAULT_HOST, code: '987654' });
+  assert.equal(link, 'https://example.test/play/?t=100.109.220.253#c=987654');
+  assert.deepEqual(parseLinkSearch(new URL(link).search), { host: DEFAULT_HOST });
+  assert.deepEqual(parseLinkHash(new URL(link).hash), { host: null, code: '987654' });
+  assert.equal(buildLink('https://example.test/play/?t=1.2.3.4&lang=zh', { host: '100.64.0.1:9000', code: null }),
+    'https://example.test/play/?t=100.64.0.1:9000&lang=zh', 'an older t is replaced and other parameters stay');
   assert.equal(normalizeHost(' 192.168.1.20:9000 '), '192.168.1.20:9000');
   assert.equal(normalizeHost('LOCALHOST'), 'localhost:8080', 'the page the phone serves may be opened on the phone itself');
+});
+
+test('?t= names the phone with an optional port that defaults to 8080', () => {
+  assert.deepEqual(parseLinkSearch('?t=100.64.0.1'), { host: '100.64.0.1:8080' });
+  assert.deepEqual(parseLinkSearch('?t=100.64.0.1:8080'), { host: '100.64.0.1:8080' });
+  assert.deepEqual(parseLinkSearch('t=100.64.0.1:9000'), { host: '100.64.0.1:9000' });
+  assert.deepEqual(parseLinkSearch('?t=100.64.0.1%3A9000'), { host: '100.64.0.1:9000' });
+  assert.deepEqual(parseLinkSearch('?lang=zh'), { host: null });
+  for (const value of ['', 'phone.local', '256.1.1.1', '1.2.3.4:0', '[::1]']) {
+    assert.deepEqual(parseLinkSearch(`?t=${value}`), { host: null }, value);
+  }
+  assert.equal(hostParam('100.64.0.1:8080'), '100.64.0.1');
+  assert.equal(hostParam('100.64.0.1:9000'), '100.64.0.1:9000');
+});
+
+test('the address bar keeps ?t= for bookmarks and drops the fragment with the code', () => {
+  assert.equal(linkLocation('/play/', '', DEFAULT_HOST), '/play/?t=100.109.220.253');
+  assert.equal(linkLocation('/play/', '?t=1.2.3.4&lang=zh', '100.64.0.1:9000'), '/play/?t=100.64.0.1:9000&lang=zh');
+  assert.equal(linkLocation('/play/', '?t', '100.64.0.1:8080'), '/play/?t=100.64.0.1', 'a bare t is replaced');
+  assert.equal(linkLocation('/play/', '?tab=1', '100.64.0.1:8080'), '/play/?t=100.64.0.1&tab=1', 'only t itself is replaced');
+  assert.equal(linkLocation('/play/', '?t=1.2.3.4', '10.0.0.5:8080', '10.0.0.5:8080'), '/play/',
+    'the page the phone serves talks to its own origin and needs no t');
 });
 
 test('the declared address space matches what Chrome resolves for the host', () => {

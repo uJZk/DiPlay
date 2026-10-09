@@ -269,7 +269,7 @@ async function main() {
   page.on('pageerror', error => failures.push(error.message));
   const phoneServers = [phone];
   try {
-    const pageUrl = `${origin}${PAGE_PATH}#h=127.0.0.1:${phone.port}&c=${CODE}`;
+    const pageUrl = `${origin}${PAGE_PATH}?t=127.0.0.1:${phone.port}#c=${CODE}`;
     await page.goto(pageUrl);
 
     await waitFor('a dec event', () => eventsOf(phone, 'dec').length);
@@ -280,6 +280,7 @@ async function main() {
     check(first.page.video.decodedFps > 0, `decodedFps ${first.page.video.decodedFps} with renderer ${first.page.video.renderer} (${first.page.video.acceleration})`);
     check(!JSON.stringify(first).includes(CODE), 'tiplayStats never contains the pairing code');
     check(await page.evaluate(() => location.hash === ''), 'the link fragment was removed from the address');
+    check(await page.evaluate(port => location.search === `?t=127.0.0.1:${port}`, phone.port), 'the address bar keeps ?t= so a bookmark reopens this phone');
     check(await page.evaluate(code => JSON.parse(localStorage.getItem('tiplay.link')).code === code, CODE), 'the link was stored');
     check(/VP8 · \d+ fps/.test(await page.textContent('#status')), `status line reads "${await page.textContent('#status')}"`);
 
@@ -351,6 +352,7 @@ async function main() {
       const mse = await recovering.newPage();
       await mse.goto(`http://${address}:${served.port}/play/#c=${CODE}`);
       await waitFor('MSE playback', async () => (await stats(mse)).page.video.decodedFps > 0);
+      check(await mse.evaluate(() => location.search === '' && location.hash === ''), 'the page the phone serves needs no ?t= and drops the code fragment');
       const decodedBefore = eventsOf(served, 'dec').length;
       await corruptUntil(served, mse, () => mse.evaluate(() => window.tiplayStats.page.video.mediaErrors > 0 || document.getElementById('video').error !== null));
       await waitFor('MSE playback after a decode error',

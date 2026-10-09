@@ -43,11 +43,32 @@ export function parseLinkHash(hash) {
   return { host: params.has('h') ? normalizeHost(params.get('h')) : null, code: isCode(code) ? code : null };
 }
 
+/** Reads the phone address from `?t=<host[:port]>`, the part of the link a bookmark keeps; null when missing or invalid. */
+export function parseLinkSearch(search) {
+  const params = new URLSearchParams(String(search ?? '').replace(/^\?/, ''));
+  return { host: params.has('t') ? normalizeHost(params.get('t')) : null };
+}
+
+/** The `t` value for a host: the default port 8080 is left out. */
+export function hostParam(host) {
+  return String(host).replace(/:8080$/, '');
+}
+
+/**
+ * The address-bar path for the current phone address: `?t=` names the phone so a bookmark reopens it, other query
+ * parameters stay, and the fragment (which may hold the pairing code) is dropped. A page the phone serves itself
+ * already talks to its own origin, so `t` is left out there.
+ */
+export function linkLocation(pathname, search, host, pageHost = null) {
+  const params = String(search ?? '').replace(/^\?/, '').split('&').filter(part => part && !/^t(=|$)/.test(part));
+  if (host && host !== pageHost) params.unshift(`t=${hostParam(host)}`);
+  return `${pathname}${params.length ? `?${params.join('&')}` : ''}`;
+}
+
+/** A link to the page: `?t=` carries the phone address, `#c=` the pairing code (a fragment never reaches the page host). */
 export function buildLink(base, { host, code }) {
-  const parts = [];
-  if (host) parts.push(`h=${host}`);
-  if (code) parts.push(`c=${code}`);
-  return `${String(base).split('#')[0]}#${parts.join('&')}`;
+  const [path, query] = String(base).split('#')[0].split('?');
+  return `${linkLocation(path, query, host)}${code ? `#c=${code}` : ''}`;
 }
 
 /** The `targetAddressSpace` fetch option for a host. Chrome fails a request whose declared space does not match. */

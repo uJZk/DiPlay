@@ -8,7 +8,8 @@
  * transferred canvas; other browsers take a later rung of the fallback ladder (link.js choosePath). */
 import {
   DEFAULT_HOST, PROTOCOL, addressSpaceFor, backoffDelay, choosePath, createControlOutbox, createTouchSlots, flatStats,
-  isCode, mapPoint, newSessionId, normalizeHost, parseLinkHash, PROBE_CODECS, supportedCodecs, timeoutSignal, viewportFor,
+  isCode, linkLocation, mapPoint, newSessionId, normalizeHost, parseLinkHash, parseLinkSearch, PROBE_CODECS, supportedCodecs,
+  timeoutSignal, viewportFor,
 } from './link.js';
 
 const STRINGS = {
@@ -111,13 +112,14 @@ function saveLink() {
 }
 
 let link = loadLink();
-const linked = parseLinkHash(location.hash);
-if (linked.host || linked.code) {
-  link = { host: linked.host ?? link.host, code: linked.code ?? link.code };
+const linked = parseLinkHash(location.hash), bookmarked = parseLinkSearch(location.search);
+if (bookmarked.host || linked.host || linked.code) {
+  link = { host: bookmarked.host ?? linked.host ?? link.host, code: linked.code ?? link.code };
   saveLink();
 }
-// Keep the pairing code out of history entries and copied URLs.
-if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+// `?t=` keeps the phone address in bookmarks; the pairing code stays out of history entries and copied URLs.
+const showLink = () => history.replaceState(null, '', linkLocation(location.pathname, location.search, link.host, pageHost));
+showLink();
 
 const slots = createTouchSlots();
 let session = null, active = false, phase = 'ready', notice = null;
@@ -595,6 +597,7 @@ $('link-form').addEventListener('submit', event => {
   link = { host, code };
   $('host').value = host;
   saveLink();
+  showLink();
   start();
 });
 $('disconnect').addEventListener('click', () => {
