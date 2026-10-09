@@ -5,11 +5,16 @@ import com.shilapi.xcertplay.iap2.wire.Iap2Frame
 
 /** Nonblocking boundary between phone control messages and vendor services. */
 object BydNavigationOutputs {
-    /** Recover a journaled interrupted output when the app opens, even before a phone reconnects. */
-    fun onAppOpened(context: Context) {
+    /**
+     * Recover a journaled interrupted output when the app opens, even before a phone reconnects.
+     * Without [headUnitIntegrations] (the phone + browser run mode) the journals are still recovered,
+     * but no output or vehicle reading starts.
+     */
+    fun onAppOpened(context: Context, headUnitIntegrations: Boolean = true) {
         BydOemClusterNavi.restoreIfNeeded(context)
         BydDiLink3ClusterOutput.restoreIfNeeded(context)
         com.shilapi.xcertplay.network.WifiScanPause.restoreIfNeeded(context)
+        if (!headUnitIntegrations) return
         if (BydStandaloneHudOutput.available(context)) start(context)
         // Read the battery early, so a reading is ready when CarPlay identifies (see batteryStatus).
         if (BydOutputSettings.batteryToIphoneActive(context)) BydBatteryStatus.start(context)

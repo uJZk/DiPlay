@@ -12,6 +12,8 @@ import com.shilapi.xcertplay.airplay.AirPlayIdentity
 import com.shilapi.xcertplay.airplay.PairingStore
 import com.shilapi.xcertplay.airplay.SafeAreaCodec
 import com.shilapi.xcertplay.airplay.SafeAreaRect
+import com.shilapi.xcertplay.orchestration.CarPlayController
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
 import com.shilapi.xcertplay.orchestration.ManualHotspotSecurity
 import com.shilapi.xcertplay.orchestration.MfiTarget
@@ -49,6 +51,7 @@ object AirPlayPersistence {
     private const val KEY_NAVIGATION_AUDIO_CHANNEL = "navigation_audio_channel"
     private const val KEY_NAVIGATION_STREAM_TYPE = "navigation_stream_type"
     private const val KEY_WIRELESS_ENABLED = "wireless_enabled"
+    private const val KEY_RUN_MODE = "run_mode"
     private const val KEY_WIRELESS_HOTSPOT_MODE = "wireless_hotspot_mode"
     private const val KEY_WIFI_P2P_PREFERRED_CHANNEL = "wifi_p2p_preferred_channel"
     private const val KEY_MANUAL_HOTSPOT_SSID = "manual_hotspot_ssid"
@@ -67,6 +70,7 @@ object AirPlayPersistence {
     private const val KEY_FPS = "display_fps"
     private const val KEY_MEDIA_BUFFER_MS = "media_buffer_ms"
     private const val KEY_MAIN_BUFFERED_AUDIO = "main_buffered_audio"
+    private const val KEY_CAR_BLUETOOTH_AUDIO = "car_bluetooth_audio"
     private const val KEY_CALL_ECHO_CANCELLATION = "call_echo_cancellation"
     private const val KEY_CALL_VOICE_FILTER = "call_voice_filter"
     private const val KEY_SMOOTH_VIDEO = "smooth_video"
@@ -251,6 +255,28 @@ object AirPlayPersistence {
             .putBoolean(KEY_WIRELESS_ENABLED, enabled)
             .apply()
     }
+
+    /** Head unit by default; the phone + browser mode applies at the next connection. */
+    fun loadRunMode(context: Context): CarPlayRunMode {
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_RUN_MODE, null)
+        return CarPlayRunMode.entries.firstOrNull { it.name == stored } ?: CarPlayRunMode.HEAD_UNIT
+    }
+
+    fun saveRunMode(context: Context, mode: CarPlayRunMode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_RUN_MODE, mode.name)
+            .apply()
+    }
+
+    /** True on a phone whose hotspot the car's browser joins: head-unit features stay off, whatever was saved. */
+    fun isPhoneBrowserMode(context: Context): Boolean = loadRunMode(context) == CarPlayRunMode.PHONE_BROWSER
+
+    /**
+     * The mode in effect for live host and key gates: a running [session] keeps the mode it connected with,
+     * so a change applies at the next connection as the setting says; without a session, the saved mode.
+     */
+    fun isPhoneBrowserMode(context: Context, session: CarPlayController?): Boolean =
+        session?.phoneBrowserMode() ?: isPhoneBrowserMode(context)
 
     fun loadMfiTarget(context: Context): MfiTarget {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -523,6 +549,16 @@ object AirPlayPersistence {
 
     fun saveMainBufferedAudio(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_MAIN_BUFFERED_AUDIO, enabled).apply()
+    }
+
+    /** Car Bluetooth sound; off by default, applies at the next CarPlay connection. */
+    internal fun loadCarBluetoothAudio(context: Context): CarBluetoothAudio {
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CAR_BLUETOOTH_AUDIO, null)
+        return CarBluetoothAudio.entries.firstOrNull { it.name == stored } ?: CarBluetoothAudio.OFF
+    }
+
+    internal fun saveCarBluetoothAudio(context: Context, mode: CarBluetoothAudio) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_CAR_BLUETOOTH_AUDIO, mode.name).apply()
     }
 
     fun loadSmoothVideo(context: Context): Boolean =

@@ -80,6 +80,9 @@ class AirPlaySession(
     internal var encBuf = ByteArray(0)
     internal var deviceBtMac = ""
     internal val activeStreams = linkedSetOf<Int>()
+    /** Audio streams the iPhone asked for, as "type/audioType", for the summary at close. */
+    private val audioSetups = CopyOnWriteArrayList<String>()
+    @Volatile private var recorded = false
 
     /** Counts the iPhone's cluster stream setups; 0 while no cluster stream is up. */
     @Volatile var clusterStream = 0
@@ -147,6 +150,7 @@ class AirPlaySession(
         } catch (error: Exception) {
             Log.w(TAG, "airplay media stream teardown failed", error)
         }
+        if (recorded) debugLog(AirPlayAudioDiagnostics.summary(config, audioSetups))
         teardown()
         if (notified.compareAndSet(false, true)) listener.onSessionEnded(this)
     }
@@ -524,6 +528,8 @@ class AirPlaySession(
         when (request.method) {
             "SETUP" -> return handleSetup(request)
             "RECORD" -> {
+                recorded = true
+                debugLog(AirPlayAudioDiagnostics.recorded(config))
                 listener.onSessionActive(this)
                 return RtspMessage.Response(status = 200)
             }
@@ -574,6 +580,7 @@ class AirPlaySession(
                         "audioFormats=${(info["audioFormats"] as? List<*>)?.size ?: 0} " +
                         "audioLatencies=${(info["audioLatencies"] as? List<*>)?.size ?: 0}",
                 )
+                debugLog(AirPlayAudioDiagnostics.info(config, info))
                 debugLog(
                     "airplay /info videoInCar=${config.videoInCar} " +
                         "videoPlaybackAllowed=${if (config.videoInCar) VideoInCar.allowed else "not-offered"}",
@@ -691,12 +698,10 @@ class AirPlaySession(
                     }
                 }
                 STREAM_TYPE_MAIN_AUDIO, STREAM_TYPE_ALT_AUDIO, STREAM_TYPE_MAIN_HIGH_AUDIO -> {
-                    val streamResponse = media.onAudio(this, type, stream)
-                    debugLog(
-                        "airplay audio stream type=$type accepted=${streamResponse != null} " +
-                            "dataPort=${streamResponse?.get("dataPort") ?: "none"} " +
-                            "controlPort=${streamResponse?.get("controlPort") ?: "none"}",
-                    )
+                    // Car Bluetooth sound: the iPhone should not open audio streams; decline one it opens anyway.
+                    val streamResponse = if (config.receivesAudio) media.onAudio(this, type, stream) else null
+                    audioSetups.add(AirPlayAudioDiagnostics.streamLabel(type, stream))
+                    debugLog(AirPlayAudioDiagnostics.setup(config, type, stream, streamResponse))
                     if (streamResponse != null) {
                         activeStreams.add(type)
                         result.add(streamResponse)
@@ -704,8 +709,8 @@ class AirPlaySession(
                 }
                 STREAM_TYPE_MAIN_BUFFERED_AUDIO -> {
                     val streamResponse = if (config.bufferedAudioOutputEnabled) media.onBufferedAudio(this, stream) else null
-                    debugLog("airplay buffered audio stream accepted=${streamResponse != null} " +
-                        "dataPort=${streamResponse?.get("dataPort") ?: "none"}")
+                    audioSetups.add(AirPlayAudioDiagnostics.streamLabel(type, stream))
+                    debugLog(AirPlayAudioDiagnostics.setup(config, type, stream, streamResponse))
                     if (streamResponse != null) {
                         activeStreams.add(type)
                         result.add(streamResponse)

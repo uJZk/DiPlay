@@ -76,8 +76,17 @@ data class AirPlayConfig(
      * ahead of time over TCP, so short Wi-Fi gaps do not interrupt it.
      */
     val mainBufferedAudio: Boolean = false,
-)
+    /**
+     * Car Bluetooth sound (docs/todo.md): /info omits only audioFormats, as Carlinkit's BtAudio=1 does, so the
+     * iPhone keeps music, navigation, Siri and calls on its own Bluetooth link to the car. audioLatencies,
+     * features and bluetoothIDs stay. TeslaPlay then declines audio streams and opens no microphone.
+     */
+    val audioViaCarBluetooth: Boolean = false,
+) {
+    /** False when sound stays on the iPhone's Bluetooth link to the car, or audio output is disabled. */
+    val receivesAudio: Boolean get() = !audioViaCarBluetooth && !disableAudioOutput
+}
 
 /** The offer, SETUP and controls must all honor the user's audio-output setting. */
 internal val AirPlayConfig.bufferedAudioOutputEnabled: Boolean
-    get() = mainBufferedAudio && !disableAudioOutput
+    get() = mainBufferedAudio && receivesAudio

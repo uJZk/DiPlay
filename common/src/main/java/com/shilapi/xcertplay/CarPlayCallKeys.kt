@@ -33,9 +33,9 @@ internal object CarPlayCallKeys {
             val app = context.applicationContext
             val receiver = object : BroadcastReceiver() {
                 override fun onReceive(context: Context, intent: Intent) {
-                    if (!BydOutputSettings.carPlayCallControls(context)) return
-                    val keyCode = intent.getIntExtra(CarPlayCallKeyPolicy.EXTRA_KEYCODE, -1)
                     val controller = currentController()
+                    if (!enabled(context, controller)) return
+                    val keyCode = intent.getIntExtra(CarPlayCallKeyPolicy.EXTRA_KEYCODE, -1)
                     val action = CarPlayCallKeyPolicy.onHangUpBroadcast(
                         keyCode, BydNavigationOutputs.carPlayCall(), controller.hasSession(),
                     )
@@ -61,7 +61,7 @@ internal object CarPlayCallKeys {
 
     /** Returns true when the key belongs to a CarPlay call and must not reach the car. */
     fun onKey(context: Context, keyCode: Int, down: Boolean, controller: CarPlayController? = currentController()): Boolean {
-        if (!BydOutputSettings.carPlayCallControls(context)) return false
+        if (!enabled(context, controller)) return false
         val action = CarPlayCallKeyPolicy.onKey(keyCode, down, BydNavigationOutputs.carPlayCall(), controller.hasSession())
         when (action) {
             CarPlayCallKeyPolicy.Action.PASS -> return false
@@ -81,7 +81,8 @@ internal object CarPlayCallKeys {
 
     private fun returnToCarPlay(app: Context) {
         handler.postDelayed({
-            if (!BydOutputSettings.carPlayCallControls(app) || !currentController().hasSession()) return@postDelayed
+            val controller = currentController()
+            if (!enabled(app, controller) || !controller.hasSession()) return@postDelayed
             runCatching {
                 app.startActivity(
                     Intent(app, CarPlayHostActivity::class.java)
@@ -90,6 +91,11 @@ internal object CarPlayCallKeys {
             }.onFailure { Log.w(TAG, "could not bring CarPlay back after the call key", it) }
         }, RETURN_DELAY_MILLIS)
     }
+
+    // The call keys are a head unit's; in phone + browser mode the phone's own keys keep their actions.
+    // A running session keeps the mode it connected with.
+    private fun enabled(context: Context, controller: CarPlayController?): Boolean =
+        BydOutputSettings.carPlayCallControls(context) && !AirPlayPersistence.isPhoneBrowserMode(context, controller)
 
     private fun currentController(): CarPlayController? = CarPlayBackgroundSession.snapshot()?.controller
 

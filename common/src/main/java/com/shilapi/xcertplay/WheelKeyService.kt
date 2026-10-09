@@ -129,6 +129,9 @@ class WheelKeyService : AccessibilityService() {
             rearmTimedMode()
             return true
         }
+        // Wheel keys belong to a head unit; in phone + browser mode the phone's own keys keep their actions.
+        // A running session keeps the mode it connected with.
+        if (AirPlayPersistence.isPhoneBrowserMode(this, CarPlayBackgroundSession.snapshot()?.controller)) return false
         if (CarPlayCallKeys.onKey(this, event.keyCode, down)) return true
         if (BydOutputSettings.carPlayCallControls(this) &&
             CarPlayMediaButton.opensSiriWhileCarPlay(event.keyCode) && session() != null) {

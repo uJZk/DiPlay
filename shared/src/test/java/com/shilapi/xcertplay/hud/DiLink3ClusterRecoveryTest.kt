@@ -1,6 +1,8 @@
 package com.shilapi.xcertplay.hud
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageInfo
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -11,6 +13,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.Implementation
 import org.robolectric.annotation.Implements
@@ -55,6 +58,20 @@ class DiLink3ClusterRecoveryTest {
         output.restoreIfNeeded(app)
         drain()
         assertEquals(listOf(stock, stock), Shell.commands.toList())
+        assertFalse(prefs.contains("restore_stock_mode"))
+    }
+
+    @Test fun phoneBrowserModeStillRecoversAnInterruptedClusterButPreparesNoDisplay() {
+        // A DiLink 3 map with BYD navigation on: head-unit mode would also create the projection display.
+        shadowOf(app.packageManager).installPackage(PackageInfo().apply {
+            packageName = BydAmapAdapter.DILINK3.packageName
+            applicationInfo = ApplicationInfo().apply { packageName = BydAmapAdapter.DILINK3.packageName }
+        })
+        prefs.edit().putBoolean("restore_stock_mode", true).commit()
+        BydOutputSettings.setEnabled(app, true)
+        BydNavigationOutputs.onAppOpened(app, headUnitIntegrations = false)
+        drain()
+        assertEquals(listOf(stock), Shell.commands.toList())
         assertFalse(prefs.contains("restore_stock_mode"))
     }
 

@@ -52,4 +52,8 @@ class SettingsLayoutPolicyTest {
         assertEquals(SettingsSection.entries.toSet(), assignments.toSet())
         assertEquals(assignments.toSet().size, assignments.size)
     }
+
+    @Test fun phoneBrowserModeKeepsTheCardThatTurnsItOff() {
+        assertFalse(SettingsSection.TESLA_BROWSER in SettingsInformationArchitecture.headUnitOnlySections)
+    }
 }

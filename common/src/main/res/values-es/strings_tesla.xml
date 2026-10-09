@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_tesla_browser">Navegador de Tesla (experimental)</string>
+    <string name="settings_phone_browser_mode">Teléfono y navegador del coche</string>
+    <string name="settings_phone_browser_mode_description">Para un teléfono Android que comparte su punto de acceso con el coche. El navegador del coche muestra CarPlay. Desactiva las funciones de la unidad principal: HUD y panel de instrumentos de BYD, ADB y botones del volante. Se aplica en la próxima conexión.</string>
+</resources>

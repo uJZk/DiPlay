@@ -13,6 +13,10 @@ class DiagnosticRedactorTest {
             "Audio: decoder stats audioType=default codec=OPUS inputQueuedTotal=20 inputDroppedTotal=0 shortOpusPacketsTotal=2 decoderUnavailablePacketsTotal=0 outputBuffersTotal=19 ended=true",
             "THEME_DIAGNOSTIC sample source=poll uiMode=0x13 nightMask=0x10 reported=light applied=light sessionActive=true pollsSinceSample=30 callbacksSinceSample=0",
             "Process exit index=0 ageMs=5000 reason=native_crash reasonCode=5 status=11 importance=100 pssKiB=2048 rssKiB=4096",
+            "airplay /info audioRoute=car-bluetooth audioFormats=0 audioLatencies=9 features=0x615653aee2",
+            "airplay audio route=car-bluetooth expecting no audio SETUP",
+            "airplay audio SETUP type=100 audioType=media formatBits=0x8000 audioRoute=car-bluetooth result=declined dataPort=none controlPort=none",
+            "airplay audio summary audioRoute=car-bluetooth audioSetups=0 streams=none",
         )
         val folder = Files.createTempDirectory("diplay-troubleshooting-report").toFile()
         try {

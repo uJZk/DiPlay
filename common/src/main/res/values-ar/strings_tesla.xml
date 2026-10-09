@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_tesla_browser">متصفح تسلا (تجريبي)</string>
+    <string name="settings_phone_browser_mode">الهاتف ومتصفح السيارة</string>
+    <string name="settings_phone_browser_mode_description">لهاتف Android يشارك نقطة الاتصال الخاصة به مع السيارة. يعرض متصفح السيارة CarPlay. يوقف ميزات وحدة السيارة: شاشة HUD ولوحة العدادات من BYD وADB وأزرار عجلة القيادة. يُطبَّق عند الاتصال التالي.</string>
+</resources>

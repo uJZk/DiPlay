@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_tesla_browser">特斯拉浏览器（实验性）</string>
+    <string name="settings_phone_browser_mode">手机 + 浏览器模式</string>
+    <string name="settings_phone_browser_mode_description">用于开热点给车辆的 Android 手机，车上的浏览器显示 CarPlay。关闭车机专属功能（比亚迪 HUD 和仪表、ADB、方向盘按键）。下次连接时生效。</string>
+</resources>
