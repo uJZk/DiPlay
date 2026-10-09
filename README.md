@@ -18,7 +18,7 @@ There is no TiPlay release yet. To try it now, [build it from source](docs/BUILD
 
 - **Android phone:** runs TiPlay and its Wi-Fi hotspot. Reaching the phone from the Tesla browser needs root: the browser blocks private addresses such as 192.168.x.x and 10.x.x.x, so an optional setting adds an address from 100.64.0.0/10 to the hotspot interface.
 - **iPhone:** pair it over Bluetooth with the Tesla as the primary phone for audio and calls, and connect it to TiPlay with wireless CarPlay.
-- **Tesla:** join the phone's hotspot and open the TiPlay page in the browser. The page will load once from a public HTTPS address and then work from the browser cache.
+- **Tesla:** join the phone's hotspot and open the TiPlay page (`https://ujzk.github.io/DiPlay/`) in the browser. The page will load once from a public HTTPS address and then work from the browser cache.
 - **Tested so far:** probe pages on a Model Y (Chromium 148) decoded 1080p60 H.264 and HEVC in hardware, and H.264 kept 60 fps in Drive. An HTTPS page in the Tesla browser reached the phone over HTTP at a 100.64 address on the hotspot. CarPlay itself has not run in a Tesla yet.
 - **Setup:** publishing the page, pairing, other browsers and the car test checklist are in [Tesla browser](docs/TESLA_BROWSER.md).
 

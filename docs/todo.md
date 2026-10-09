@@ -96,6 +96,14 @@
     所以 HTTPS 页面可以直接 `fetch("http://100.109.220.253:8080/…")`（报告 `305294d4` 实测成功，无授权弹窗）。
     参考：https://developer.chrome.com/blog/local-network-access
   - 页面：静态 HTTPS 页面，托管在国内不开代理也能访问的地址（自定义域名，不用 `workers.dev`），用 Service Worker 缓存，首次加载后不依赖外网。
+    - **最短链接（2026-10-09）**：页面放在 GitHub Pages 站点根目录（`https://ujzk.github.io/DiPlay/`），下载页移到 `download/`，
+      旧地址 `play/` 只做转发（带上 `?t=` 和 `#c=`，并注销旧的 Service Worker）。默认手机地址 `100.109.220.253:8080` 不写 `?t=`，
+      链接就是 `https://<页面地址>#c=<配对码>`；其他地址才加 `?t=<地址>`（端口不是 8080 时加 `:端口`）。带配对码、不带 `?t=` 的链接
+      一律指默认地址，不沿用浏览器之前保存的地址。配对码仍然必需，只在 `#c=` 里出现一次，页面保存后删掉，所以首次打开后再加书签。
+      手机自带页面的链接不变（`http://<地址>:8080/play/#c=<配对码>`）。
+    - 站点地址由仓库变量 `SITE_BASE_URL` 决定（下载页的 canonical 等链接用它），换自定义域名的步骤见 [TESLA_BROWSER.md](TESLA_BROWSER.md) 第 1 节。
+      国内：不用 `workers.dev`；`github.io` 不开代理可能不稳定；自定义域名指向 GitHub Pages 时仍由 GitHub 提供服务，要在车上不开代理实测。
+    - [ ] 决定是否用自定义域名：需要一个域名，并在车上不开代理测试首次加载。
   - 视频：页面主线程 `fetch("http://100.109.220.253:8080/video?…", { targetAddressSpace: "local" })`，把 `response.body`（可转移的 `ReadableStream`）`postMessage` 转交给解码 Worker，由 Worker 读取；
     这样请求从页面发起，确定享受豁免，读取和解码仍在 Worker 里。手机返回不定长的 HTTP/1.1 响应，
     持续写入帧；每帧带长度前缀和帧头（时间戳、关键帧标记、序号、编码），页面用 `ReadableStream` 读取后重组。

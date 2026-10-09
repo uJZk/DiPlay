@@ -18,6 +18,9 @@ captures/
 # Local agent working notes
 /agent_docs/
 
+# The assembled GitHub Pages site (scripts/assemble_site.py)
+/_site/
+
 # OS files
 .DS_Store
 Thumbs.db

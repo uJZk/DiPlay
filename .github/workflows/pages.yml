@@ -1,8 +1,9 @@
-name: Publish download site
+name: Publish site
+# The TiPlay page (site/play/) at the site root, the download pages under download/. See docs/TESLA_BROWSER.md.
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'scripts/build_site.py', '.github/workflows/pages.yml']
+    paths: ['site/**', 'scripts/build_site.py', 'scripts/assemble_site.py', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,12 +18,17 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      # The site's public address. For a custom domain, set the repository variable SITE_BASE_URL (Settings → Secrets
+      # and variables → Actions → Variables), for example https://tiplay.example/. Unset: https://ujzk.github.io/DiPlay/.
+      SITE_BASE_URL: ${{ vars.SITE_BASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - run: python3 scripts/build_site.py
+      - run: python3 scripts/assemble_site.py _site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: _site
       - uses: actions/deploy-pages@v4
         id: deployment
