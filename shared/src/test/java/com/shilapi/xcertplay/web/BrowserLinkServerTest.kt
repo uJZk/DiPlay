@@ -17,6 +17,8 @@ import java.io.Closeable
 import java.io.File
 import java.io.IOException
 import java.net.BindException
+import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -561,7 +563,11 @@ class BrowserLinkServerTest {
         assertEquals(WebVideoRecords.KIND_END, video.record().first.kind)
         assertTrue(video.closedByServer())
         server.stop()
-        assertTrue(runCatching { Socket("127.0.0.1", port).close() }.isFailure)
+        // Rebinding proves the listener is gone. A connect probe can self-connect on an ephemeral port and pass by luck.
+        ServerSocket().use {
+            it.reuseAddress = true
+            it.bind(InetSocketAddress("127.0.0.1", port))
+        }
         idle.close()
         video.close()
         assertEquals(1, logs.count { it == "Browser link: stopped" })
