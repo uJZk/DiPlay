@@ -23,7 +23,9 @@ git config remote.upstream.tagOpt --no-tags
 ```
 
 The second command makes an accidental push to DiPlay fail.
-The third command keeps DiPlay's release tags (`v0.2.13` and later) apart from TiPlay's tags.
+The third command stops `git fetch upstream` from copying DiPlay's release tags (`v0.1.0` to `v0.2.16` and later)
+into the clone. TiPlay uses DiPlay's version numbers, so those tags could clash with TiPlay's own `v<version>` tags or
+be pushed to `origin` by `git push --tags`.
 
 ## 2. Fetch and look at the changes
 
@@ -57,7 +59,8 @@ git switch -c upstream-sync origin/main
 git merge --no-ff upstream/main -m "Merge upstream DiPlay <version or short commit>"
 ```
 
-`zdiff3` shows the common base in each conflict, so you can see what each side changed.
+`zdiff3` shows the common base in each conflict, so you can see what each side changed. It needs Git 2.35 or later;
+use `diff3` with an older Git.
 `rerere` records each resolution and applies it again if the same conflict comes back.
 Resolve the conflicts (section 4), then run `git add` on the files and `git commit` to complete the merge commit.
 To start again, run `git merge --abort`.
@@ -69,7 +72,10 @@ When the checks pass (sections 8 and 9):
 git switch main
 git merge --ff-only upstream-sync
 git push origin main
+git branch -d upstream-sync
 ```
+
+Deleting the branch lets the next merge create `upstream-sync` again.
 
 ## 4. Files that conflict most often
 
@@ -81,7 +87,9 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
 
 - `common/src/main/java/com/shilapi/xcertplay/DiPlayActivity.kt`:
   TiPlay adds `SettingsSection.TESLA_BROWSER` and its category, `headUnitOnlySections`, `showsSection()`, the Tesla
-  browser card, the car Bluetooth sound control, phone-mode gates and TiPlay report names.
+  browser card, the car Bluetooth sound control, `CarButtonDefaults` in the car button card, phone-mode gates, the
+  `TeslaBrowserLink.sync()` and `HotspotExtraAddressSettings.sync()` calls in `onCreate` and `onResume`, and TiPlay
+  report names.
   Keep upstream's new sections and controls, and keep TiPlay's entries next to them.
   The start-with-car and USB controls of the `SettingsSection.AUTOMATIC_CONNECTION` card are inside
   `if (!AirPlayPersistence.isPhoneBrowserMode(this))`.
@@ -89,13 +97,15 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
   again. `git diff -w` ignores the change of indentation.
 - `common/src/main/java/com/shilapi/xcertplay/CarPlayHostActivity.kt`:
   TiPlay changes the accessory name, serial prefix and label to TiPlay, and adds the `headUnitIntegrations()` and
-  `clusterMapEnabled()` gates, `browserLinkHost` and `phoneBrowserAirPlayConfig()`.
+  `clusterMapEnabled()` gates, `browserLinkHost`, `phoneBrowserAirPlayConfig()`, the `receivesAudio` parameter of the
+  media sink and engine, and the `TeslaBrowserLink` calls (`attachHost`, `detachHost`, `tee`, `releaseTap`).
   `phoneBrowserAirPlayConfig()` repeats the `AirPlayConfig(...)` call of `createAirPlayConfig()`.
   When upstream adds a field there, git shows no conflict. Add the field to `phoneBrowserAirPlayConfig()` too.
 - `common/src/main/java/com/shilapi/xcertplay/DiPlaySessionService.kt`:
   TiPlay takes the notification title from `R.string.app_name`, leaves out the microphone service type for car
   Bluetooth sound, and calls `PhoneBrowserLocks`, `TeslaBrowserLink` and `HotspotExtraAddressSettings` in
   `onStartCommand`, `onDestroy` and `onTaskRemoved`. Keep these calls after upstream's changes.
+  `onDestroy()` is TiPlay's own override. If upstream adds one too, merge the two bodies into one function.
 - `common/src/main/java/com/shilapi/xcertplay/AirPlayPersistence.kt`:
   TiPlay adds the `run_mode` and `car_bluetooth_audio` keys with their load and save functions, and sets
   `DEFAULT_MANUFACTURER` and `DEFAULT_MODEL` to TiPlay. Keep the keys of both sides. Each key string must stay unique.
@@ -111,6 +121,12 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
   every `BydNavigationOutputs` call, the car's home screen and the Wi-Fi scan pause are inside
   `if (config.headUnitIntegrations)`. Gate new upstream calls of this kind in the same way.
   `CarPlayRuntimeConfig.kt` in the same folder adds `CarPlayRunMode` and `headUnitIntegrations`.
+- Smaller hooks:
+  - `shared/src/main/java/com/shilapi/xcertplay/hud/BydNavigationOutputs.kt`: `onAppOpened()` takes
+    `headUnitIntegrations`.
+  - `shared/src/main/java/com/shilapi/xcertplay/media/AndroidMediaSink.kt`: `videoWidth` and `videoHeight` are public.
+  - `shared/src/main/java/com/shilapi/xcertplay/network/ManualHotspotManager.kt`: calls `manualHotspotHostAddresses()`.
+  - `common/src/main/java/com/shilapi/xcertplay/NavigationWidget.kt`: shows `R.string.app_name`.
 - Files with TiPlay in a user-visible text or an application ID, for example
   `shared/src/main/java/com/shilapi/xcertplay/network/LocalOnlyHotspotManager.kt` (the `TiPlay-` hotspot name),
   `common/src/main/java/com/shilapi/xcertplay/DiagnosticExportStore.kt` (Downloads/TiPlay) and
@@ -137,6 +153,7 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
   `mobile/src/main/res/values/strings.xml`: TiPlay changed only the text, from DiPlay to TiPlay.
   Take upstream's text, then write TiPlay where it says DiPlay. Do not change the `name` attribute.
   The About credit (`receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay`) keeps TiPlay's text, which credits DiPlay.
+  If upstream changes this credit, for example to name a new library, make the same change in TiPlay's text.
 
 ### Documents and site
 
@@ -147,13 +164,20 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
   issue numbers. Add a line to the TiPlay section that names the merged DiPlay version.
 - `AGENTS.md`: take upstream's rule changes. Keep the TiPlay name, the page-test note, the Connection examples and the
   Naming and Upstream sections.
-- `docs/RELEASE-NOTES-NEXT.md`: take upstream's entries, and link their issue numbers to DiPlay (section 5).
-  When DiPlay releases, it renames this file to `RELEASE-NOTES-0.2.<n>.md`. Keep the released file as upstream wrote it,
-  and keep TiPlay's sections in `docs/RELEASE-NOTES-NEXT.md`.
+- `docs/RELEASE-NOTES-NEXT.md`: keep TiPlay's title, first paragraph and sections. Take upstream's new entries, and
+  link their issue numbers to DiPlay (section 5).
+  When DiPlay releases, it adds `docs/RELEASE-NOTES-0.2.<n>.md` with the released entries, and changes the first
+  paragraph of `docs/RELEASE-NOTES-NEXT.md` to link to it. Take the new file as upstream wrote it. In TiPlay's first
+  paragraph, change only the DiPlay version and the link. Remove the upstream entries that the release moved out of
+  `docs/RELEASE-NOTES-NEXT.md`, and keep TiPlay's sections.
 - Guides in `docs/`, such as `docs/BUILD.md`, `docs/INSTALL.md` and `docs/CONNECTION_SETUP.md`:
   take upstream's text, then rename as in section 5.
+  Also keep the sentences that TiPlay added or rewrote, such as the download, package and tag lines in
+  `docs/BUILD.md` and `docs/INSTALL.md` and the TiPlay section of `docs/THIRD_PARTY_NOTICES.md`.
+  `git diff "$base" origin/main -- <file>` shows them.
 - `site/content.json` and `scripts/build_site.py`: TiPlay text, TiPlay links and no Telegram card.
-  Resolve them as text, and take upstream's `VERSION`. Do not add the upstream Telegram keys again.
+  Resolve them as text, and take upstream's `VERSION`. Keep TiPlay's `BASE`, `REPO`, `RELEASE` and `DOWNLOAD`, which
+  point to TiPlay's site and releases. Do not add the upstream Telegram keys again.
   Do not merge the generated `index.html` pages by hand. Generate them again and add them:
 
   ```sh
@@ -178,6 +202,13 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
 - Upstream adds a preference key that TiPlay already uses in `xcertplay_airplay` (`run_mode`, `car_bluetooth_audio`).
   Nothing fails, but both features read the same value. Rename the TiPlay key.
 - Upstream adds a field to `AirPlayConfig` in `createAirPlayConfig()`. Add it to `phoneBrowserAirPlayConfig()`.
+- Upstream adds an `AirPlayPersistence.loadClusterMapEnabled(this)` check to `CarPlayHostActivity`.
+  Use `clusterMapEnabled()` there instead, so that phone + browser mode shows no dashboard map.
+- Upstream adds a place in `CarPlayHostActivity` that retires the sink (`oldSink?.let(retiringSinks::add)`).
+  Add `oldSink?.let(TeslaBrowserLink::releaseTap)` after it, so that the car's browser waits for the next session.
+- Upstream changes `.github/workflows/pages.yml` or the files in `site/`.
+  The same Pages site also serves TiPlay's browser page, so check that the page still opens at
+  `TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS`.
 - Upstream adds head-unit behavior. Gate it as described in section 9.
 - Upstream adds a locale folder. Add TiPlay's `strings_*.xml` files to it, translated.
 
@@ -187,21 +218,25 @@ If the hook no longer fits, change the TiPlay file that the hook calls, not upst
 
    ```sh
    git diff -U0 HEAD^1 HEAD |
-     awk '/^\+\+\+ /{f=$2} /^\+[^+]/ && /DiPlay|com\.shihab\.diplay/{print f": "$0}'
+     awk '/^\+\+\+ /{f=$2} /^\+[^+]/ && /(DiPlay|DIPLAY)([^A-Za-z0-9_]|$)|com\.shihab\.diplay/{print f": "$0}'
    ```
 
    Run it right after the merge commit. `HEAD^1` is TiPlay's `main` before the merge, so the list shows only the lines
    that the merge brought in, each after its file name.
+   The pattern skips identifiers that only start with the name, such as `DiPlayActivity` and `DIPLAY_AUTH_ASSETS_DIR`.
+   It still lists `DIPLAY` in upper case, which upstream uses in the headings of `docs/CONNECTION_SETUP.md`.
 2. Write TiPlay where a user can see the name: string resources in all locales, Kotlin texts that a user sees
    (notifications, dialogs, toasts, the iPhone's accessory name, hotspot and file names), guides, `site/content.json`
    and the issue templates.
 3. `com.shihab.diplay` as an application ID, for example in a package name check, becomes `com.ujzk.tiplay`.
-   `com.shihab.diplay` as the start of an intent action stays (section 7).
+   A test that fakes the app's package for such a check changes with it, as in `BydOptionalOutputSettingsTest`.
+   `com.shihab.diplay` as the start of an intent action stays (section 7), and so does a package name that a test
+   passes only as sample input, as in `AdbClusterRouterTest`.
 4. Keep DiPlay in historical records: `docs/RELEASE-NOTES-0.2.*.md`, past `CHANGELOG.md` entries, audit, review and
    validation records such as `docs/VALIDATION.md` and `docs/ISSUE-AUDIT-2026-10-03.md`, the upstream README copies
    `docs/UPSTREAM-README.md` and `docs/UPSTREAM-README.zh-CN.md`, and every credit to DiPlay.
 5. Keep DiPlay in Kotlin comments and KDoc, and in the internal names of section 7.
-6. A bare issue number such as `#400` in a TiPlay guide points to TiPlay's tracker.
+6. A bare issue number such as `#400` in a TiPlay guide reads as a TiPlay issue.
    Write it as a link to the upstream issue, for example `https://github.com/shihabal3amri/DiPlay/issues/400`.
    Past `CHANGELOG.md` entries keep bare numbers.
 7. Run the brand test:
@@ -279,6 +314,8 @@ TiPlay starts in the phone + browser run mode. A merge must not change that.
   This includes BYD outputs, the HUD and dashboard, wheel keys, ADB, start with the car, the car's home screen and
   vehicle data. Gate it with `config.headUnitIntegrations` in `CarPlayController`, with `headUnitIntegrations()` in
   `CarPlayHostActivity`, and with `AirPlayPersistence.isPhoneBrowserMode()` elsewhere.
+  Code that can run during a session passes the session's controller, as `CarPlayCallKeys` and `WheelKeyService` do,
+  so that a running session keeps the mode it connected with.
 - A new Settings card for head-unit hardware goes into `SettingsInformationArchitecture.headUnitOnlySections`.
 - An upstream test that expects head-unit behavior can fail in the default mode. Call `useHeadUnitMode()` in its setup
   (`common/src/test/java/com/shilapi/xcertplay/HeadUnitRunMode.kt`). Do not change the default to make a test pass.
@@ -301,3 +338,4 @@ TiPlay starts in the phone + browser run mode. A merge must not change that.
 - [ ] The CI command, the page tests and the public tree check pass.
 - [ ] A fresh install starts in phone + browser mode.
 - [ ] `main` moved forward to the branch and was pushed to `origin` only.
+- [ ] After the Pages deploy, the browser page opens at `TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS`.
