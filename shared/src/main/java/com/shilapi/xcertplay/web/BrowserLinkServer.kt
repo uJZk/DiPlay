@@ -30,10 +30,13 @@ import java.util.concurrent.atomic.AtomicInteger
  * - `GET /video` streams [WebVideoRecords] from [hub] as a close-delimited body (no length, no chunking).
  * - `POST /control` applies touch, viewport and key events in order and answers with the link status.
  * - `POST /bye` ends a session.
+ * - `GET /` and `GET /play` redirect to `/play/`; `GET /play/` and `GET /play/<file>` serve the bundled page from
+ *   [assets] (protocol §7.2), without a pairing code, for browsers that cannot use the public HTTPS page.
  *
- * The page comes from a public HTTPS origin, so every response carries CORS headers and preflights are answered,
- * including Private Network Access. Only an IPv4 literal or `localhost` is accepted as `Host` (DNS-rebinding
- * defence); any origin is accepted because the pairing code is the access control ([BrowserPairingGate]).
+ * The page usually comes from a public HTTPS origin, so every response carries CORS headers and preflights are
+ * answered, including Private Network Access. Only an IPv4 literal or `localhost` is accepted as `Host`
+ * (DNS-rebinding defence); any origin is accepted because the pairing code is the access control
+ * ([BrowserPairingGate]).
  *
  * A server starts once; [stop] closes every connection.
  */
@@ -43,6 +46,11 @@ class BrowserLinkServer(
     private val bindAddress: String = "0.0.0.0",
     private val port: Int = DEFAULT_PORT,
     private val nowMillis: () -> Long = { System.nanoTime() / 1_000_000 },
+    /**
+     * The bundled page's files by name (`index.html`, `app.js`, …; never a path), or null when the phone serves no
+     * page. Called on server threads with a validated name; null or an exception answers `404`.
+     */
+    private val assets: ((String) -> ByteArray?)? = null,
 ) {
     /** What the server needs from the app. Called on server threads; implementations must not block. */
     interface Callbacks {
@@ -211,6 +219,12 @@ class BrowserLinkServer(
         val host = request.headers["host"]
         if (!isIpv4Host(host) && !isLocalhost(host)) return respond(output, request, refuse(421, "host"))
         if (request.method == "OPTIONS") return respond(output, request, preflight(request))
+        page(request)?.let {
+            // A browser loads the page over several connections and keeps them open. Idle, they would count against
+            // MAX_CONNECTIONS, and the page's own /video, /control or /bye would then be refused as busy.
+            write(output, request, it, keepAlive = false)
+            return false
+        }
         val method = ROUTES[request.path] ?: return respond(output, request, refuse(404, "not-found"))
         if (request.method != method) {
             return respond(output, request, refuse(405, "method", listOf("Allow" to "$method, OPTIONS")))
@@ -237,6 +251,26 @@ class BrowserLinkServer(
             headers += "Access-Control-Allow-Private-Network" to "true"
         }
         return Response(204, headers = headers)
+    }
+
+    /** The bundled page (protocol §7.2), or null when [request] is not for it. No pairing code: the files are public. */
+    private fun page(request: Request): Response? {
+        val path = request.path
+        if (path != "/" && path != "/play" && !path.startsWith(PAGE_PREFIX)) return null
+        if (request.method != "GET") return refuse(405, "method", listOf("Allow" to "GET, OPTIONS"))
+        val loader = assets ?: return refuse(404, "not-found")
+        if (path == "/" || path == "/play") return Response(302, headers = listOf("Location" to PAGE_PREFIX))
+        // One plain file name: no separators, no dot segments, no escapes, so nothing can leave the page directory.
+        val name = path.substring(PAGE_PREFIX.length).ifEmpty { "index.html" }
+        if (!PAGE_FILE_PATTERN.matches(name) || ".." in name) return refuse(404, "not-found")
+        val type = PAGE_TYPES[name.substringAfterLast('.')] ?: return refuse(404, "not-found")
+        val body = try {
+            loader(name)
+        } catch (_: Exception) {
+            null
+        } ?: return refuse(404, "not-found")
+        performance.count("pageFiles")
+        return Response(200, type, body, listOf("Cache-Control" to "no-cache", "Content-Security-Policy" to PAGE_POLICY))
     }
 
     private fun streamVideo(request: Request, socket: Socket, output: OutputStream): Boolean {
@@ -546,7 +580,9 @@ class BrowserLinkServer(
         request?.headers?.get("origin")?.takeIf { origin -> origin.isNotEmpty() && origin.all { it in '!'..'~' } }?.let {
             text.append("Access-Control-Allow-Origin: ").append(it).append("\r\nVary: Origin\r\n")
         }
-        text.append("Cache-Control: no-store\r\nX-Content-Type-Options: nosniff\r\n")
+        // The page's files may be cached but must be revalidated; everything else is never stored.
+        if (headers.none { it.first.equals("Cache-Control", ignoreCase = true) }) text.append("Cache-Control: no-store\r\n")
+        text.append("X-Content-Type-Options: nosniff\r\n")
         headers.forEach { (name, value) -> text.append(name).append(": ").append(value).append("\r\n") }
         return text.append("\r\n").toString().toByteArray(Charsets.ISO_8859_1)
     }
@@ -616,6 +652,24 @@ class BrowserLinkServer(
         private val HEADER_NAME_PATTERN = Regex("[a-z0-9-]{1,48}")
         private val KEYS = setOf("home", "back", "siri")
         private val ROUTES = mapOf("/hello" to "GET", "/video" to "GET", "/control" to "POST", "/bye" to "POST")
+        private const val PAGE_PREFIX = "/play/"
+        private val PAGE_FILE_PATTERN = Regex("[A-Za-z0-9][A-Za-z0-9._-]{0,63}")
+        /** The page's file types; any other file is not served, so a stray file in the bundle stays private. */
+        internal val PAGE_TYPES = mapOf(
+            "html" to "text/html; charset=utf-8",
+            "js" to "text/javascript; charset=utf-8",
+            "css" to "text/css; charset=utf-8",
+            "svg" to "image/svg+xml",
+            "json" to "application/json",
+            "webmanifest" to "application/manifest+json",
+        )
+        /**
+         * The served page's policy: only its own files run. `connect-src http:` lets it reach a phone address the
+         * driver typed (CSP cannot express IP ranges); `media-src blob:` is for the MSE fallback's object URL.
+         */
+        internal const val PAGE_POLICY = "default-src 'self'; connect-src 'self' http:; media-src 'self' blob:; " +
+            "img-src 'self' data:; style-src 'self'; script-src 'self'; worker-src 'self'; object-src 'none'; " +
+            "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
         private val RECORD_NAMES = mapOf(
             WebVideoRecords.KIND_CONFIG to "configRecords",
             WebVideoRecords.KIND_FRAME to "frameRecords",
@@ -623,7 +677,7 @@ class BrowserLinkServer(
             WebVideoRecords.KIND_END to "endRecords",
         )
         private val REASONS = mapOf(
-            200 to "OK", 204 to "No Content", 400 to "Bad Request", 401 to "Unauthorized", 404 to "Not Found",
+            200 to "OK", 204 to "No Content", 302 to "Found", 400 to "Bad Request", 401 to "Unauthorized", 404 to "Not Found",
             405 to "Method Not Allowed", 409 to "Conflict", 421 to "Misdirected Request", 429 to "Too Many Requests",
             503 to "Service Unavailable",
         )

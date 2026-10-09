@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_link_listening">Listo para el navegador del coche en el puerto %1$d.</string>
+    <string name="settings_browser_link_starting">Iniciando el enlace con el navegador del coche…</string>
+    <string name="settings_browser_link_port_in_use">Otra app está usando el puerto %1$d, así que el navegador del coche no puede conectarse. TiPlay lo sigue intentando.</string>
+    <string name="settings_browser_link_failed">No se pudo iniciar el enlace con el navegador del coche. TiPlay lo sigue intentando.</string>
+    <string name="settings_browser_link_stopped">El enlace con el navegador del coche no está activo.</string>
+    <string name="settings_browser_local_network_granted">Acceso a la red local: permitido.</string>
+    <string name="settings_browser_local_network_denied">El acceso a la red local no está permitido, así que ni el navegador del coche ni el iPhone pueden llegar a TiPlay.</string>
+    <string name="settings_browser_local_network_allow">Permitir el acceso a la red local</string>
+    <string name="settings_browser_page_address">Dirección de la página</string>
+    <string name="settings_browser_page_address_hint">La dirección HTTPS de la página de TiPlay. Cámbiala solo si publicas la página tú mismo. Se usa en el próximo enlace que abras.</string>
+    <string name="settings_browser_page_address_invalid">Introduce una dirección que empiece por https:// y no contenga #.</string>
+    <string name="settings_browser_pairing_code">Código de emparejamiento</string>
+    <string name="settings_browser_pairing_code_description">El navegador del coche necesita el código %1$s para mostrar CarPlay. Los enlaces de abajo lo incluyen, así que basta con abrir un enlace para emparejar el navegador. Un código nuevo desconecta el navegador que usa el anterior; abre el enlace nuevo para emparejarlo otra vez.</string>
+    <string name="settings_browser_pairing_code_new">Código nuevo</string>
+    <string name="settings_browser_link_car">Abre este enlace en el navegador del coche (Tesla y otros navegadores Chromium):</string>
+    <string name="settings_browser_link_other">Para otros navegadores, como Safari y Firefox, abre este enlace en un dispositivo conectado al punto de acceso de este teléfono:</string>
+    <string name="settings_browser_link_copy">Copiar enlace</string>
+    <string name="settings_browser_link_copied">Enlace copiado</string>
+</resources>

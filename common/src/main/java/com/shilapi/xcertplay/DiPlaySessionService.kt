@@ -15,9 +15,11 @@ import com.shilapi.xcertplay.host.R
 
 /** Keeps an explicitly started connection alive when another car app is in the foreground. */
 class DiPlaySessionService : Service() {
+    private val phoneBrowserLocks by lazy { PhoneBrowserLocks(this) }
     override fun onBind(intent: Intent?): IBinder? = null
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
+            phoneBrowserLocks.release()
             CarPlayBackgroundSession.stop()
             stopSelf()
             return START_NOT_STICKY
@@ -49,13 +51,19 @@ class DiPlaySessionService : Service() {
             startForeground(1, notification, types)
         } else startForeground(1, notification)
         HotspotExtraAddressSettings.sync(this) // phone + browser mode: keep the car browser's hotspot address
+        TeslaBrowserLink.sync(this)
+        // Phone + browser mode: the car's browser keeps its video with the phone's screen off.
+        phoneBrowserLocks.update(TeslaBrowserLink.wanted(this))
         return START_NOT_STICKY
     }
     override fun onDestroy() {
+        phoneBrowserLocks.release()
         HotspotExtraAddressSettings.onSessionServiceStopped(this) // keeps the address for the car's page
+        TeslaBrowserLink.sync(this) // keeps the link for the car's page unless the run mode changed meanwhile
         super.onDestroy()
     }
     override fun onTaskRemoved(rootIntent: Intent?) {
+        phoneBrowserLocks.release()
         // BYD's recents force-stops the package ~10 ms after removing the task: end guidance first.
         com.shilapi.xcertplay.hud.BydNavigationOutputs.endNow()
         CarPlayBackgroundSession.stop()

@@ -69,6 +69,23 @@ class WebMediaSinkTest {
         assertNull(hub.info())
     }
 
+    /** restartCarPlay closes the old sink at once; its stack closes later and its screen can still come up meanwhile. */
+    @Test fun aClosedSinkNeverTakesTheHubAgain() {
+        val old = WebMediaSink(hub, 1182, 920, 60)
+        old.close()
+        old.onScreenStreamActive(110, true)
+        old.onVideoCodec(110, VideoCodec.H264)
+        old.onVideoConfig(110, avcc)
+        assertNull("A retired session's late screen starts no stream", hub.info())
+
+        val next = WebMediaSink(hub, 1280, 720, 60)
+        next.onScreenStreamActive(110, true)
+        next.onVideoCodec(110, VideoCodec.H264)
+        next.onVideoConfig(110, avcc)
+        old.onScreenStreamActive(110, true)
+        assertEquals("The next session keeps the hub", WebVideoHub.StreamInfo(1280, 720, 60, "avc1.640028", 1), hub.info())
+    }
+
     @Test fun configBeforeTheCodecIsIgnored() {
         val sink = WebMediaSink(hub, 1182, 920, 60)
         sink.onScreenStreamActive(110, true)

@@ -171,8 +171,8 @@ internal class AudioFocusCoordinator(
  */
 class AndroidMediaSink(
     surface: Surface? = null,
-    private val videoWidth: Int = 1280,
-    private val videoHeight: Int = 720,
+    val videoWidth: Int = 1280,
+    val videoHeight: Int = 720,
     private val preferSoftwareHevcDecoder: Boolean = false,
     private val advancedAudioChannelMapping: Boolean = false,
     private val audioFocusEnabled: Boolean = false,

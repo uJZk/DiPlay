@@ -47,3 +47,35 @@ dependencies {
     testImplementation("org.mockito:mockito-core:5.20.0")
     testImplementation(libs.jmdns)
 }
+
+// TiPlay: the phone serves a copy of the browser page (site/play/) to browsers that cannot use the HTTPS page
+// (TeslaBrowserLink, protocol §7.2). The copy is generated from the page sources at build time, into assets/play/;
+// never commit one under src/.
+abstract class BundleBrowserPage : DefaultTask() {
+    @get:InputDirectory
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val page: DirectoryProperty
+
+    @get:OutputDirectory
+    abstract val outputDirectory: DirectoryProperty
+
+    @get:javax.inject.Inject
+    abstract val files: FileSystemOperations
+
+    @TaskAction
+    fun bundle() {
+        files.sync {
+            from(page)
+            into(outputDirectory.dir("play"))
+        }
+    }
+}
+
+androidComponents {
+    onVariants { variant ->
+        val bundle = tasks.register<BundleBrowserPage>("bundle${variant.name.replaceFirstChar(Char::uppercaseChar)}BrowserPage") {
+            page.set(rootProject.layout.projectDirectory.dir("site/play"))
+        }
+        variant.sources.assets?.addGeneratedSourceDirectory(bundle, BundleBrowserPage::outputDirectory)
+    }
+}

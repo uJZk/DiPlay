@@ -27,6 +27,8 @@ class CarPlayHostResolutionTest {
 
     @Before fun setUp() {
         activity = Robolectric.buildActivity(CarPlayHostActivity::class.java).get()
+        // The head unit's display options; phone + browser mode sizes the canvas from the car's browser instead.
+        useHeadUnitMode(activity)
         set("airPlayIdentity", AirPlayIdentity.generate())
         set("hevcEnabled", false)
         ShadowMediaCodecList.reset()

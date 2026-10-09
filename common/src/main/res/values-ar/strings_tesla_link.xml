@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_link_listening">جاهز لمتصفح السيارة على المنفذ %1$d.</string>
+    <string name="settings_browser_link_starting">جارٍ تشغيل الاتصال بمتصفح السيارة…</string>
+    <string name="settings_browser_link_port_in_use">يستخدم تطبيق آخر المنفذ %1$d، لذا لا يستطيع متصفح السيارة الاتصال. يواصل TiPlay المحاولة.</string>
+    <string name="settings_browser_link_failed">تعذّر تشغيل الاتصال بمتصفح السيارة. يواصل TiPlay المحاولة.</string>
+    <string name="settings_browser_link_stopped">الاتصال بمتصفح السيارة لا يعمل.</string>
+    <string name="settings_browser_local_network_granted">الوصول إلى الشبكة المحلية: مسموح.</string>
+    <string name="settings_browser_local_network_denied">الوصول إلى الشبكة المحلية غير مسموح، لذا لا يستطيع متصفح السيارة ولا iPhone الوصول إلى TiPlay.</string>
+    <string name="settings_browser_local_network_allow">السماح بالوصول إلى الشبكة المحلية</string>
+    <string name="settings_browser_page_address">عنوان الصفحة</string>
+    <string name="settings_browser_page_address_hint">عنوان HTTPS لصفحة TiPlay. غيّره فقط إذا كنت تنشر الصفحة بنفسك. يُستخدم في الرابط التالي الذي تفتحه.</string>
+    <string name="settings_browser_page_address_invalid">أدخل عنوانًا يبدأ بـ https:// ولا يحتوي على #.</string>
+    <string name="settings_browser_pairing_code">رمز الإقران</string>
+    <string name="settings_browser_pairing_code_description">يحتاج متصفح السيارة إلى الرمز %1$s لعرض CarPlay. تتضمن الروابط أدناه هذا الرمز، لذا يكفي فتح رابط لإقران المتصفح. يقطع الرمز الجديد اتصال المتصفح الذي يستخدم الرمز القديم؛ افتح الرابط الجديد لإقرانه من جديد.</string>
+    <string name="settings_browser_pairing_code_new">رمز جديد</string>
+    <string name="settings_browser_link_car">افتح هذا الرابط في متصفح السيارة (تسلا ومتصفحات Chromium الأخرى):</string>
+    <string name="settings_browser_link_other">للمتصفحات الأخرى مثل Safari وFirefox، افتح هذا الرابط على جهاز متصل بنقطة اتصال هذا الهاتف:</string>
+    <string name="settings_browser_link_copy">نسخ الرابط</string>
+    <string name="settings_browser_link_copied">تم نسخ الرابط</string>
+</resources>

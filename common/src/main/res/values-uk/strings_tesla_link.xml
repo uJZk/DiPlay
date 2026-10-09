@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_link_listening">Браузер автомобіля може підключитися через порт %1$d.</string>
+    <string name="settings_browser_link_starting">Запуск зв’язку з браузером автомобіля…</string>
+    <string name="settings_browser_link_port_in_use">Порт %1$d зайнятий іншим застосунком, тому браузер автомобіля не може підключитися. TiPlay продовжує спроби.</string>
+    <string name="settings_browser_link_failed">Не вдалося запустити зв’язок із браузером автомобіля. TiPlay продовжує спроби.</string>
+    <string name="settings_browser_link_stopped">Зв’язок із браузером автомобіля не запущено.</string>
+    <string name="settings_browser_local_network_granted">Доступ до локальної мережі: дозволено.</string>
+    <string name="settings_browser_local_network_denied">Доступ до локальної мережі не дозволено, тому ні браузер автомобіля, ні iPhone не можуть підключитися до TiPlay.</string>
+    <string name="settings_browser_local_network_allow">Дозволити доступ до локальної мережі</string>
+    <string name="settings_browser_page_address">Адреса сторінки</string>
+    <string name="settings_browser_page_address_hint">HTTPS-адреса сторінки TiPlay. Змінюйте її, лише якщо публікуєте сторінку самостійно. Застосовується до наступного відкритого посилання.</string>
+    <string name="settings_browser_page_address_invalid">Введіть адресу, що починається з https:// і не містить #.</string>
+    <string name="settings_browser_pairing_code">Код сполучення</string>
+    <string name="settings_browser_pairing_code_description">Браузеру автомобіля потрібен код %1$s, щоб показати CarPlay. Посилання нижче вже містять його, тож для сполучення достатньо відкрити посилання. Новий код від’єднує браузер, який використовує старий; відкрийте нове посилання, щоб знову виконати сполучення.</string>
+    <string name="settings_browser_pairing_code_new">Новий код</string>
+    <string name="settings_browser_link_car">Відкрийте це посилання в браузері автомобіля (Tesla та інші браузери на Chromium):</string>
+    <string name="settings_browser_link_other">Для інших браузерів, як-от Safari і Firefox, відкрийте це посилання на пристрої, підключеному до точки доступу цього телефона:</string>
+    <string name="settings_browser_link_copy">Копіювати посилання</string>
+    <string name="settings_browser_link_copied">Посилання скопійовано</string>
+</resources>

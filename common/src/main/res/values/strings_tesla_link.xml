@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_link_listening">Ready for the car’s browser on port %1$d.</string>
+    <string name="settings_browser_link_starting">Starting the link for the car’s browser…</string>
+    <string name="settings_browser_link_port_in_use">Port %1$d is in use by another app, so the car’s browser cannot connect. TiPlay keeps trying.</string>
+    <string name="settings_browser_link_failed">The link for the car’s browser could not start. TiPlay keeps trying.</string>
+    <string name="settings_browser_link_stopped">The link for the car’s browser is not running.</string>
+    <string name="settings_browser_local_network_granted">Local network access: allowed.</string>
+    <string name="settings_browser_local_network_denied">Local network access is not allowed, so the car’s browser and the iPhone cannot reach TiPlay.</string>
+    <string name="settings_browser_local_network_allow">Allow local network access</string>
+    <string name="settings_browser_page_address">Page address</string>
+    <string name="settings_browser_page_address_hint">The HTTPS address of the TiPlay page. Change it only if you publish the page yourself. The next link you open uses it.</string>
+    <string name="settings_browser_page_address_invalid">Enter an address that starts with https:// and has no #.</string>
+    <string name="settings_browser_pairing_code">Pairing code</string>
+    <string name="settings_browser_pairing_code_description">The car’s browser needs the code %1$s to show CarPlay. The links below include it, so opening a link pairs the browser. A new code disconnects the browser that uses the old one; open the new link to pair it again.</string>
+    <string name="settings_browser_pairing_code_new">New code</string>
+    <string name="settings_browser_link_car">Open this link in the car’s browser (Tesla and other Chromium browsers):</string>
+    <string name="settings_browser_link_other">For other browsers, such as Safari and Firefox, open this link on a device on this phone’s hotspot:</string>
+    <string name="settings_browser_link_copy">Copy link</string>
+    <string name="settings_browser_link_copied">Link copied</string>
+</resources>

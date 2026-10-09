@@ -47,3 +47,57 @@ Each check prints one `ok -` line, and the script ends with `all checks passed` 
     ends that `<video>` with a decode error; the page reconnects with a new media element and plays again.
 12. Without MSE as well, the page disables Connect and names what is missing.
 13. Before the browser starts, ffmpeg (libx264) checks that H.264 access units muxed by `fmp4.js` decode frame for frame.
+
+## Real phone side (`phone-run.mjs`)
+
+`phone-run.mjs` checks the app's own phone side instead of the fake phone. `RealPhone.java` runs the compiled `:shared`
+classes the way a phone + browser session wires them: `BrowserLinkServer` with an asset loader over the page directory
+(as the app does over its bundled `assets/play/`), and a `WebVideoHub` fed through `VideoTeeMediaSink` → `WebMediaSink`
+with an H.264 Annex-B clip. Headless Chromium then opens the page that this server serves. CI does not run it.
+
+This Chromium cannot decode H.264, so the script checks the transport and the page's messages, then repeats with a
+`VideoDecoder` stand-in inside the decoder worker that checks every chunk and outputs a plain frame.
+
+### Requirements
+
+- Node 22, `playwright-core` and Chromium as above; a JDK 17 or later as `java` (or set `JAVA`).
+- The compiled `:shared` classes. Any Gradle build of the AGENTS.md CI set produces them; on their own:
+  `./gradlew :shared:compileDebugKotlin`. Set `SHARED_CLASSES` if they are elsewhere.
+- The Kotlin standard library of the version in `gradle/libs.versions.toml`, found in the Gradle cache (set
+  `KOTLIN_STDLIB` to the jar otherwise).
+- Optional: `ffmpeg` with libx264 for a real clip; without it `RealPhone.java` streams hand-made SPS/PPS and slices.
+- `PAGE_DIR` serves another copy of the page, for example the APK's: `common/build/generated/assets/bundleDebugBrowserPage/play`.
+
+### Run
+
+```sh
+NODE_PATH=/tmp/pw/node_modules node tests/web-e2e/phone-run.mjs
+```
+
+### What it checks
+
+1. `GET /` answers `302` to `/play/`; the page's files have their types, `no-cache`, `nosniff` and the page policy;
+   `/hello` keeps `no-store`; a foreign `Host` gets `421`.
+2. Loopback (a secure context): `/` keeps `#c=` through the redirect, the page stores the code and removes the fragment,
+   takes the Tesla path (worker), opens `/video` with the code, gets the config record (codec and canvas), says
+   "This browser cannot decode H.264.", reports its viewport (CSS × DPR), sends a `/control` heartbeat every 400 ms and
+   a stats event, and registers its Service Worker under the served policy.
+3. The LAN address (not a secure context; Chromium is told to treat it as a local address, as a hotspot address is):
+   the MSE rung with the same message, a `targetAddressSpace: "local"` fetch to the phone works, and the served policy
+   lets a `<video>` open a `MediaSource` object URL.
+4. With the decoder stand-in: the page's `dec` reaches the session's diagnostic handler as `first frame rendered`; key
+   frames arrive as SPS, PPS and IDR slices with 4-byte start codes; a tap at 25 % / 75 % reaches `onTouch` as both
+   slots, normalized; the page's stats event has every field of the app's `Browser:` session log line;
+   "Apply and reconnect" reaches `onFit`; after a decoder error the page's `kf` reaches the session's recovery handler;
+   after a new session (the old tap closed, and its screen coming up late) the page decodes the new session's epoch;
+   leaving the page sends `/bye`.
+5. The page from another origin (a static server, as the car opens the public HTTPS page) with `#h=`: it decodes a new
+   session and its `dec` reaches that session, the phone echoes the page's origin with `Vary: Origin` and `no-store`
+   on `/hello`, `/video` and `/control`, and a tap reaches `onTouch`.
+6. In every run: all requests go to the page's own origin (the phone's, for the page the phone serves), only `/video`
+   carries the code in its URL, no request sends a `Referer`, there are no CSP violations or page errors, and the phone
+   never answers busy. The phone side never logs the code or a page session id.
+
+The script removes its Playwright request routes before it leaves the page: Playwright's interception can drop a
+`keepalive` request of a page that is going away, which looked like a lost `/bye`.
+

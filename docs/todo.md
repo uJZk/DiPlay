@@ -79,10 +79,14 @@
     `https://` 打到 8080 端口时手机收到了 TLS 握手；ICE-TCP 连接也到达了。
   - 没有弹出"本地网络访问"授权提示。`ws://` 没有到达手机（被浏览器拦截）。
 - [ ] 确认 iPhone 发来的码流格式：在诊断日志中记录配置头的格式标记（`avcC`/`hvcC`/其他）。
-- [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 HTTP 响应流送给浏览器；浏览器在 Worker 里用 `fetch` 读取，用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
+  代码已完成：会话日志每种配置记一行 `Video config marker=… codec=…`；待真机报告确认。
+- [x] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 HTTP 响应流送给浏览器；浏览器在 Worker 里用 `fetch` 读取，用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
   分辨率按浏览器上报的视口 × DPR 协商，60 fps。
-- [ ] 网络：按下面"热点地址"和"传输层"的决定实现。
-- [ ] 触摸：Pointer Events 多点触控，每次 `requestAnimationFrame` 合并发送一次，换算后调用 `CarPlayController.sendTouch`。
+  代码已完成（`TeslaBrowserLink`、`TeslaBrowserCanvas`，在 `CarPlayHostActivity` 的 `createMediaEngine` 分出视频），实车测试见 [TESLA_BROWSER.md](TESLA_BROWSER.md) 的清单。
+- [x] 网络：按下面"热点地址"和"传输层"的决定实现。
+  代码已完成：手机在所有 IPv4 地址的 8080 端口提供协议接口，也提供自带的页面副本（`http://<地址>:8080/play/`，给其他浏览器）；端口被占用时退避重试；Android 17 申请本地网络权限；连接期间持有唤醒锁和低延迟 Wi-Fi 锁。实车测试待做。
+- [x] 触摸：Pointer Events 多点触控，每次 `requestAnimationFrame` 合并发送一次，换算后调用 `CarPlayController.sendTouch`。
+  代码已完成（页面 `site/play/`，手机端 `BrowserTouchSlots` → `CarPlayController.sendTouch`；Home、返回和 Siri 键也已接通）。实车测试待做。
 
 ## 已定的决定
 

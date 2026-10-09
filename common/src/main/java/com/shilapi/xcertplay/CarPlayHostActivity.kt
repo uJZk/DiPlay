@@ -197,6 +197,17 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun clusterMapEnabled(): Boolean = headUnitIntegrations() && AirPlayPersistence.loadClusterMapEnabled(this)
 
+    // Phone + browser mode: the car browser's link logs into this session and asks it to fit the browser's size.
+    // The page's button says "Apply and reconnect", which is the driver's consent to reconnect (AGENTS.md).
+    private val browserLinkHost = object : TeslaBrowserLink.Host {
+        override fun log(message: String) = AsyncDiagnosticLog.append(sessionLog, message)
+        override fun onBrowserFit() {
+            val running = sessionDisplay?.takeIf { controller != null && !headUnitIntegrations() }
+            TeslaBrowserLink.fitReason(this@CarPlayHostActivity,
+                running?.let { com.shilapi.xcertplay.web.BrowserSize(it.width, it.height) })?.let(::restartCarPlay)
+        }
+    }
+
     private val vpnConsent =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             awaitingVpnConsent = false
@@ -579,6 +590,8 @@ class CarPlayHostActivity : ComponentActivity() {
             finish(); return
         }
         if (headUnitIntegrations()) WheelKeyService.restoreIfNeeded(this)
+        TeslaBrowserLink.attachHost(browserLinkHost)
+        TeslaBrowserLink.sync(this) // phone + browser mode: the car's browser shows this session
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         getSystemService(android.hardware.display.DisplayManager::class.java)
             ?.registerDisplayListener(clusterDisplayListener, mainHandler)
@@ -755,7 +768,8 @@ class CarPlayHostActivity : ComponentActivity() {
             checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
         }
 
-    private fun requiredWirelessPermissions(): List<String> = when {
+    // Android 17, phone + browser mode: the iPhone's and the car browser's connections need local network access.
+    private fun requiredWirelessPermissions(): List<String> = LocalNetworkPermission.required(this, !headUnitIntegrations()) + when {
         wirelessHotspotMode == WirelessHotspotMode.EXISTING_WIFI ->
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) listOf(Manifest.permission.BLUETOOTH_CONNECT) else emptyList()
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> listOf(
@@ -1339,6 +1353,7 @@ class CarPlayHostActivity : ComponentActivity() {
         currentSurfaceTexture = null
         fallbackVideoView = null
         fallbackVideoBounds = null
+        TeslaBrowserLink.detachHost(browserLinkHost)
         sessionLog?.append("Activity destroyed")
         sessionLog?.close()
         sessionLog = null
@@ -3418,6 +3433,8 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun createAirPlayConfig(size: DisplaySize): AirPlayConfig {
         // The home settings page can change the name while this host stays alive.
         if (!menuOpen) oemLabel = AirPlayPersistence.loadOemLabel(this)
+        // Phone + browser mode: the car's browser sets the canvas; this screen only letterboxes it.
+        if (!headUnitIntegrations()) return phoneBrowserAirPlayConfig(size)
         val safeWidth = (size.width / 2 * 2).coerceAtLeast(2)
         val safeHeight = (size.height / 2 * 2).coerceAtLeast(2)
         val alignedSize = DisplaySize(safeWidth, safeHeight)
@@ -3587,6 +3604,50 @@ class CarPlayHostActivity : ComponentActivity() {
             oemLabel = CarButtonDefaults.label(oemLabel, phoneBrowser = !headUnitIntegrations()),
             icons = listOf(loadAirPlayIcon()),
             videoInCar = headUnitIntegrations() && com.shilapi.xcertplay.hud.BydOutputSettings.videoWhileParkedActive(this),
+            mainBufferedAudio = AirPlayPersistence.loadMainBufferedAudio(this),
+            audioViaCarBluetooth = carBluetoothAudio != CarBluetoothAudio.OFF,
+            disableAudioOutput = carBluetoothAudio == CarBluetoothAudio.ALTERNATIVE,
+        )
+    }
+
+    /**
+     * Phone + browser mode (TiPlay): the canvas is the car browser's last viewport at 60 fps ([TeslaBrowserCanvas]).
+     * The head unit's resolution, icon size, safe area, dock, split screen, turning screen, side panel and dashboard
+     * map do not apply. Every other field is the same as at the end of [createAirPlayConfig].
+     */
+    private fun phoneBrowserAirPlayConfig(size: DisplaySize): AirPlayConfig {
+        val plan = TeslaBrowserCanvas.plan(TeslaBrowserLink.lastViewport(this), widthPhysicalMm)
+        val knobPrimary = AndroidTvInputMode.shouldUseKnobAsPrimaryInput(this)
+        val main = AirPlayDisplayConfig(
+            widthPixels = plan.width,
+            heightPixels = plan.height,
+            widthPhysicalMm = plan.widthMm,
+            heightPhysicalMm = plan.heightMm,
+            fps = TeslaBrowserCanvas.FPS,
+            primaryInputDevice = if (knobPrimary) 3 else 1,
+        )
+        pendingViewAreas = null
+        val summary = "${plan.describe()} phoneView=${size.width}x${size.height} " +
+            "codec=${if (hevcEnabled) "HEVC" else "H.264"} softwareHevc=$hevcSoftwareDecoderEnabled"
+        displayDiagnosticAttempt = DisplayDiagnosticSnapshot.begin(this, summary,
+            "Decoder capability check skipped: phone + browser mode", summary)
+        appendLog(summary)
+        val carBluetoothAudio = CarBluetoothAudio.effective(this, controller ?: CarPlayBackgroundSession.snapshot()?.controller)
+        return AirPlayConfig(
+            deviceName = "TiPlay",
+            deviceId = DiPlayBootstrap.deviceId(airPlayIdentity),
+            btMac = DiPlayBluetooth.localAddress(this) ?: DiPlayBootstrap.deviceId(airPlayIdentity),
+            sourceVersion = "950.7.1",
+            main = main,
+            cluster = null,
+            rightHandDrive = rightHandDrive,
+            hevc = hevcEnabled,
+            microphone = microphoneAvailable && carBluetoothAudio == CarBluetoothAudio.OFF,
+            manufacturer = normalizedManufacturer(),
+            model = normalizedModel(),
+            oemLabel = CarButtonDefaults.label(oemLabel, phoneBrowser = true),
+            icons = listOf(loadAirPlayIcon()),
+            videoInCar = false,
             mainBufferedAudio = AirPlayPersistence.loadMainBufferedAudio(this),
             audioViaCarBluetooth = carBluetoothAudio != CarBluetoothAudio.OFF,
             disableAudioOutput = carBluetoothAudio == CarBluetoothAudio.ALTERNATIVE,
@@ -3794,7 +3855,8 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun createMediaEngine(sink: AndroidMediaSink, receivesAudio: Boolean): CarPlayMediaEngine =
         CarPlayMediaEngine(
-            sink = sink,
+            // Phone + browser mode: the main screen also goes to the car's browser, untouched.
+            sink = TeslaBrowserLink.tee(sink, phoneBrowser = !headUnitIntegrations(), sink.videoWidth, sink.videoHeight),
             microphoneEnabled = microphoneAvailable && receivesAudio,
             audioCaptureDirectory = if (receivesAudio) audioCaptureDirectory() else null,
         )
@@ -4224,6 +4286,12 @@ class CarPlayHostActivity : ComponentActivity() {
             appendLog(message)
             Log.i(TAG, message)
             videoView?.let { updateVideoLayout(it.width, it.height) }
+        } else if (display != null && !headUnitIntegrations()) {
+            // Phone + browser mode: the car's browser sets the canvas and this screen letterboxes it. Only the page's
+            // "Apply and reconnect" reconnects (TeslaBrowserLink.fitReason).
+            appendLog("Display changed ${previous.width}x${previous.height} -> ${size.width}x${size.height}; " +
+                "phone + browser mode keeps CarPlay canvas=${display.width}x${display.height}")
+            videoView?.let { updateVideoLayout(it.width, it.height) }
         } else {
             restartCarPlay(
                 "Display changed ${previous.width}x${previous.height} -> ${size.width}x${size.height}",
@@ -4457,6 +4525,7 @@ class CarPlayHostActivity : ComponentActivity() {
         CarPlayBackgroundSession.clear(oldController, keepOwner = true)
         controller = null
         oldSink?.let(retiringSinks::add)
+        oldSink?.let(TeslaBrowserLink::releaseTap) // the car's browser waits for the next session's stream
         sink = null
         sessionDisplay = null
         val diagnosticLog = sessionLog
@@ -4615,6 +4684,7 @@ class CarPlayHostActivity : ComponentActivity() {
         CarPlayBackgroundSession.clear(oldController)
         controller = null
         oldSink?.let(retiringSinks::add)
+        oldSink?.let(TeslaBrowserLink::releaseTap)
         sink = null
         sessionDisplay = null
         Log.i(TAG, "shutdown reason=$reason terminateProcess=$terminateProcess")
