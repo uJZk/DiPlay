@@ -16,13 +16,14 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 /**
- * Keeps the extra 100.64.0.0/10 address on this phone's own hotspot while TiPlay runs in phone + browser mode, so a
- * car browser that opens only such addresses (Tesla) can reach the phone. Tethering drops the address whenever the
- * hotspot restarts, so the keeper watches the tethering and Wi-Fi AP broadcasts, polls every 5 s and adds it again.
+ * Keeps the extra address on this phone's own hotspot while TiPlay runs in phone + browser mode, so a car browser that
+ * opens only such addresses (Tesla) can reach the phone. Tethering drops the address whenever the hotspot restarts, so
+ * the keeper watches the tethering and Wi-Fi AP broadcasts, polls every 5 s and adds it again.
  *
- * Needs root. The settings toggle makes the first `su` call ([checkRoot]); the keeper only calls `su` when the address
- * is missing, stops trying once root is refused, and backs off from 5 s to 60 s after failures. All work runs on one
- * background thread; [start] and [stop] return at once.
+ * A [HotspotAddressBackend] makes the change: root ([RootHotspotAddressBackend], the default) or Shizuku
+ * ([ShizukuHotspotAddressBackend]). The settings make the first root call ([checkRoot]); the keeper only calls the
+ * backend when the address is missing, stops trying once root is refused or the ROM blocks the shell user, and backs
+ * off from 5 s to 60 s after failures. All work runs on one background thread; [start] and [stop] return at once.
  */
 object HotspotExtraAddressKeeper {
     sealed interface State {
@@ -30,6 +31,12 @@ object HotspotExtraAddressKeeper {
         data object NoHotspot : State
         data class Added(val iface: String) : State
         data object RootDenied : State
+        /** Shizuku: the ROM does not let the shell user change interface addresses (SecurityException). */
+        data object Blocked : State
+        /** Shizuku is not running; TiPlay adds the address once it is. */
+        data object ShizukuUnavailable : State
+        /** Shizuku runs but has not allowed TiPlay; the settings ask. */
+        data object ShizukuPermissionNeeded : State
         data class Failed(val reason: String) : State
     }
 
@@ -43,11 +50,14 @@ object HotspotExtraAddressKeeper {
     /** True from [start] to [stop], including while root is refused. */
     val running: Boolean get() = session != null
 
+    /** The running session's backend ("root" or "shizuku"), or null when stopped. */
+    val backendId: String? get() = session?.backend?.id
+
     private val listeners = CopyOnWriteArraySet<(State) -> Unit>()
     private val lock = Any()
     @Volatile private var session: Session? = null
     // A refusal outlives the session that met it: a later start (activity resume, next connection) does not ask
-    // again; only the settings toggle does, through [start] with retryRootDenied.
+    // again; only the settings chooser does, through [start] with retryRootDenied.
     @Volatile internal var rootRefused = false
     @Volatile internal var dependencies = Dependencies()
     private val worker: ScheduledThreadPoolExecutor by lazy {
@@ -56,29 +66,33 @@ object HotspotExtraAddressKeeper {
     }
 
     /**
-     * Starts keeping [address], or checks again at once when it already does. A different address replaces the old one,
-     * which is removed. [eligible] is read before every check (phone + browser mode, setting on, manual hotspot link).
-     * [retryRootDenied] is for the settings toggle after a successful [checkRoot]; other callers leave a refusal alone.
+     * Starts keeping [address] with [backend] (root when null), or checks again at once when it already does. A
+     * different address or backend replaces the old session, whose address is removed where its backend can.
+     * [eligible] is read before every check (phone + browser mode, method chosen, manual hotspot link).
+     * [retryRootDenied] is for the settings chooser after a successful [checkRoot]; other callers leave a refusal alone.
      */
     fun start(context: Context, address: Inet4Address, eligible: () -> Boolean = { true },
-        retryRootDenied: Boolean = false) {
-        require(HotspotExtraAddress.isCgnat(address)) { "address must be in 100.64.0.0/10" }
+        retryRootDenied: Boolean = false, backend: HotspotAddressBackend? = null) {
+        require(HotspotExtraAddress.isAllowed(address)) { "address must be in 100.64.0.0/10 or 169.254.0.0/16" }
         synchronized(lock) {
             if (retryRootDenied) rootRefused = false
+            val chosen = backend ?: RootHotspotAddressBackend(dependencies.shell)
             val current = session
-            if (current != null && current.address == address) {
+            if (current != null && current.address == address && current.backend.id == chosen.id) {
                 current.refresh(retryRootDenied)
                 return
             }
             current?.close(removeAddress = true)
-            session = Session(context.applicationContext, address, eligible, dependencies, rootRefused)
+            val root = chosen.id == RootHotspotAddressBackend.ID
+            session = Session(context.applicationContext, address, chosen, eligible, dependencies, root && rootRefused)
                 .also(Session::open)
         }
     }
 
     /**
-     * Stops watching. [removeAddress] deletes the address once, best effort: only when the driver turned the feature
-     * off. A session that ends keeps it, or the car's page would be cut off until the next session.
+     * Stops watching. [removeAddress] deletes the address once, best effort, where the backend can (root): only when
+     * the driver left the method or the mode. A session that ends keeps it, or the car's page would be cut off until the
+     * next session. Shizuku cannot remove it; it goes when the hotspot restarts.
      */
     fun stop(removeAddress: Boolean) {
         synchronized(lock) {
@@ -89,7 +103,7 @@ object HotspotExtraAddressKeeper {
         publish(null, State.Off)
     }
 
-    /** Checks again now, for example when the settings page opens. */
+    /** Checks again now, for example when the settings page opens or Shizuku answers. */
     fun checkNow() {
         session?.refresh(retryRootDenied = false)
     }
@@ -139,6 +153,7 @@ object HotspotExtraAddressKeeper {
     private class Session(
         private val context: Context,
         val address: Inet4Address,
+        val backend: HotspotAddressBackend,
         eligible: () -> Boolean,
         private val dependencies: Dependencies,
         rootDenied: Boolean,
@@ -147,9 +162,10 @@ object HotspotExtraAddressKeeper {
         // Worker thread only.
         private var finder: HotspotFinder? = null
         private var pending: ScheduledFuture<*>? = null
+        private var watcher: Closeable? = null
         private val loop = HotspotExtraAddressLoop(
             address = address,
-            shell = dependencies.shell,
+            backend = backend,
             hasAddress = dependencies.hasAddress,
             findIface = { (finder ?: dependencies.openFinder(context).also { finder = it }).find() },
             eligible = eligible,
@@ -180,7 +196,12 @@ object HotspotExtraAddressKeeper {
                 }
             }.onFailure { dependencies.log("hotspot broadcasts unavailable; polling only: ${it.javaClass.simpleName}") }
                 .isSuccess
-            post { tick() }
+            post {
+                watcher = runCatching { backend.watch { refresh(retryRootDenied = false) } }
+                    .onFailure { dependencies.log("${backend.id} events unavailable; polling only: ${it.javaClass.simpleName}") }
+                    .getOrNull()
+                tick()
+            }
         }
 
         fun refresh(retryRootDenied: Boolean) = post {
@@ -197,6 +218,8 @@ object HotspotExtraAddressKeeper {
             post(evenWhenClosed = true) {
                 pending?.cancel(false)
                 pending = null
+                runCatching { watcher?.close() }
+                watcher = null
                 if (removeAddress) runCatching { loop.remove() }.onFailure { dependencies.log("remove failed: $it") }
                 runCatching { finder?.close() }
                 finder = null
@@ -211,7 +234,7 @@ object HotspotExtraAddressKeeper {
                 dependencies.log("check failed: ${it.javaClass.simpleName}")
                 HotspotExtraAddressLoop.POLL_MILLIS
             }
-            if (!closed) rootRefused = loop.state == State.RootDenied
+            if (!closed && backend.id == RootHotspotAddressBackend.ID) rootRefused = loop.state == State.RootDenied
             publish(this, loop.state)
             if (next != null && !closed) {
                 pending = runCatching { worker.schedule({ tick() }, next, TimeUnit.MILLISECONDS) }.getOrNull()
@@ -231,11 +254,11 @@ object HotspotExtraAddressKeeper {
 
 /**
  * One keeper session's decisions, without Android: find the hotspot, add the address when it is missing, and pace the
- * root calls. Not thread-safe; the keeper runs it on its single worker thread.
+ * backend calls. Not thread-safe; the keeper runs it on its single worker thread.
  */
 internal class HotspotExtraAddressLoop(
     val address: Inet4Address,
-    private val shell: (String, Long) -> RootShell.Result,
+    private val backend: HotspotAddressBackend,
     private val hasAddress: (String, Inet4Address) -> Boolean,
     private val findIface: () -> String?,
     private val eligible: () -> Boolean,
@@ -244,6 +267,18 @@ internal class HotspotExtraAddressLoop(
     /** Root was refused before this session: it starts stopped, as the refusing session ended. */
     rootDenied: Boolean = false,
 ) {
+    /** The root loop, as before the backends existed. */
+    constructor(
+        address: Inet4Address,
+        shell: (String, Long) -> RootShell.Result,
+        hasAddress: (String, Inet4Address) -> Boolean,
+        findIface: () -> String?,
+        eligible: () -> Boolean,
+        nowMillis: () -> Long,
+        log: (String) -> Unit = {},
+        rootDenied: Boolean = false,
+    ) : this(address, RootHotspotAddressBackend(shell), hasAddress, findIface, eligible, nowMillis, log, rootDenied)
+
     var state: HotspotExtraAddressKeeper.State =
         if (rootDenied) HotspotExtraAddressKeeper.State.RootDenied else HotspotExtraAddressKeeper.State.Off
         private set
@@ -251,10 +286,12 @@ internal class HotspotExtraAddressLoop(
     private var retryAtMillis: Long? = null
     // Where this session last saw the address, for [remove].
     private var knownIface: String? = null
+    private val root = backend.id == RootHotspotAddressBackend.ID
+    private val callName = if (root) "ip" else backend.id
 
-    /** One check. Returns the delay before the next one, or null once root was refused. */
+    /** One check. Returns the delay before the next one, or null once root was refused or the ROM blocks the call. */
     fun tick(): Long? {
-        if (state == HotspotExtraAddressKeeper.State.RootDenied) return null
+        if (state == HotspotExtraAddressKeeper.State.RootDenied || state == HotspotExtraAddressKeeper.State.Blocked) return null
         if (!runCatching(eligible).getOrDefault(false)) {
             state = HotspotExtraAddressKeeper.State.Off
             return POLL_MILLIS
@@ -272,21 +309,27 @@ internal class HotspotExtraAddressLoop(
             val wait = retryAt - nowMillis()
             if (wait > 0) return wait.coerceAtMost(POLL_MILLIS)
         }
-        return when (val result = shell(HotspotExtraAddress.addScript(iface, address), RootShell.DEFAULT_TIMEOUT_MILLIS)) {
-            RootShell.Result.Unavailable -> {
-                state = HotspotExtraAddressKeeper.State.RootDenied
-                log("root refused; stopped until the setting is turned on again")
+        return when (val result = backend.add(iface, address)) {
+            HotspotAddressBackend.Result.Done -> if (hasAddress(iface, address)) {
+                log("address added to $iface")
+                added(iface)
+            } else {
+                failed("address missing after $callName on $iface")
+            }
+            // "File exists": the address is there, even where Android lists it under another label.
+            HotspotAddressBackend.Result.AlreadyPresent -> {
+                log("address already on $iface")
+                added(iface)
+            }
+            HotspotAddressBackend.Result.Denied -> {
+                state = if (root) HotspotExtraAddressKeeper.State.RootDenied else HotspotExtraAddressKeeper.State.Blocked
+                log(if (root) "root refused; stopped until the driver chooses Root again"
+                    else "this ROM does not let the shell user change interface addresses; stopped")
                 null
             }
-            RootShell.Result.TimedOut -> failed("root shell timed out")
-            is RootShell.Result.Done -> when {
-                result.exitCode == 0 && hasAddress(iface, address) -> {
-                    log("address added to $iface")
-                    added(iface)
-                }
-                result.exitCode == 0 -> failed("address missing after ip on $iface")
-                else -> failed("ip exited with ${result.exitCode} on $iface")
-            }
+            HotspotAddressBackend.Result.Unavailable -> waiting(HotspotExtraAddressKeeper.State.ShizukuUnavailable)
+            HotspotAddressBackend.Result.PermissionNeeded -> waiting(HotspotExtraAddressKeeper.State.ShizukuPermissionNeeded)
+            is HotspotAddressBackend.Result.Failed -> failed(result.reason)
         }
     }
 
@@ -297,14 +340,20 @@ internal class HotspotExtraAddressLoop(
         retryAtMillis = null
     }
 
-    /** Deletes the address once from where this session saw it; skipped when it is gone or root was refused. */
+    /**
+     * Deletes the address once from where this session saw it; skipped when it is gone or root was refused. A backend
+     * that cannot remove (Shizuku) leaves it until the hotspot restarts.
+     */
     fun remove(): Boolean {
         val iface = knownIface ?: return false
         knownIface = null
         if (state == HotspotExtraAddressKeeper.State.RootDenied || !hasAddress(iface, address)) return false
-        val result = shell(HotspotExtraAddress.deleteScript(iface, address), RootShell.DEFAULT_TIMEOUT_MILLIS)
-        val removed = result is RootShell.Result.Done && result.exitCode == 0
-        log(if (removed) "address removed from $iface" else "could not remove the address from $iface: $result")
+        val removed = backend.remove(iface, address)
+        log(when {
+            removed -> "address removed from $iface"
+            root -> "could not remove the address from $iface"
+            else -> "${backend.id} cannot remove the address from $iface; it goes when the hotspot restarts"
+        })
         state = HotspotExtraAddressKeeper.State.Off
         return removed
     }
@@ -314,6 +363,15 @@ internal class HotspotExtraAddressLoop(
         failures = 0
         retryAtMillis = null
         state = HotspotExtraAddressKeeper.State.Added(iface)
+        return POLL_MILLIS
+    }
+
+    /** Shizuku is missing or not allowed yet: no backoff, the next poll (or Shizuku's own event) checks again. */
+    private fun waiting(next: HotspotExtraAddressKeeper.State): Long {
+        failures = 0
+        retryAtMillis = null
+        if (state != next) log("waiting: $next")
+        state = next
         return POLL_MILLIS
     }
 

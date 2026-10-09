@@ -36,6 +36,9 @@ dependencies {
     implementation libs.androidx.app
     implementation libs.bouncycastle
     implementation libs.jmdns
+    // TiPlay: the Shizuku hotspot address method (docs/HOTSPOT_ADDRESS.md).
+    implementation libs.shizuku.api
+    implementation libs.shizuku.provider
     testImplementation libs.junit
     testImplementation 'org.robolectric:robolectric:4.17'
 }

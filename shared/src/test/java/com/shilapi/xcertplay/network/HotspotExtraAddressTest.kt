@@ -28,6 +28,30 @@ class HotspotExtraAddressTest {
         ).forEach { assertNull(it, HotspotExtraAddress.parse(it)) }
     }
 
+    @Test fun linkLocalAddressesAreAllowedForEveryMethod() {
+        assertEquals(ip("169.254.220.253"), HotspotExtraAddress.parse(HotspotExtraAddress.LINK_LOCAL_SUGGESTION))
+        assertEquals(ip("169.254.0.1"), HotspotExtraAddress.parse("169.254.0.1"))
+        listOf("169.253.1.1", "169.255.1.1", "170.254.1.1", "169.254.1", "169.254.01.1").forEach {
+            assertNull(it, HotspotExtraAddress.parse(it))
+        }
+        val linkLocal = HotspotExtraAddress.parse("169.254.220.253")!!
+        assertTrue(HotspotExtraAddress.isLinkLocal(linkLocal))
+        assertFalse(HotspotExtraAddress.isCgnat(linkLocal))
+        assertTrue(HotspotExtraAddress.isAllowed(linkLocal))
+        assertFalse(HotspotExtraAddress.isLinkLocal(address))
+        assertFalse(HotspotExtraAddress.isAllowed(ip("fe80::1")))
+        assertEquals("/system/bin/ip -4 addr replace 169.254.220.253/32 dev wlan2",
+            HotspotExtraAddress.addScript("wlan2", linkLocal))
+    }
+
+    @Test fun theShizukuAliasKeepsTheInterfaceRulesAndFitsInFifteenCharacters() {
+        assertEquals("wlan2:tp", HotspotExtraAddress.aliasName("wlan2"))
+        assertEquals("ap_br_wlan1:tp", HotspotExtraAddress.aliasName("ap_br_wlan1"))
+        assertEquals("abcdefghijkl:tp", HotspotExtraAddress.aliasName("abcdefghijkl")) // 15 characters
+        assertNull(HotspotExtraAddress.aliasName("abcdefghijklm")) // 16 with the alias
+        listOf("wlan2;reboot", "", "-rf", "wlan:0", "wl an").forEach { assertNull(it, HotspotExtraAddress.aliasName(it)) }
+    }
+
     @Test fun onlyIpv4InTheSharedAddressSpaceCounts() {
         assertTrue(HotspotExtraAddress.isCgnat(ip("100.64.0.1")))
         assertTrue(HotspotExtraAddress.isCgnat(ip("100.127.0.1")))
@@ -93,6 +117,25 @@ class HotspotExtraAddressTest {
         assertNotNull(current)
         assertEquals("wlan2", current!!.iface)
         assertEquals(listOf(ip("100.109.220.253"), ip("10.176.81.135")), current.ipv4)
+    }
+
+    @Test fun theShizukuAliasCountsAsTheHotspotsOwnAddress() {
+        // Android lists a labelled address as a virtual interface of its own.
+        val snapshot = HotspotNetworkSnapshot(
+            interfaces = listOf(
+                HotspotInterfaceSnapshot("wlan2:tp", 7, true, listOf(ip("100.109.220.253")), true),
+                HotspotInterfaceSnapshot("wlan2", 7, true, listOf(ip("fe80::1"), ip("10.176.81.135")), true),
+                HotspotInterfaceSnapshot("wlan20", 8, true, listOf(ip("100.70.1.2")), true),
+            ),
+            apInterfaces = setOf("wlan2"),
+            wifiUpstreams = emptySet(),
+            defaultInterface = null,
+        )
+
+        val current = HotspotAddresses.current(snapshot)!!
+
+        assertEquals("wlan2", current.iface)
+        assertEquals(listOf(ip("10.176.81.135"), ip("100.109.220.253")), current.ipv4)
     }
 
     @Test fun noHotspotWhenTheApIsOffOrOnlyTheMobileUplinkHasAnAddress() {

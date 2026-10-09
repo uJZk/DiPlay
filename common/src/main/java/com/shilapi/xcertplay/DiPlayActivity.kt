@@ -1690,12 +1690,12 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun hotspotAddressSettings(parent: LinearLayout) {
-        // The search index gets the titles only: no hotspot probe and no root call.
+        // The search index gets the titles only: no hotspot probe, no root, Shizuku or VPN call.
         HotspotExtraAddressCard(this, indexing = searchIndexSink != null,
             colors = HotspotExtraAddressCard.Colors(muted = MUTED, warning = WARNING, ready = READY),
             note = { text -> label(text, 14, MUTED) },
-            toggle = { card, title, description, checked, enabled, save -> toggle(card, title, description, checked, enabled, save) },
             settingRow = { card, text, click -> card.addView(button(text, false, click), matchButton(0, 60)) },
+            actionButton = { card, text, click -> actionButton(text, false, click).also { card.addView(it, matchButton(12, 60)) } },
             rerender = ::render,
         ).build(parent)
     }

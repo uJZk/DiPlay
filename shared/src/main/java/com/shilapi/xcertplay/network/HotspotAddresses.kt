@@ -12,11 +12,16 @@ object HotspotAddresses {
     fun current(context: Context): Current? =
         ManualHotspotInterfaces(context.applicationContext).use { current(it.sample()) }
 
-    /** Picks the interface the way the manual hotspot does, then lists its IPv4 without the site-local filter. */
+    /**
+     * Picks the interface the way the manual hotspot does, then lists its IPv4 without the site-local filter. Android
+     * lists a labelled address (`wlan2:tp`, added by the Shizuku method) as a virtual interface of its own; it counts
+     * as the hotspot's.
+     */
     internal fun current(snapshot: HotspotNetworkSnapshot): Current? {
         val selected = selectHotspotInterface(snapshot) {} ?: return null
-        val iface = snapshot.interfaces.firstOrNull { it.name == selected.name } ?: return null
-        val ipv4 = iface.addresses.filterIsInstance<Inet4Address>().filter {
+        val interfaces = snapshot.interfaces.filter { it.name == selected.name || it.name.startsWith(selected.name + ":") }
+        if (interfaces.none { it.name == selected.name }) return null
+        val ipv4 = interfaces.sortedBy { it.name != selected.name }.flatMap { it.addresses }.filterIsInstance<Inet4Address>().filter {
             !it.isLoopbackAddress && !it.isLinkLocalAddress && !it.isAnyLocalAddress && !it.isMulticastAddress
         }.distinctBy { it.hostAddress }
         return Current(selected.name, ipv4)

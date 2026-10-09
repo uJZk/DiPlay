@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Checks whether the ADB shell user (the same uid 2000 that Shizuku uses without root) can add an
-// address to the hotspot interface through the network_management service. See docs/TESLA_BROWSER.md.
+// address to the hotspot interface through the network_management service. See README.md and docs/HOTSPOT_ADDRESS.md.
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.Inet4Address;

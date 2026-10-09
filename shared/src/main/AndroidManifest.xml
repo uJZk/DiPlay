@@ -61,5 +61,26 @@
             android:name="com.shilapi.xcertplay.network.CarPlayVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
             android:exported="false" />
+
+        <!-- TiPlay: the VPN hotspot address method. It never calls startForeground, so it has no
+             foregroundServiceType; Android binds it while the tunnel is up. No VpnService intent filter, so it
+             cannot be chosen as an always-on VPN. -->
+        <service
+            android:name="com.shilapi.xcertplay.network.HotspotAddressVpnService"
+            android:permission="android.permission.BIND_VPN_SERVICE"
+            android:exported="false">
+            <meta-data
+                android:name="android.net.VpnService.SUPPORTS_ALWAYS_ON"
+                android:value="false" />
+        </service>
+
+        <!-- TiPlay: Shizuku hands its binder to this provider (the Shizuku hotspot address method). -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:multiprocess="false"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
     </application>
 </manifest>
