@@ -67,6 +67,7 @@ object AirPlayPersistence {
     private const val KEY_FPS = "display_fps"
     private const val KEY_MEDIA_BUFFER_MS = "media_buffer_ms"
     private const val KEY_MAIN_BUFFERED_AUDIO = "main_buffered_audio"
+    private const val KEY_CAR_BLUETOOTH_AUDIO = "car_bluetooth_audio"
     private const val KEY_CALL_ECHO_CANCELLATION = "call_echo_cancellation"
     private const val KEY_CALL_VOICE_FILTER = "call_voice_filter"
     private const val KEY_SMOOTH_VIDEO = "smooth_video"
@@ -523,6 +524,16 @@ object AirPlayPersistence {
 
     fun saveMainBufferedAudio(context: Context, enabled: Boolean) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putBoolean(KEY_MAIN_BUFFERED_AUDIO, enabled).apply()
+    }
+
+    /** Car Bluetooth sound; off by default, applies at the next CarPlay connection. */
+    internal fun loadCarBluetoothAudio(context: Context): CarBluetoothAudio {
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_CAR_BLUETOOTH_AUDIO, null)
+        return CarBluetoothAudio.entries.firstOrNull { it.name == stored } ?: CarBluetoothAudio.OFF
+    }
+
+    internal fun saveCarBluetoothAudio(context: Context, mode: CarBluetoothAudio) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY_CAR_BLUETOOTH_AUDIO, mode.name).apply()
     }
 
     fun loadSmoothVideo(context: Context): Boolean =

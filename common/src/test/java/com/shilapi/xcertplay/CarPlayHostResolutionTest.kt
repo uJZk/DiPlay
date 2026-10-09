@@ -111,6 +111,21 @@ class CarPlayHostResolutionTest {
         assertTrue(DisplayDiagnosticSnapshot.report(activity).contains("software_decoder"))
     }
 
+    @Test fun carBluetoothAudioReachesTheAirPlayConfig() {
+        set("microphoneAvailable", true)
+        assertEquals(CarBluetoothAudio.OFF, AirPlayPersistence.loadCarBluetoothAudio(activity))
+        for ((mode, expected) in listOf(
+            CarBluetoothAudio.OFF to listOf(false, false, true, true),
+            CarBluetoothAudio.ON to listOf(true, false, false, false),
+            CarBluetoothAudio.ALTERNATIVE to listOf(true, true, false, false),
+        )) {
+            AirPlayPersistence.saveCarBluetoothAudio(activity, mode)
+            val airPlay = config(100)
+            assertEquals(mode.name, expected,
+                listOf(airPlay.audioViaCarBluetooth, airPlay.disableAudioOutput, airPlay.microphone, airPlay.receivesAudio))
+        }
+    }
+
     private fun config(percent: Int, uiPercent: Int = 100, width: Int = 1920, height: Int = 990): AirPlayConfig {
         set("displayScalePercent", percent)
         set("uiScalePercent", uiPercent)

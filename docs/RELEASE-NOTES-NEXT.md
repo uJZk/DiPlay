@@ -6,6 +6,11 @@ TeslaPlay is a fork of [DiPlay](https://github.com/shihabal3amri/DiPlay). Change
 
 - The project is now called TeslaPlay, with the package `com.ujzk.teslaplay`. It installs alongside DiPlay and does not reuse DiPlay's settings or pairing records.
 
+## Sound through car Bluetooth
+
+- Settings → Audio has a new experimental choice, "Sound through car Bluetooth", for cars that show CarPlay in their web browser, such as Tesla. When it is on, `/info` leaves out only `audioFormats`, as the Carlinkit `BtAudio=1` mode does; audio latencies, feature bits and Bluetooth IDs stay the same. TeslaPlay then declines any audio stream the iPhone still opens and starts no audio output, microphone, echo canceller or audio focus. "On, alternative method" also leaves out the audio latencies and audio feature bits. The choice is off by default and applies at the next CarPlay connection. It is not yet verified in a car.
+- The diagnostic report shows the saved choice, the audio route at each start, the `/info` audio declaration and every audio stream the iPhone asks for.
+
 ## Connection reliability
 
 - USBMUX accepts the bounded protocol-1 diagnostic frame with the four-byte trailer captured in [DiPlay issue #100](https://github.com/shihabal3amri/DiPlay/issues/100), including fragmented reads. Recovery still requires a validated preceding reply and a validated next frame; unknown data is rejected. This repairs that captured framing failure, without claiming the entire reported USB connection succeeds.

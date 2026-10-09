@@ -3,8 +3,9 @@ package com.shilapi.xcertplay.airplay
 /**
  * Builds the /info response the phone reads before it requests media streams.
  *
- * The declaration is complete on purpose: it must carry the display, audio formats/latencies,
- * CarPlay resource modes, and the HID input devices, otherwise the phone aborts the session.
+ * The declaration is complete on purpose: it must carry the display, audio formats/latencies (audio
+ * formats are left out on purpose for car Bluetooth sound), CarPlay resource modes, and the HID input
+ * devices, otherwise the phone aborts the session.
  */
 object AirPlayInfoPlist {
     const val MAIN_UUID = "b7e6c5a0-1111-4000-8000-000000000001"
@@ -50,7 +51,11 @@ object AirPlayInfoPlist {
         )
         if (!config.disableAudioOutput) {
             info["audioLatencies"] = audioLatencies()
-            info["audioFormats"] = audioFormats(config.entertainmentSampleRate, config.microphone, config.mainBufferedAudio)
+            // Car Bluetooth sound, as Carlinkit's BtAudio=1: no audioFormats, so the iPhone has no CarPlay
+            // audio route and keeps sound on its Bluetooth link to the car. Latencies and features stay.
+            if (!config.audioViaCarBluetooth) {
+                info["audioFormats"] = audioFormats(config.entertainmentSampleRate, config.microphone, config.mainBufferedAudio)
+            }
         }
         info["extendedFeatures"] = listOf("vocoderInfo", "enhancedRequestCarUI")
         info["displays"] = displays

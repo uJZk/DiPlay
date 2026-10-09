@@ -1408,6 +1408,7 @@ class DiPlayActivity : ComponentActivity() {
             getString(R.string.car_button_in_carplay), R.drawable.ic_dp_car) { card -> carButtonCard = card; carButtonControls(card) }
         filteredSection(content, SettingsSection.AUDIO_ROUTING,
             getString(R.string.audio_routing), R.drawable.ic_dp_audio) { card ->
+            carBluetoothAudioControl(card)
             mediaChannelControl(card)
             navigationChannelControl(card)
             val bufferPresets = com.shilapi.xcertplay.media.MediaAudioBuffer.presets
@@ -1985,6 +1986,20 @@ class DiPlayActivity : ComponentActivity() {
         parent.addView(label(getString(R.string.wifi_direct_channel_description), 15, MUTED).apply {
             setPadding(0, dp(6), 0, dp(12))
         })
+    }
+
+    // Applies at the next connection: saving only shows "Reconnect now" and never drops the session.
+    private fun carBluetoothAudioControl(parent: LinearLayout) {
+        val modes = CarBluetoothAudio.entries
+        choice(parent, getString(R.string.settings_car_bluetooth_audio), listOf(
+            getString(R.string.settings_car_bluetooth_audio_off),
+            getString(R.string.settings_car_bluetooth_audio_on),
+            getString(R.string.settings_car_bluetooth_audio_alternative),
+        ), modes.indexOf(AirPlayPersistence.loadCarBluetoothAudio(this)), reconnects = false) {
+            AirPlayPersistence.saveCarBluetoothAudio(this, modes[it])
+            markReconnectNeeded()
+        }
+        parent.addView(label(getString(R.string.settings_car_bluetooth_audio_description), 14, MUTED))
     }
 
     private fun mediaChannelControl(parent: LinearLayout) {
@@ -3888,6 +3903,7 @@ class DiPlayActivity : ComponentActivity() {
                     appendLine("Saved video preference (may differ from active session): ${if (AirPlayPersistence.loadHevcEnabled(appContext)) "HEVC" else "H.264"}; ${AirPlayPersistence.loadFps(appContext)} fps")
                     appendLine("CarPlay size: ${com.shilapi.xcertplay.airplay.CarPlaySize.fromWidthMillimeters(AirPlayPersistence.loadWidthPhysicalMm(appContext)).label}")
                     appendLine("Saved resolution preference (may differ from active session): ${AirPlayPersistence.loadDisplayScalePercent(appContext)}%")
+                    appendLine("Saved car Bluetooth sound (may differ from active session): ${AirPlayPersistence.loadCarBluetoothAudio(appContext)}")
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
                     appendLine()

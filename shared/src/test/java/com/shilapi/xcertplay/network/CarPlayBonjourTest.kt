@@ -55,14 +55,21 @@ class CarPlayBonjourTest {
     }
 
     @Test fun discoveryFeaturesAgreeWithInfoForAudioEnabledAndDisabled() {
-        for (disabled in listOf(false, true)) {
-            val receiver = config.copy(disableAudioOutput = disabled)
+        for (receiver in listOf(
+            config,
+            config.copy(audioViaCarBluetooth = true),
+            config.copy(disableAudioOutput = true),
+            config.copy(audioViaCarBluetooth = true, disableAudioOutput = true),
+        )) {
             val parts = CarPlayBonjourProtocol.airPlayTxtRecords(receiver, identity).getValue("features")
                 .split(',').map { it.removePrefix("0x").toLong(16) }
             val decoded = parts[0] or ((parts.getOrElse(1) { 0L }) shl 32)
             assertEquals(com.shilapi.xcertplay.airplay.AirPlayInfoPlist.build(receiver)["features"], decoded)
         }
         assertEquals("0xffffffff", CarPlayBonjourProtocol.featuresTxt(0xffffffffL))
+        // Car Bluetooth sound keeps the audio feature bits, as Carlinkit's BtAudio=1 does.
+        assertEquals("0x5653aee2,0x61",
+            CarPlayBonjourProtocol.airPlayTxtRecords(config.copy(audioViaCarBluetooth = true), identity)["features"])
     }
 
     @Test

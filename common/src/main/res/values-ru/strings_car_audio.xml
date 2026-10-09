@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_car_bluetooth_audio">Звук через Bluetooth автомобиля (экспериментально)</string>
+    <string name="settings_car_bluetooth_audio_off">Выкл.</string>
+    <string name="settings_car_bluetooth_audio_on">Вкл.</string>
+    <string name="settings_car_bluetooth_audio_alternative">Вкл., альтернативный способ</string>
+    <string name="settings_car_bluetooth_audio_description">Для автомобилей, которые показывают CarPlay в браузере, например Tesla. Музыка, навигация, Siri и звонки остаются на Bluetooth-подключении iPhone к автомобилю, а TeslaPlay показывает только изображение. Сначала создайте пару iPhone с Bluetooth автомобиля. Если звук по-прежнему не идёт из автомобиля, попробуйте альтернативный способ. Применяется при следующем подключении CarPlay.</string>
+</resources>
