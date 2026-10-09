@@ -231,6 +231,55 @@ class AirPlayInfoPlistTest {
         assertEquals(setOf(100, 101, 102), types)
     }
 
+    private val audioBase = AirPlayConfig(
+        deviceName = "test",
+        deviceId = "02:00:00:00:00:02",
+        btMac = "02:00:00:00:00:02",
+        sourceVersion = "366.0",
+        main = AirPlayDisplayConfig(widthPixels = 1280, heightPixels = 720),
+    )
+
+    @Test
+    fun carBluetoothAudioLeavesOutOnlyAudioFormats() {
+        val bt = audioBase.copy(audioViaCarBluetooth = true)
+        val base = AirPlayInfoPlist.build(audioBase)
+        val info = AirPlayInfoPlist.build(bt)
+
+        // Whole maps are not compared: hidDevices carry ByteArrays, which compare by reference.
+        assertFalse(info.containsKey("audioFormats"))
+        assertEquals(base.keys - "audioFormats", info.keys)
+        assertEquals(base["audioLatencies"], info["audioLatencies"])
+        assertEquals(9, (info["audioLatencies"] as List<*>).size)
+        assertEquals(0x615653aee2L, info["features"])
+        assertEquals(base["features"], info["features"])
+        assertEquals(listOf("02:00:00:00:00:02"), info["bluetoothIDs"])
+        assertEquals(AirPlayInfoPlist.features(audioBase), AirPlayInfoPlist.features(bt))
+        assertFalse(AirPlayInfoPlist.build(bt.copy(microphone = true)).containsKey("audioFormats"))
+    }
+
+    @Test
+    fun carBluetoothAudioDropsTheBufferedMusicOffer() {
+        val bt = audioBase.copy(audioViaCarBluetooth = true, mainBufferedAudio = true)
+        assertFalse(AirPlayInfoPlist.build(bt).containsKey("mainBufferedInfo"))
+        assertFalse(MAIN_BUFFERED_FEATURE in setupEnabledFeatures(bt, listOf(MAIN_BUFFERED_FEATURE)))
+    }
+
+    @Test
+    fun alternativeVariantAlsoDropsLatenciesAndAudioFeatures() {
+        val info = AirPlayInfoPlist.build(audioBase.copy(audioViaCarBluetooth = true, disableAudioOutput = true))
+        assertFalse(info.containsKey("audioFormats"))
+        assertFalse(info.containsKey("audioLatencies"))
+        assertEquals(0x615203a4e2L, info["features"])
+    }
+
+    @Test
+    fun audioIsReceivedOnlyWithoutCarBluetoothAndWithOutputEnabled() {
+        assertTrue(audioBase.receivesAudio)
+        assertFalse(audioBase.copy(audioViaCarBluetooth = true).receivesAudio)
+        assertFalse(audioBase.copy(audioViaCarBluetooth = true, disableAudioOutput = true).receivesAudio)
+        assertFalse(audioBase.copy(disableAudioOutput = true).receivesAudio)
+    }
+
     private fun mainDisplay(areas: List<AirPlayViewArea>?, initial: Int = 0, safeArea: AirPlayInsets? = null): Map<*, *> {
         val info = AirPlayInfoPlist.build(
             AirPlayConfig(

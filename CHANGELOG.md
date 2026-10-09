@@ -2,6 +2,7 @@
 
 - Rename the project from DiPlay to TeslaPlay. The app uses the new package `com.ujzk.teslaplay`, so it installs alongside DiPlay (`com.shihab.diplay`). It does not take over DiPlay's settings, pairing records or updates, and the iPhone sees it as a new car.
 - Show TeslaPlay as the app name and as the CarPlay accessory name on the iPhone. Local hotspot names start with `TeslaPlay-`. Diagnostic reports save to Downloads/TeslaPlay as `TeslaPlay-<time>.txt`.
+- Add the default-off experimental Audio setting "Sound through car Bluetooth": `/info` leaves out only `audioFormats`, as Carlinkit's `BtAudio=1` does, so the iPhone can keep sound on its Bluetooth link to the car, and TeslaPlay declines audio streams and opens no microphone. An alternative method also leaves out audio latencies and audio feature bits. Applies at the next connection; not yet verified in a car.
 - TeslaPlay is a fork of [DiPlay by shihabal3amri](https://github.com/shihabal3amri/DiPlay), GPL-3.0. The entries below are DiPlay's release history and keep its name and upstream issue numbers.
 
 # DiPlay 0.2.13 — 2026-10-06

@@ -36,17 +36,22 @@
 
 ### 待办
 
-- [ ] 在 `AirPlayConfig` 新增一个字段（例如 `audioViaCarBluetooth`），在 `AirPlayInfoPlist.build` 中**只去掉 `audioFormats`**，`audioLatencies` 和 `features` 保持不变，与 Carlinkit 一致。
-- [ ] 保留 `disableAudioOutput` 作为备选变体，实测两者哪个让 iPhone 稳定地把声音交给车辆蓝牙。
-- [ ] 该模式下不启动音频接收、麦克风上行和回声消除，也不请求音频焦点（`AndroidMediaSink`、`MicrophoneUplink`）。
-- [ ] 按 `AGENTS.md` 加设置项：
+- [x] 在 `AirPlayConfig` 新增一个字段（例如 `audioViaCarBluetooth`），在 `AirPlayInfoPlist.build` 中**只去掉 `audioFormats`**，`audioLatencies` 和 `features` 保持不变，与 Carlinkit 一致。
+- [x] 保留 `disableAudioOutput` 作为备选变体，实测两者哪个让 iPhone 稳定地把声音交给车辆蓝牙。
+  设置里选"开启（备选方式）"即为该变体；两者的对比放在下面的真机验证里。
+- [x] 该模式下不启动音频接收、麦克风上行和回声消除，也不请求音频焦点（`AndroidMediaSink`、`MicrophoneUplink`）。
+  iPhone 仍然打开的音频流会被拒绝（不放进 SETUP 响应）。
+- [ ] 如果真机上 iPhone 在音频 SETUP 被拒绝后断开会话：改为接受但丢弃（绑定端口，不解密、不播放）。
+- [x] 按 `AGENTS.md` 加设置项：
   - 放进 Audio 分类。
   - 下次连接时生效，保存后调用 `markReconnectNeeded()`，描述里说明需要重新连接。
   - 所有语言补齐 `settings_*` 文案。
   - 更新 `AdaptiveSettingsUiTest.settingsLiveWhereDriversLookForThem`。
-- [ ] 单元测试：开启该模式时 `/info` 没有 `audioFormats`，但有 `audioLatencies`，且 `features` 不变。
-- [ ] 诊断日志记录 iPhone 实际打开的音频流（期望为空）。
+- [x] 单元测试：开启该模式时 `/info` 没有 `audioFormats`，但有 `audioLatencies`，且 `features` 不变。
+- [x] 诊断日志记录 iPhone 实际打开的音频流（期望为空）。
+  报告中的 `airplay /info audioRoute=…`、`airplay audio SETUP …` 和 `airplay audio summary …` 行。
 - [ ] 真机验证（前提：iPhone 用蓝牙连特斯拉并设为主电话，同时以无线 CarPlay 连接 TeslaPlay）：
+  - [ ] 对比"开启"和"开启（备选方式）"，记录哪个让 iPhone 稳定地把声音交给车辆蓝牙。
   - [ ] 音乐和导航从特斯拉的蓝牙媒体音频出声。
   - [ ] Siri 用特斯拉麦克风收音，回答从车上出声。
   - [ ] 来电和去电走特斯拉免提，CarPlay 通话界面正常。
