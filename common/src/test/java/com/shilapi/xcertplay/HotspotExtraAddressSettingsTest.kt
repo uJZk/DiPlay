@@ -127,8 +127,9 @@ class HotspotExtraAddressSettingsTest {
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "openSearchResult",
             ReflectionHelpers.ClassParameter(result.javaClass, result))
         finishProbes()
-        assertEquals(1, HotspotProbe.threads.size)
-        assertNotEquals(Looper.getMainLooper().thread, HotspotProbe.threads.single())
+        // This card's probe; the card's browser link rows probe for the phone's own page link too.
+        assertEquals(1, HotspotProbe.threads.count { it.name == "tiplay-hotspot-probe" })
+        assertTrue(HotspotProbe.threads.none { it == Looper.getMainLooper().thread })
         assertTrue(RootShellProbe.scripts.isEmpty())
 
         // With the setting on, the index still starts nothing.

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_browser_link_listening">已就緒，車上的瀏覽器可透過連接埠 %1$d 連線。</string>
+    <string name="settings_browser_link_starting">正在啟動與車載瀏覽器的連線…</string>
+    <string name="settings_browser_link_port_in_use">連接埠 %1$d 被其他應用程式占用，車上的瀏覽器無法連線。TiPlay 會繼續重試。</string>
+    <string name="settings_browser_link_failed">與車載瀏覽器的連線無法啟動。TiPlay 會繼續重試。</string>
+    <string name="settings_browser_link_stopped">與車載瀏覽器的連線未執行。</string>
+    <string name="settings_browser_local_network_granted">區域網路存取權：已允許。</string>
+    <string name="settings_browser_local_network_denied">未允許存取區域網路，車上的瀏覽器和 iPhone 都無法連線到 TiPlay。</string>
+    <string name="settings_browser_local_network_allow">允許存取區域網路</string>
+    <string name="settings_browser_page_address">頁面網址</string>
+    <string name="settings_browser_page_address_hint">TiPlay 頁面的 HTTPS 網址。只有自行發布頁面時才需要修改。下次開啟連結時生效。</string>
+    <string name="settings_browser_page_address_invalid">請輸入以 https:// 開頭且不含 # 的網址。</string>
+    <string name="settings_browser_pairing_code">配對碼</string>
+    <string name="settings_browser_pairing_code_description">車上的瀏覽器需要配對碼 %1$s 才能顯示 CarPlay。下方的連結已包含配對碼，開啟連結即可完成配對。產生新配對碼後，使用舊配對碼的瀏覽器會中斷連線；開啟新連結即可重新配對。</string>
+    <string name="settings_browser_pairing_code_new">產生新配對碼</string>
+    <string name="settings_browser_link_car">在車上的瀏覽器中開啟此連結（特斯拉及其他 Chromium 瀏覽器）：</string>
+    <string name="settings_browser_link_other">其他瀏覽器（如 Safari、Firefox）：在連上本機熱點的裝置上開啟此連結：</string>
+    <string name="settings_browser_link_copy">複製連結</string>
+    <string name="settings_browser_link_copied">已複製連結</string>
+</resources>

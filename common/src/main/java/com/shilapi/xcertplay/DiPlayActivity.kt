@@ -222,6 +222,8 @@ class DiPlayActivity : ComponentActivity() {
     private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) {
         connect(notificationTransport)
     }
+    // Android 17, phone + browser mode: the car browser's connections need the local network permission.
+    private val localNetworkPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { render() }
     private val tick = object : Runnable {
         override fun run() { refreshStatus(); handler.postDelayed(this, 1000) }
     }
@@ -286,6 +288,7 @@ class DiPlayActivity : ComponentActivity() {
         val headUnit = !AirPlayPersistence.isPhoneBrowserMode(this)
         com.shilapi.xcertplay.hud.BydNavigationOutputs.onAppOpened(applicationContext, headUnitIntegrations = headUnit)
         if (headUnit) WheelKeyService.restoreIfNeeded(this)
+        TeslaBrowserLink.sync(this) // phone + browser mode: the car's browser can open the page before CarPlay connects
         WindowCompat.setDecorFitsSystemWindows(window, true)
         window.statusBarColor = BG; window.navigationBarColor = BG
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -385,6 +388,7 @@ class DiPlayActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         HotspotExtraAddressSettings.sync(this) // phone + browser mode: keep the car browser's hotspot address
+        TeslaBrowserLink.sync(this)
         // Returning from another activity can bring the head unit's own density back.
         if (enforceInterfaceSize()) render()
         if (Build.VERSION.SDK_INT < 33 && AppLocale.preference(this) != languagePreferenceAtCreate) {
@@ -1234,6 +1238,7 @@ class DiPlayActivity : ComponentActivity() {
                 getString(R.string.settings_phone_browser_mode_description), phoneBrowser) {
                 AirPlayPersistence.saveRunMode(this, if (it) CarPlayRunMode.PHONE_BROWSER else CarPlayRunMode.HEAD_UNIT)
                 HotspotExtraAddressSettings.sync(this) // the extra hotspot address exists only in phone mode
+                TeslaBrowserLink.sync(this) // so does the car browser's link; a running session keeps its mode
                 render() // the head-unit cards come and go with the mode
                 markReconnectNeeded()
             }
@@ -1686,7 +1691,15 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun teslaBrowserLinkSettings(parent: LinearLayout) {
-        // Browser page address, pairing code and link status: added with the browser link.
+        // The search index gets the titles only: no server start, no new pairing code, no hotspot probe.
+        TeslaBrowserLinkCard(this, indexing = searchIndexSink != null,
+            colors = HotspotExtraAddressCard.Colors(muted = MUTED, warning = WARNING, ready = READY),
+            note = { text -> label(text, 14, MUTED) },
+            settingRow = { card, text, click -> card.addView(button(text, false, click), matchButton(0, 60)) },
+            actionRow = { card, text, click -> card.addView(button(text, false, click), matchButton(8, 54)) },
+            requestLocalNetwork = { localNetworkPermission.launch(LocalNetworkPermission.PERMISSION) },
+            rerender = ::render,
+        ).build(parent)
     }
 
     private fun hotspotAddressSettings(parent: LinearLayout) {
@@ -3959,6 +3972,7 @@ class DiPlayActivity : ComponentActivity() {
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
                     appendLine(HotspotExtraAddressSettings.diagnosticLine(appContext))
+                    TeslaBrowserLink.diagnosticLines(appContext).forEach(::appendLine)
                     appendLine()
                     appendLine("--- Current cluster display diagnostics (even when disabled) ---")
                     appendLine(ClusterMapPresentation.diagnosticReport(appContext))

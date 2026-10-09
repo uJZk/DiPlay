@@ -42,11 +42,16 @@ data class BrowserLinkStatus(
      */
     val fit: Boolean get() {
         if (state == State.IDLE) return false
-        val display = display ?: return false
-        val viewport = viewport ?: return false
-        val aspect = display.width.toDouble() / display.height
-        val wanted = viewport.width.toDouble() / viewport.height
-        return abs(display.width - viewport.width) > 8 || abs(display.height - viewport.height) > 8 ||
-            abs(aspect - wanted) > 0.01 * wanted
+        return differs(display ?: return false, viewport ?: return false)
+    }
+
+    companion object {
+        /** More than 8 px apart on a side, or more than 1 % apart in aspect ratio. */
+        fun differs(display: BrowserSize, viewport: BrowserSize): Boolean {
+            val aspect = display.width.toDouble() / display.height
+            val wanted = viewport.width.toDouble() / viewport.height
+            return abs(display.width - viewport.width) > 8 || abs(display.height - viewport.height) > 8 ||
+                abs(aspect - wanted) > 0.01 * wanted
+        }
     }
 }

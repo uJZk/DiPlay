@@ -46,6 +46,8 @@ class CarPlayHostDisplaySizeTest {
 
     @Before fun setUp() {
         activity = Robolectric.buildActivity(CarPlayHostActivity::class.java).get()
+        // A head unit's window sets the canvas; in phone + browser mode the car's browser does.
+        useHeadUnitMode(activity)
         AirPlayPersistence.saveAdaptPipResolution(activity, false)
         // Source-only tests have no provisioned local authentication identity.
         AirPlayPersistence.saveMfiTarget(activity, MfiTarget.USB_CH341)
