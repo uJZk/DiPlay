@@ -123,8 +123,21 @@
   - 关闭时显示当前热点 IP；不在 100.64.0.0/10 内时，提示"特斯拉浏览器很可能无法访问"。
     依据：特斯拉浏览器在车内直接拦截 10/8、172.16/12、192.168/16、127/8 的访问（报告 `334dac05`、`b549281c`、`1d728b90`），
     直接访问 IPv6 地址报 `ERR_ACCESS_DENIED`，100.64.0.0/10 未被本地拦截。
-  - 开启时需要 root，给热点网卡加 `100.109.220.253/32`（默认值，可修改）；特斯拉浏览器用这个地址打开 CarPlay 页面。
+  - 开启时需要 root 或 Shizuku，给热点网卡加 `100.109.220.253/32`（默认值，可修改）；特斯拉浏览器用这个地址打开 CarPlay 页面。
   - 网卡名不要写死 `wlan2`，按当前热点网卡的地址查找。热点重启后地址会消失，需要重新添加。
+  - **免 root（2026-10-09 实测）**：shell 用户（uid 2000，和免 root 的 Shizuku 相同）调用 `network_management` 服务的
+    `setInterfaceConfig("wlan2:tp", 100.109.220.253/32)`，成功把地址加到 wlan2，热点原地址 `10.176.81.135/24` 不受影响
+    （Android 16，SDK 36，安全补丁 2026-07-01；工具见 `tools/shell-address/`）。
+    - 原理：shell 没有 `CAP_NET_ADMIN`，但有 `CONNECTIVITY_INTERNAL`，`NetworkManagementService.setInterfaceConfig` 接受它，
+      再以 system 身份让 netd 加地址。Android 17 源码（`android-17.0.0_r1`）这条链没有变化。
+    - 网卡名必须带别名（`wlan2:tp`）。不带别名时系统会先清空该网卡的 IPv4 地址，热点上的设备全部断网。
+    - shell 只能加、不能删（删除需要 `NETWORK_STACK`）；热点重启后地址消失，由 TiPlay 自动补加。
+    - Shizuku 官方 v13.6.0 在 Android 17 上授权新应用有已知问题（issue #2180），TiPlay 直接用 `ShizukuBinderWrapper`
+      调系统服务，不用 UserService。Shizuku 每次手机重启后要重新启动，无线调试只在手机连着 Wi-Fi 时可用。
+    - 不可行：VpnService 的 tun 地址。Android 14（2025-01 补丁起）和 15 以上会丢弃从热点进来、发往 VPN 地址的包
+      （CVE-2024-49734）；169.254 链路本地地址被豁免，但特斯拉是否放行 169.254 的 HTTP 还没测。
+    - Android 17 + targetSdk 37：接受热点设备的连接需要 `ACCESS_LOCAL_NETWORK` 权限，用哪种方式加地址都一样。
+  - [ ] 用特斯拉浏览器访问 shell 加上的 `http://100.109.220.253:8080`，确认和 root 加的地址效果相同。
   - 端口统一用 8080（普通应用可以监听，不需要 iptables 重定向）。视频流和控制都走 HTTP（TCP 8080）。
 - 不依赖 root 的备选（没有可用的私有地址绕过方式时）：云端中转，延迟 +100 ms 以上、双向流量约 7 GB/小时（8 Mbps），
   在国内需使用能直接访问的服务器（`workers.dev` 在国内无法直连）。
