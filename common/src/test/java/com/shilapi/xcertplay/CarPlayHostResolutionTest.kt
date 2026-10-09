@@ -96,6 +96,23 @@ class CarPlayHostResolutionTest {
         assertEquals(100, get("displayScalePercent"))
     }
 
+    @Test fun phoneBrowserModeOffersNoDashboardStreamOrParkedVideo() {
+        AirPlayPersistence.saveClusterMapEnabled(activity, true)
+        com.shilapi.xcertplay.hud.BydOutputSettings.setVideoWhileParked(activity, true)
+        try {
+            val headUnit = config(100)
+            assertNotNull(headUnit.cluster)
+            assertTrue(headUnit.videoInCar)
+
+            AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.PHONE_BROWSER)
+            val phone = config(100)
+            assertNull(phone.cluster)
+            assertFalse(phone.videoInCar)
+        } finally {
+            MapMirrors.streamAspect = MapMirrors.PHYSICAL_STREAM_ASPECT
+        }
+    }
+
     @Test fun normalResolutionKeepsTheExistingStartupPathWithoutDecoderMetadata() {
         val display = config(100).main
         assertEquals(1920, display.widthPixels)

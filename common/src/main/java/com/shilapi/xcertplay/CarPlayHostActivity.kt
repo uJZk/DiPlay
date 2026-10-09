@@ -165,9 +165,10 @@ class CarPlayHostActivity : ComponentActivity() {
             hardwareVersion = "1.0",
             carPlayUsbInterfaceNumber = 3,
             locationInformationEnabled = locationReportingEnabled,
-            vehicleStatusEnabled = com.shilapi.xcertplay.hud.BydOutputSettings.batteryToIphoneActive(this),
+            vehicleStatusEnabled = headUnitIntegrations() && com.shilapi.xcertplay.hud.BydOutputSettings.batteryToIphoneActive(this),
             chargingConnectors = com.shilapi.xcertplay.hud.BydOutputSettings.chargingConnectors(this),
-            vehicleSpeedEnabled = locationReportingEnabled && com.shilapi.xcertplay.hud.BydOutputSettings.wheelSpeedToIphoneActive(this),
+            vehicleSpeedEnabled = locationReportingEnabled && headUnitIntegrations() &&
+                com.shilapi.xcertplay.hud.BydOutputSettings.wheelSpeedToIphoneActive(this),
         ),
         label = "TeslaPlay",
         hostName = "diplay-" + DiPlayBootstrap.deviceId(airPlayIdentity).replace(":", "").lowercase(),
@@ -184,7 +185,13 @@ class CarPlayHostActivity : ComponentActivity() {
         existingWifiSsid = existingWifiSsid,
         existingWifiPassphrase = existingWifiPassphrase,
         locationReportingEnabled = locationReportingEnabled,
+        headUnitIntegrations = headUnitIntegrations(),
     )
+
+    // Phone + browser mode: no BYD vehicle data, outputs, dashboard map or wheel keys, whatever a head unit saved.
+    private fun headUnitIntegrations(): Boolean = !AirPlayPersistence.isPhoneBrowserMode(this)
+
+    private fun clusterMapEnabled(): Boolean = headUnitIntegrations() && AirPlayPersistence.loadClusterMapEnabled(this)
 
     private val vpnConsent =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -555,7 +562,7 @@ class CarPlayHostActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NavigationWidgetUpdater.attach(applicationContext)
-        CarPlayCallKeys.install(applicationContext)
+        if (headUnitIntegrations()) CarPlayCallKeys.install(applicationContext)
         CenterMapOverlay.requestShow = ::showCenterMap
         MapMirrors.sink = mirrorSink
         MapMirrors.onChanged = mirrorsChanged
@@ -567,7 +574,7 @@ class CarPlayHostActivity : ComponentActivity() {
             startActivity(Intent(this, DiPlayActivity::class.java))
             finish(); return
         }
-        WheelKeyService.restoreIfNeeded(this)
+        if (headUnitIntegrations()) WheelKeyService.restoreIfNeeded(this)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         getSystemService(android.hardware.display.DisplayManager::class.java)
             ?.registerDisplayListener(clusterDisplayListener, mainHandler)
@@ -882,12 +889,12 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun onClusterActivityState(state: ClusterActivityState.Snapshot) {
         if (state != detectedCluster) appendLog("Cluster map: detected theme=${state.theme} mapVisible=${state.mapVisible}")
         detectedCluster = state
-        if (!AirPlayPersistence.loadClusterMapEnabled(this)) { dismissClusterPresentation(); return }
+        if (!clusterMapEnabled()) { dismissClusterPresentation(); return }
         ensureClusterPresentation()
     }
 
     private fun ensureClusterPresentation() {
-        if (!AirPlayPersistence.loadClusterMapEnabled(this)) {
+        if (!clusterMapEnabled()) {
             dismissClusterPresentation()
             return
         }
@@ -1033,7 +1040,7 @@ class CarPlayHostActivity : ComponentActivity() {
     // finish after the session has already asked for the virtual fallback stream.
     private val clusterDisplayListener = object : android.hardware.display.DisplayManager.DisplayListener {
         override fun onDisplayAdded(displayId: Int) {
-            if (isDestroyed || !AirPlayPersistence.loadClusterMapEnabled(this@CarPlayHostActivity)) return
+            if (isDestroyed || !clusterMapEnabled()) return
             val display = ClusterMapPresentation.findDisplay(this@CarPlayHostActivity, effectiveClusterTheme())
             if (display?.displayId != displayId) return
             appendLog("Cluster map: display ${display.name} appeared")
@@ -1049,7 +1056,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun clusterDisplayConfig(): AirPlayDisplayConfig? {
         adbClusterConfigured = false
         clusterStreamOnDisplay = false
-        if (!AirPlayPersistence.loadClusterMapEnabled(this)) return null
+        if (!clusterMapEnabled()) return null
         if (AdbClusterRouter.enabled(this) && ClusterActivityOutput.hasConfirmedRoute()) {
             adbClusterConfigured = true
             clusterStreamOnDisplay = true
@@ -1159,7 +1166,7 @@ class CarPlayHostActivity : ComponentActivity() {
         if (CarPlayCallKeys.onKey(this, event.keyCode, event.action == KeyEvent.ACTION_DOWN, controller)) return true
 
         // The wheel key service, when it runs, takes an assigned Siri key before this window sees it.
-        val assignedKey = WheelZoomSettings.isSiriKey(this, WheelKey.of(event))
+        val assignedKey = headUnitIntegrations() && WheelZoomSettings.isSiriKey(this, WheelKey.of(event))
         val assignedAction = if (downOrUp) siriKeyPresses.filter(
             physicalKey, event.action == KeyEvent.ACTION_DOWN, event.repeatCount == 0,
         ) {
@@ -1221,7 +1228,7 @@ class CarPlayHostActivity : ComponentActivity() {
     /** Shows the dashboard map as a card on the centre screen while DiPlay is in the background. */
     private fun showCenterMap() {
         if (isDestroyed || shuttingDown.get() || sink == null || isActivityStarted) return
-        if (!AirPlayPersistence.loadCenterMapOverlay(this) || !AirPlayPersistence.loadClusterMapEnabled(this)) return
+        if (!AirPlayPersistence.loadCenterMapOverlay(this) || !clusterMapEnabled()) return
         if (!AirPlayPersistence.loadCenterMapFollowsDashboard(this)) return
         if (MapMirrors.launcherShowsMap) return // the launcher has the map on its own screen
         // Without the stream the card would stay black; it follows once the stream starts.
@@ -1581,7 +1588,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     // The battery shows only where DiPlay already reads it for the iPhone.
     private fun refreshSidePanel() {
-        val battery = if (com.shilapi.xcertplay.hud.BydOutputSettings.batteryToIphoneActive(this)) {
+        val battery = if (headUnitIntegrations() && com.shilapi.xcertplay.hud.BydOutputSettings.batteryToIphoneActive(this)) {
             com.shilapi.xcertplay.hud.BydNavigationOutputs.batteryStatus(applicationContext).snapshot()
         } else null
         sidePanelBattery?.text = battery?.let { "🔋 ${Math.round(it.batteryPercent)} %  ·  ${it.rangeKm} km" }.orEmpty()
@@ -3573,7 +3580,7 @@ class CarPlayHostActivity : ComponentActivity() {
             model = normalizedModel(),
             oemLabel = oemLabel,
             icons = listOf(loadAirPlayIcon()),
-            videoInCar = com.shilapi.xcertplay.hud.BydOutputSettings.videoWhileParkedActive(this),
+            videoInCar = headUnitIntegrations() && com.shilapi.xcertplay.hud.BydOutputSettings.videoWhileParkedActive(this),
             mainBufferedAudio = AirPlayPersistence.loadMainBufferedAudio(this),
         )
     }
@@ -4050,7 +4057,7 @@ class CarPlayHostActivity : ComponentActivity() {
             savePairRecord = { record -> AirPlayPersistence.saveLockdownRecord(this, record) },
             clearPairRecord = { AirPlayPersistence.clearLockdownRecord(this) },
             locationProvider = locationProvider,
-            vehicleStatusProvider = if (com.shilapi.xcertplay.hud.BydOutputSettings.batteryToIphoneActive(this)) {
+            vehicleStatusProvider = if (config.identification.vehicleStatusEnabled) {
                 com.shilapi.xcertplay.hud.BydNavigationOutputs.batteryStatus(applicationContext)
             } else {
                 null
@@ -4677,7 +4684,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun attachSurface(surface: Surface) {
         sink?.setSurface(SCREEN_TYPE_MAIN, surface)
-        if (AirPlayPersistence.loadClusterMapEnabled(this)) {
+        if (clusterMapEnabled()) {
             clusterSurface?.let { sink?.setSurface(SCREEN_TYPE_ALT, it) }
         } else {
             sink?.setSurface(SCREEN_TYPE_ALT, surface)

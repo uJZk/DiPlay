@@ -25,6 +25,12 @@ enum class WirelessHotspotMode {
     EXISTING_WIFI,
 }
 
+/** Where TeslaPlay runs: on the car's head unit, or on a phone whose hotspot the car's browser joins. */
+enum class CarPlayRunMode {
+    HEAD_UNIT,
+    PHONE_BROWSER,
+}
+
 enum class ManualHotspotBand {
     AUTO,
     GHZ_2_4,
@@ -68,6 +74,8 @@ class CarPlayRuntimeConfig(
     val wifiP2pPreferredChannel: Int = WifiP2pChannels.AUTO,
     val existingWifiSsid: String = "",
     val existingWifiPassphrase: String = "",
+    /** BYD HUD and cluster outputs, the ADB Wi-Fi scan pause and the car's home screen; off on a phone. */
+    val headUnitIntegrations: Boolean = true,
 ) {
     init {
         require(iphoneDevices.all { it.vendorId == APPLE_VENDOR_ID }) {

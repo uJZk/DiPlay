@@ -169,8 +169,10 @@ class CarPlayController(
             "A location provider is required when location reporting is enabled"
         }
         WifiScanPause.restoreIfNeeded(context.applicationContext)
-        BydNavigationOutputs.start(context.applicationContext)
-        BydNavigationOutputs.setClusterStreamControl(::applyClusterUi)
+        if (config.headUnitIntegrations) {
+            BydNavigationOutputs.start(context.applicationContext)
+            BydNavigationOutputs.setClusterStreamControl(::applyClusterUi)
+        }
     }
 
     private enum class Phase { IDLE, MFI, WIRELESS, IPHONE, REENUMERATION, DATAPATHS, CONTROL }
@@ -290,8 +292,10 @@ class CarPlayController(
         override fun onSessionActive(session: AirPlaySession) {
             val replacement = activeSession !== session
             if (replacement) {
-                BydNavigationOutputs.start(appContext)
-                BydNavigationOutputs.carPlaySessionStarted()
+                if (config.headUnitIntegrations) {
+                    BydNavigationOutputs.start(appContext)
+                    BydNavigationOutputs.carPlaySessionStarted()
+                }
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(true)
                 // The gear may have changed since /info.
                 if (videoListener != null) {
@@ -311,7 +315,9 @@ class CarPlayController(
         override fun onSessionEnded(session: AirPlaySession) {
             if (activeSession === session) {
                 activeSession = null
-                BydNavigationOutputs.endNow(preserveTurnOverlay = !closed && config.transport == CarPlayTransport.WIRELESS)
+                if (config.headUnitIntegrations) {
+                    BydNavigationOutputs.endNow(preserveTurnOverlay = !closed && config.transport == CarPlayTransport.WIRELESS)
+                }
                 com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(false)
                 videoListener?.onVideoSessionEnded()
                 synchronized(playbackStatus) {
@@ -341,14 +347,19 @@ class CarPlayController(
 
         // The user tapped the car icon in CarPlay: show the head unit's own menu, like its Home button.
         // The session keeps running in the background, so returning to DiPlay resumes CarPlay.
+        // On a phone the car's browser shows CarPlay, so the phone's home screen stays where it is.
         override fun onHostUiRequested(session: AirPlaySession) {
-            debugLog("CarPlay requested the car UI; opening the head-unit home screen")
-            runCatching {
-                appContext.startActivity(
-                    Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-            }.onFailure { debugLog("Car home screen could not open: ${it.javaClass.simpleName}") }
+            if (config.headUnitIntegrations) {
+                debugLog("CarPlay requested the car UI; opening the head-unit home screen")
+                runCatching {
+                    appContext.startActivity(
+                        Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }.onFailure { debugLog("Car home screen could not open: ${it.javaClass.simpleName}") }
+            } else {
+                debugLog("CarPlay requested the car UI; no head-unit home screen in phone + browser mode")
+            }
             uiListener?.onHostUiRequested(session)
         }
 
@@ -598,9 +609,9 @@ class CarPlayController(
         val teardownStarted = System.nanoTime()
         connectionDiagnostic("teardown begin transport=${config.transport}")
         videoGate?.close()
-        BydNavigationOutputs.endNow()
+        if (config.headUnitIntegrations) BydNavigationOutputs.endNow()
         com.shilapi.xcertplay.glance.CarPlayGlance.setConnected(false)
-        BydNavigationOutputs.clearClusterStreamControl(::applyClusterUi)
+        if (config.headUnitIntegrations) BydNavigationOutputs.clearClusterStreamControl(::applyClusterUi)
         closeReceivers()
         availabilityPollGeneration.incrementAndGet()
         wirelessGeneration.incrementAndGet()
@@ -740,7 +751,7 @@ class CarPlayController(
 
     // HUD (SOME/IP) and cluster (AMap broadcast) keep separate state so one failing cannot stall the other.
     private fun onRouteFrame(frame: com.shilapi.xcertplay.iap2.wire.Iap2Frame) {
-        BydNavigationOutputs.onFrame(frame)
+        if (config.headUnitIntegrations) BydNavigationOutputs.onFrame(frame)
         com.shilapi.xcertplay.glance.CarPlayGlance.onFrame(frame)
         synchronized(playbackStatus) {
             val previousPlaying = playbackStatus.playing
@@ -2159,7 +2170,7 @@ class CarPlayController(
 
     // Kept across reconnects within this controller: resuming between attempts would start a scan.
     private fun pauseWifiScans(backend: WirelessHotspotBackend) = synchronized(this) {
-        if (closed || !WifiScanPause.eligible(backend)) return@synchronized
+        if (closed || !config.headUnitIntegrations || !WifiScanPause.eligible(backend)) return@synchronized
         (wifiScanPause ?: WifiScanPause(appContext, ::debugLog).also { wifiScanPause = it }).pause()
     }
 

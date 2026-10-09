@@ -3,6 +3,7 @@ package com.shilapi.xcertplay
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
@@ -18,6 +19,7 @@ class StartupDiagnosticSnapshotTest {
     @Before fun reset() {
         app.getSharedPreferences("diplay_startup_diagnostics", Context.MODE_PRIVATE).edit().clear().commit()
         AirPlayPersistence.saveAutoStartOnBoot(app, false)
+        AirPlayPersistence.saveRunMode(app, CarPlayRunMode.HEAD_UNIT)
     }
 
     @Test fun disabledBootIsRecordedWithoutLaunchingOrChangingTheSetting() {
@@ -28,6 +30,19 @@ class StartupDiagnosticSnapshotTest {
         BootReceiver().onReceive(context, Intent(Intent.ACTION_BOOT_COMPLETED))
         assertFalse(launched)
         assertFalse(AirPlayPersistence.loadAutoStartOnBoot(app))
+        assertTrue(StartupDiagnosticSnapshot.report(app).contains("launchEnabledAtBoot=false launchResult=disabled"))
+    }
+
+    @Test fun phoneBrowserModeDoesNotOpenAtBootButKeepsTheHeadUnitChoice() {
+        AirPlayPersistence.saveAutoStartOnBoot(app, true)
+        AirPlayPersistence.saveRunMode(app, CarPlayRunMode.PHONE_BROWSER)
+        var launched = false
+        val context = object : ContextWrapper(app) {
+            override fun startActivity(intent: Intent) { launched = true }
+        }
+        BootReceiver().onReceive(context, Intent(Intent.ACTION_BOOT_COMPLETED))
+        assertFalse(launched)
+        assertTrue(AirPlayPersistence.loadAutoStartOnBoot(app))
         assertTrue(StartupDiagnosticSnapshot.report(app).contains("launchEnabledAtBoot=false launchResult=disabled"))
     }
 

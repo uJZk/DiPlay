@@ -54,6 +54,7 @@ import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.network.CarHotspotSettings
 import com.shilapi.xcertplay.network.CarHotspotTethering
 import com.shilapi.xcertplay.network.WifiP2pChannels
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import com.shilapi.xcertplay.settings.SettingsTheme
 import com.shilapi.xcertplay.settings.SettingsWidgets
@@ -73,6 +74,7 @@ internal enum class SettingsSection {
     CARPLAY_CONTROLS,
     WHEEL_KEYS,
     CONNECTION_SETUP,
+    TESLA_BROWSER,
     DIAGNOSTICS,
     AUTOMATIC_CONNECTION,
     BYD_ADB,
@@ -94,6 +96,7 @@ internal object SettingsInformationArchitecture {
         SettingsCategory.OVERVIEW to setOf(SettingsSection.ABOUT, SettingsSection.LANGUAGE),
         SettingsCategory.CONNECTION to setOf(
             SettingsSection.CONNECTION_SETUP,
+            SettingsSection.TESLA_BROWSER,
             SettingsSection.AUTOMATIC_CONNECTION,
             SettingsSection.BYD_ADB,
             SettingsSection.PERMISSIONS_AND_HELP,
@@ -112,6 +115,14 @@ internal object SettingsInformationArchitecture {
             SettingsSection.EXPERIMENTAL_DISPLAY,
             SettingsSection.ADVANCED_MEDIA,
         ),
+    )
+
+    /** Cards for BYD head-unit hardware; the phone + browser run mode hides them. */
+    val headUnitOnlySections: Set<SettingsSection> = setOf(
+        SettingsSection.WHEEL_KEYS,
+        SettingsSection.BYD_ADB,
+        SettingsSection.CLUSTER_MAP,
+        SettingsSection.BYD_NAVIGATION,
     )
 }
 
@@ -270,8 +281,11 @@ class DiPlayActivity : ComponentActivity() {
         }
         enforceInterfaceSize()
         languagePreferenceAtCreate = AppLocale.preference(this)
-        com.shilapi.xcertplay.hud.BydNavigationOutputs.onAppOpened(applicationContext)
-        WheelKeyService.restoreIfNeeded(this)
+        // A phone has no BYD outputs to recover and no wheel keys to restore over ADB.
+        if (!AirPlayPersistence.isPhoneBrowserMode(this)) {
+            com.shilapi.xcertplay.hud.BydNavigationOutputs.onAppOpened(applicationContext)
+            WheelKeyService.restoreIfNeeded(this)
+        }
         WindowCompat.setDecorFitsSystemWindows(window, true)
         window.statusBarColor = BG; window.navigationBarColor = BG
         WindowInsetsControllerCompat(window, window.decorView).apply {
@@ -1023,7 +1037,7 @@ class DiPlayActivity : ComponentActivity() {
         settingsPageTitle(content, getString(R.string.settings_navigation), getString(R.string.settings_navigation_summary))
         renderSections(content, SettingsInformationArchitecture.sectionsByCategory.getValue(SettingsCategory.NAVIGATION))
         // The BYD card is hidden without its receiver; say so instead of leaving a gap.
-        if (!BydOutputSettings.available(this)) {
+        if (!BydOutputSettings.available(this) && !AirPlayPersistence.isPhoneBrowserMode(this)) {
             content.addView(label(getString(R.string.settings_byd_navigation_unavailable), 15, MUTED).apply {
                 setPadding(dp(4), 0, dp(4), dp(SETTINGS_BLOCK_GAP_DP))
             })
@@ -1160,7 +1174,7 @@ class DiPlayActivity : ComponentActivity() {
         }
         content.addView(caution, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(18) })
         renderSections(content, SettingsInformationArchitecture.sectionsByCategory.getValue(SettingsCategory.ADVANCED))
-        advancedVehicleDataSettings(content)
+        if (!AirPlayPersistence.isPhoneBrowserMode(this)) advancedVehicleDataSettings(content)
     }
 
     private fun advancedVehicleDataSettings(content: LinearLayout) {
@@ -1212,6 +1226,20 @@ class DiPlayActivity : ComponentActivity() {
             card.addView(label(getString(R.string.choose_how_to_connect_follow_the_setup_steps_and_save_your), 16, MUTED))
             card.addView(button(getString(R.string.open_connection_setup), false, ::openConnectionSetupFromSettings), matchButton(12, 60))
         }
+        filteredSection(content, SettingsSection.TESLA_BROWSER,
+            getString(R.string.settings_tesla_browser), R.drawable.ic_dp_connection) { card ->
+            val phoneBrowser = AirPlayPersistence.isPhoneBrowserMode(this)
+            toggle(card, getString(R.string.settings_phone_browser_mode),
+                getString(R.string.settings_phone_browser_mode_description), phoneBrowser) {
+                AirPlayPersistence.saveRunMode(this, if (it) CarPlayRunMode.PHONE_BROWSER else CarPlayRunMode.HEAD_UNIT)
+                render() // the head-unit cards come and go with the mode
+                markReconnectNeeded()
+            }
+            if (phoneBrowser) {
+                teslaBrowserLinkSettings(card)
+                hotspotAddressSettings(card)
+            }
+        }
         filteredSection(content, SettingsSection.DIAGNOSTICS,
             getString(R.string.diagnostics), R.drawable.ic_dp_diagnostics) { card ->
             exportButton = button(if (exportInProgress) getString(R.string.saving_report) else getString(R.string.save_diagnostic_report), false) {
@@ -1234,45 +1262,48 @@ class DiPlayActivity : ComponentActivity() {
             ), connectionModes.indexOf(DiPlayPreferences.defaultConnectionMode(this)), reconnects = false) {
                 DiPlayPreferences.saveDefaultConnectionMode(this, connectionModes[it])
             }
-            adbToggle(card, R.string.open_after_the_car_starts,
-                R.string.availability_depends_on_your_head_unit_s_startup_settings,
-                read = { AirPlayPersistence.loadAutoStartOnBoot(this) },
-                needsAdb = { CarHotspotSettings.enabled(this) &&
-                    AirPlayPersistence.loadWirelessHotspotMode(this) == WirelessHotspotMode.MANUAL },
-                permissions = { listOf(CarHotspotSetup.Permission.BOOT_LAUNCH) }) {
-                AirPlayPersistence.saveAutoStartOnBoot(this, it)
-            }
-            val autoConfirmActive = UsbPermissionSetup.Permission.ACCESSIBILITY.granted(this)
-            toggle(
-                card,
-                getString(R.string.usb_auto_confirm_title),
-                getString(R.string.usb_auto_confirm_subtitle),
-                autoConfirmActive,
-            ) { enabled ->
-                if (enabled) promptEnableUsbAutoConfirm()
-                else {
-                    if (!UsbAutoConfirmService.openSettings(this)) toast(getString(R.string.wheel_keys_no_settings))
-                    render()
+            // Starting with the car, USB prompts and ADB grants belong to a head unit; a phone connects wirelessly.
+            if (!AirPlayPersistence.isPhoneBrowserMode(this)) {
+                adbToggle(card, R.string.open_after_the_car_starts,
+                    R.string.availability_depends_on_your_head_unit_s_startup_settings,
+                    read = { AirPlayPersistence.loadAutoStartOnBoot(this) },
+                    needsAdb = { CarHotspotSettings.enabled(this) &&
+                        AirPlayPersistence.loadWirelessHotspotMode(this) == WirelessHotspotMode.MANUAL },
+                    permissions = { listOf(CarHotspotSetup.Permission.BOOT_LAUNCH) }) {
+                    AirPlayPersistence.saveAutoStartOnBoot(this, it)
                 }
-            }
-            if (!autoConfirmActive) {
-                card.addView(
-                    button(
-                        getString(R.string.btn_auto_apply_permissions),
-                        true,
-                    ) {
-                        autoApplyPermissions()
-                    },
-                    matchButton(8, 54),
-                )
-            } else {
-                card.addView(label(getString(R.string.usb_auto_confirm_active_hint), 14, READY).apply {
-                    setPadding(0, dp(4), 0, dp(8))
-                })
+                val autoConfirmActive = UsbPermissionSetup.Permission.ACCESSIBILITY.granted(this)
+                toggle(
+                    card,
+                    getString(R.string.usb_auto_confirm_title),
+                    getString(R.string.usb_auto_confirm_subtitle),
+                    autoConfirmActive,
+                ) { enabled ->
+                    if (enabled) promptEnableUsbAutoConfirm()
+                    else {
+                        if (!UsbAutoConfirmService.openSettings(this)) toast(getString(R.string.wheel_keys_no_settings))
+                        render()
+                    }
+                }
+                if (!autoConfirmActive) {
+                    card.addView(
+                        button(
+                            getString(R.string.btn_auto_apply_permissions),
+                            true,
+                        ) {
+                            autoApplyPermissions()
+                        },
+                        matchButton(8, 54),
+                    )
+                } else {
+                    card.addView(label(getString(R.string.usb_auto_confirm_active_hint), 14, READY).apply {
+                        setPadding(0, dp(4), 0, dp(8))
+                    })
+                }
             }
             card.addView(button("${getString(R.string.choose_iphone_prefix)}${DiPlayPreferences.phoneName(this)}", false) { choosePhone() }, matchButton(12, 60))
         }
-        if (settingsSectionFilter?.contains(SettingsSection.BYD_ADB) != false) bydAdbSettings(content)
+        if (showsSection(SettingsSection.BYD_ADB)) bydAdbSettings(content)
         filteredSection(content, SettingsSection.DISPLAY_AND_PERFORMANCE,
             getString(R.string.display_and_performance), R.drawable.ic_dp_display) { card ->
             val nightModes = CarPlayNightMode.entries
@@ -1648,6 +1679,14 @@ class DiPlayActivity : ComponentActivity() {
             card.addView(button(getString(R.string.about_diplay), false) { page = "about"; render() }, matchButton(0, 60))
         }
         languageSettings(content)
+    }
+
+    private fun teslaBrowserLinkSettings(parent: LinearLayout) {
+        // Browser page address, pairing code and link status: added with the browser link.
+    }
+
+    private fun hotspotAddressSettings(parent: LinearLayout) {
+        // Hotspot address and the root-only extra address: added with the hotspot address keeper.
     }
 
     private fun about(content: LinearLayout) {
@@ -3185,7 +3224,7 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun scheduleAutomaticVehicleValidation() {
-        if (!BydOutputSettings.legacyVehicleProbe(this)) {
+        if (!BydOutputSettings.legacyVehicleProbe(this) || AirPlayPersistence.isPhoneBrowserMode(this)) {
             automaticVehicleValidationPending = false
             handler.removeCallbacks(automaticVehicleValidation)
             return
@@ -4140,9 +4179,15 @@ class DiPlayActivity : ComponentActivity() {
         icon: Int? = null,
         build: (LinearLayout) -> Unit,
     ) {
-        if (settingsSectionFilter?.contains(key) == false) return
+        if (!showsSection(key)) return
         section(parent, title, icon, build)
     }
+
+    // The phone + browser run mode also hides the cards for head-unit hardware.
+    private fun showsSection(key: SettingsSection): Boolean =
+        settingsSectionFilter?.contains(key) != false &&
+            (key !in SettingsInformationArchitecture.headUnitOnlySections || !AirPlayPersistence.isPhoneBrowserMode(this))
+
     // Routing changes affect the live cluster surface as soon as the host resumes.
     // Ask before saving them instead of promising to defer only part of the change.
     private fun reconnectingToggle(parent: LinearLayout, title: String, description: String,

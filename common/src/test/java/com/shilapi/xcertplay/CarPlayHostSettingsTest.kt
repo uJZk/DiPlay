@@ -307,6 +307,23 @@ class CarPlayHostSettingsTest {
         assertEquals(1, field("restartGeneration"))
     }
 
+    @Test fun phoneBrowserModeKeepsBydVehicleDataAndOutputsOutOfTheRuntime() {
+        com.shilapi.xcertplay.hud.BydOutputSettings.setBatteryToIphone(activity, true)
+        com.shilapi.xcertplay.hud.BydOutputSettings.setWheelSpeedToIphone(activity, true)
+        setField("locationReportingEnabled", true)
+        val headUnit = invoke("createRuntimeConfig") as CarPlayRuntimeConfig
+        assertTrue(headUnit.headUnitIntegrations)
+        assertTrue(headUnit.identification.vehicleStatusEnabled)
+        assertTrue(headUnit.identification.vehicleSpeedEnabled)
+
+        AirPlayPersistence.saveRunMode(activity, CarPlayRunMode.PHONE_BROWSER)
+        val phone = invoke("createRuntimeConfig") as CarPlayRuntimeConfig
+        assertFalse(phone.headUnitIntegrations)
+        assertFalse(phone.identification.vehicleStatusEnabled)
+        assertFalse(phone.identification.vehicleSpeedEnabled)
+        assertTrue(phone.locationReportingEnabled)
+    }
+
     @Test fun localRuntimeDoesNotRequestCh341Devices() {
         AirPlayPersistence.saveMfiTarget(activity, MfiTarget.LOCAL)
         invoke("loadPersistedSettings")

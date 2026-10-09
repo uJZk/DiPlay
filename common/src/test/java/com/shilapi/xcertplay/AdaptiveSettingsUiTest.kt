@@ -330,6 +330,7 @@ class AdaptiveSettingsUiTest {
         }
         fun text(id: Int) = screen.getString(id)
 
+        val connection = visibleIn(R.string.connection)
         val display = visibleIn(R.string.settings_display)
         val audio = visibleIn(R.string.audio)
         val vehicle = visibleIn(R.string.settings_vehicle)
@@ -348,6 +349,11 @@ class AdaptiveSettingsUiTest {
         listOf(R.string.main_buffered_audio, R.string.efficient_video, R.string.smooth_video, R.string.call_echo_cancellation, R.string.call_voice_filter, R.string.right_hand_drive, R.string.car_button_in_carplay,
             R.string.side_panel, R.string.split_screen_areas, R.string.carplay_rotation).forEach {
             assertFalse(text(it), text(it) in display)
+        }
+        assertTrue(text(R.string.settings_tesla_browser) in connection)
+        assertTrue(text(R.string.settings_phone_browser_mode) in connection)
+        listOf(display, audio, vehicle, advanced).forEach {
+            assertFalse(text(R.string.settings_phone_browser_mode) in it)
         }
     }
 

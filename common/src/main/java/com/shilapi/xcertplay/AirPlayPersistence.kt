@@ -12,6 +12,7 @@ import com.shilapi.xcertplay.airplay.AirPlayIdentity
 import com.shilapi.xcertplay.airplay.PairingStore
 import com.shilapi.xcertplay.airplay.SafeAreaCodec
 import com.shilapi.xcertplay.airplay.SafeAreaRect
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
 import com.shilapi.xcertplay.orchestration.ManualHotspotSecurity
 import com.shilapi.xcertplay.orchestration.MfiTarget
@@ -49,6 +50,7 @@ object AirPlayPersistence {
     private const val KEY_NAVIGATION_AUDIO_CHANNEL = "navigation_audio_channel"
     private const val KEY_NAVIGATION_STREAM_TYPE = "navigation_stream_type"
     private const val KEY_WIRELESS_ENABLED = "wireless_enabled"
+    private const val KEY_RUN_MODE = "run_mode"
     private const val KEY_WIRELESS_HOTSPOT_MODE = "wireless_hotspot_mode"
     private const val KEY_WIFI_P2P_PREFERRED_CHANNEL = "wifi_p2p_preferred_channel"
     private const val KEY_MANUAL_HOTSPOT_SSID = "manual_hotspot_ssid"
@@ -251,6 +253,21 @@ object AirPlayPersistence {
             .putBoolean(KEY_WIRELESS_ENABLED, enabled)
             .apply()
     }
+
+    /** Head unit by default; the phone + browser mode applies at the next connection. */
+    fun loadRunMode(context: Context): CarPlayRunMode {
+        val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_RUN_MODE, null)
+        return CarPlayRunMode.entries.firstOrNull { it.name == stored } ?: CarPlayRunMode.HEAD_UNIT
+    }
+
+    fun saveRunMode(context: Context, mode: CarPlayRunMode) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(KEY_RUN_MODE, mode.name)
+            .apply()
+    }
+
+    /** True on a phone whose hotspot the car's browser joins: head-unit features stay off, whatever was saved. */
+    fun isPhoneBrowserMode(context: Context): Boolean = loadRunMode(context) == CarPlayRunMode.PHONE_BROWSER
 
     fun loadMfiTarget(context: Context): MfiTarget {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
