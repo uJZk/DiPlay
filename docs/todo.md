@@ -74,35 +74,36 @@
     `https://` 打到 8080 端口时手机收到了 TLS 握手；ICE-TCP 连接也到达了。
   - 没有弹出"本地网络访问"授权提示。`ws://` 没有到达手机（被浏览器拦截）。
 - [ ] 确认 iPhone 发来的码流格式：在诊断日志中记录配置头的格式标记（`avcC`/`hvcC`/其他）。
-- [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 WebTransport 送给浏览器；浏览器在 Worker 里接收，用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时取消过时帧的流，直到下一个关键帧。
+- [ ] 视频链路：新增 `WebMediaSink`，不转码，直接把 iPhone 码流（H.264 或 HEVC）通过 HTTP 响应流送给浏览器；浏览器在 Worker 里用 `fetch` 读取，用 WebCodecs 硬解，用 WebGL 画到 OffscreenCanvas；发送端积压时丢帧到下一个关键帧。
   分辨率按浏览器上报的视口 × DPR 协商，60 fps。
 - [ ] 网络：按下面"热点地址"和"传输层"的决定实现。
 - [ ] 触摸：Pointer Events 多点触控，每次 `requestAnimationFrame` 合并发送一次，换算后调用 `CarPlayController.sendTouch`。
 
 ## 已定的决定
 
-- **传输层用 WebTransport + 证书指纹（方案 B，2026-10-09，取代此前的"保持 WSS"）**：
-  - 原因：WebCodecs 只在安全上下文可用。手机自己提供 `http://` 页面不是安全上下文；`https://` 页面又不能连 `ws://`（混合内容），
-    而 CA 不会给 100.64 地址签证书。自有域名加证书需要用户配置域名或项目运营证书服务器，都太复杂。
+- **传输层用 HTTPS 页面 + HTTP fetch 流（方案 D，2026-10-09，取代此前的 WSS 和 WebTransport 方案）**：
+  - 原因：WebCodecs 只在安全上下文可用，所以页面必须是 HTTPS；CA 不会给 100.64 地址签证书，`ws://` 又会被混合内容拦截。
+    Chrome 对"发往本地 IP 字面量的 `fetch`"豁免混合内容检查，并把 100.64.0.0/10 视为本地地址，特斯拉的拦截名单也不含 100.64，
+    所以 HTTPS 页面可以直接 `fetch("http://100.109.220.253:8080/…")`（报告 `305294d4` 实测成功，无授权弹窗）。
+    参考：https://developer.chrome.com/blog/local-network-access
   - 页面：静态 HTTPS 页面，托管在国内不开代理也能访问的地址（自定义域名，不用 `workers.dev`），用 Service Worker 缓存，首次加载后不依赖外网。
-  - 连接：`new WebTransport("https://100.109.220.253:8080/…", { serverCertificateHashes: [...] })`，UDP 8080。
-    手机用自签 ECDSA P-256 证书，Chrome 要求有效期不超过 14 天。
-  - 证书轮换：配对时把当前和后续若干张证书的指纹交给页面（URL fragment），页面存 localStorage；
-    每次连接后由手机下发后续指纹，只有超过有效期都没连接过才需要重新配对。
-  - 帧格式：每帧一条单向流，帧头含时间戳、关键帧标记、序号、编码；控制（分辨率协商、关键帧请求、触摸）走一条双向流；
-    加配对码，防止热点上的其他设备接入。
-  - 安卓端：WebTransport 服务端通过 JNI 引入 Rust `wtransport` 或 Go `webtransport-go`，待定。
-  - 选 B 而不是 WebRTC 数据通道（方案 C）的理由：可在 Worker 内全程处理、没有单条消息大小上限、可直接取消过时帧的流。
-    代价：证书最长 14 天需要轮换，特斯拉上没有先例。
-  - 风险：Chrome 的"本地网络访问"限制目前不管 WebTransport，以后版本可能会管，需要关注。
-  - 备选（方案 D）：公网 HTTPS 页面用 `fetch` 持续读取 `http://100.109.220.253:8080` 的响应流传视频，控制和触摸另发 `fetch`。
-    实测可行，无需任何证书和 QUIC，但依赖浏览器对"HTTPS 页面访问本地 HTTP"的放行，且走 TCP。B 遇到问题时再考虑。
+  - 视频：Worker 里 `fetch("http://100.109.220.253:8080/video?…", { targetAddressSpace: "local" })`，手机返回不定长的 HTTP/1.1 响应，
+    持续写入帧；每帧带长度前缀和帧头（时间戳、关键帧标记、序号、编码），页面用 `ReadableStream` 读取后重组。
+  - 控制和触摸：用短 `fetch` POST（keep-alive），按 `requestAnimationFrame` 合并发送；使用"简单请求"（如 `text/plain`），避免 CORS 预检。
+    不用流式上传：Chrome 只在 HTTP/2 以上支持流式请求体。
+  - 手机端：普通 HTTP 服务器，监听 8080，开 TCP_NODELAY，发送缓冲设小，积压时丢帧到下一个关键帧并向 iPhone 请求关键帧；
+    返回 CORS 响应头（含 `Access-Control-Allow-Private-Network`），以备浏览器发出本地网络预检。
+  - 配对：URL 参数带配对码，只允许一个控制端。热点有 WPA 加密，明文 HTTP 的风险可以接受。
+  - 不需要任何证书、域名解析或证书服务器。
+  - 风险（都不受我们控制）：Chrome 取消或收紧这条混合内容豁免；特斯拉以后开始弹授权提示（只需用户允许一次）；特斯拉的拦截名单加入 100.64。
+  - 待实测：在 Worker 里发起的 `fetch` 是否同样享受豁免；长时间响应流是否会被浏览器或特斯拉中途断开。
+  - 备选：方案 B（WebTransport + 证书指纹，UDP 已实测可达），代价是证书最长 14 天要轮换、安卓端要集成 HTTP/3。
 - **以 DiPlay 为基础开发，不以 [WheelPlay](https://github.com/fython/wheelplay) 为基础**：
   - WheelPlay 基于较旧的 DiPlay 快照，没有共同 git 历史，缺少后来的热点和无线可靠性修复，难以再合并上游修复。
   - 它的主视频路线是 WebRTC → `<video>` → `drawImage`，按其他项目的报告，特斯拉挂挡后 `<video>` 会暂停（推断，未在本车验证）。
   - 它的音频走安卓或浏览器，和"声音走车辆蓝牙"的方案不同。
 - [ ] 从 WheelPlay 按需移植以下组件（GPL-3.0，保留署名）：
-  - `LanTls`：参考其自签证书生成（`LanWebServer` 不再需要：页面改为公网静态托管）。
+  - `LanWebServer`：手机端 HTTP 服务器（只提供视频流和控制接口，页面改为公网静态托管）。`LanTls` 不再需要。
   - `QrPairing`、`RememberedBrowsers`、`TouchLease`：扫码配对、记住已配对浏览器、单一控制端。
   - `EncodedVideoSink`、`CompressedVideoFrame`：从媒体层接出不解码的码流，作为 `WebMediaSink` 的基础。
   - 触摸坐标换算，以及浏览器端统计面板（参考 `window.wheelplayStats`）。
@@ -115,6 +116,6 @@
     直接访问 IPv6 地址报 `ERR_ACCESS_DENIED`，100.64.0.0/10 未被本地拦截。
   - 开启时需要 root，给热点网卡加 `100.109.220.253/32`（默认值，可修改）；特斯拉浏览器用这个地址打开 CarPlay 页面。
   - 网卡名不要写死 `wlan2`，按当前热点网卡的地址查找。热点重启后地址会消失，需要重新添加。
-  - 端口统一用 8080（普通应用可以监听，不需要 iptables 重定向）。WebTransport 走 UDP 8080。
+  - 端口统一用 8080（普通应用可以监听，不需要 iptables 重定向）。视频流和控制都走 HTTP（TCP 8080）。
 - 不依赖 root 的备选（没有可用的私有地址绕过方式时）：云端中转，延迟 +100 ms 以上、双向流量约 7 GB/小时（8 Mbps），
   在国内需使用能直接访问的服务器（`workers.dev` 在国内无法直连）。
