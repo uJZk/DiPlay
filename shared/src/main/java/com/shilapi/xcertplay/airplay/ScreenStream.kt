@@ -35,6 +35,7 @@ class ScreenStream(private val key: ByteArray, private val onDiagnostic: (String
     private val closed = AtomicBoolean(false)
     private val frameCounter = AtomicLong(0)
     private val firstFrameLogged = AtomicBoolean(false)
+    private var lastConfigBody: ByteArray? = null
     private var server: ServerSocket? = null
     private var socket: Socket? = null
     private var thread: Thread? = null
@@ -116,10 +117,15 @@ class ScreenStream(private val key: ByteArray, private val onDiagnostic: (String
                 listener.onFrame(ScreenCodec.lengthPrefixedToAnnexB(payload), ScreenCodec.senderNanos(header), arrivalNanos)
             }
             OP_VIDEO_CONFIG -> {
-                val (codec, codecData) = ScreenCodec.detectConfig(body)
-                Log.i(TAG, "video codec config codec=$codec body=${body.size} data=${codecData.size}")
-                listener.onCodec(codec)
-                listener.onConfig(codecData)
+                val config = ScreenCodec.describeConfig(body)
+                Log.i(TAG, "video codec config codec=${config.codec} body=${body.size} data=${config.record.size}")
+                // The iPhone repeats the same config after every forceKeyFrame; describe each distinct one once.
+                if (!body.contentEquals(lastConfigBody)) {
+                    lastConfigBody = body
+                    onDiagnostic(ScreenCodec.configDiagnostic(config))
+                }
+                listener.onCodec(config.codec)
+                listener.onConfig(config.record)
             }
         }
     }
@@ -148,6 +154,12 @@ class ScreenStream(private val key: ByteArray, private val onDiagnostic: (String
 
 private fun ByteArray.hexPrefix(length: Int): String =
     take(length).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+
+/**
+ * A VideoConfig payload: the codec, the avcC/hvcC record, and the fourcc [marker] (`avcC`, `hvcC`, or `none`
+ * when the codec was guessed from the bytes) found at [markerOffset] (-1 for `none`).
+ */
+class VideoConfigInfo(val codec: VideoCodec, val record: ByteArray, val marker: String, val markerOffset: Int)
 
 /** Extracts the avcC/hvcC codec-data record from a VideoConfig payload. */
 object ScreenCodec {
@@ -199,16 +211,51 @@ object ScreenCodec {
         return payload
     }
 
-    fun detectConfig(payload: ByteArray): Pair<VideoCodec, ByteArray> {
+    fun detectConfig(payload: ByteArray): Pair<VideoCodec, ByteArray> =
+        describeConfig(payload).let { it.codec to it.record }
+
+    fun describeConfig(payload: ByteArray): VideoConfigInfo {
         for (index in 4..payload.size - 4) {
             val fourcc = String(payload, index, 4, Charsets.US_ASCII)
             when (fourcc) {
-                "hvcC" -> return VideoCodec.H265 to payload.copyOfRange(index + 4, payload.size)
-                "avcC" -> return VideoCodec.H264 to payload.copyOfRange(index + 4, payload.size)
+                "hvcC" -> return VideoConfigInfo(VideoCodec.H265, payload.copyOfRange(index + 4, payload.size), fourcc, index)
+                "avcC" -> return VideoConfigInfo(VideoCodec.H264, payload.copyOfRange(index + 4, payload.size), fourcc, index)
             }
         }
-        return if (looksLikeAvcC(payload)) VideoCodec.H264 to payload else VideoCodec.H265 to payload
+        val codec = if (looksLikeAvcC(payload)) VideoCodec.H264 else VideoCodec.H265
+        return VideoConfigInfo(codec, payload, "none", -1)
     }
+
+    /**
+     * One diagnostic line for a VideoConfig, safe for the session log: sizes and header fields only,
+     * never the record bytes. [lengthPrefixedToAnnexB] assumes 4-byte NAL lengths, so the line shows them.
+     */
+    fun configDiagnostic(config: VideoConfigInfo): String {
+        val record = config.record
+        val fields = when {
+            record.size < 4 || record[0].toInt() != 1 -> "profile=unknown level=unknown"
+            config.codec == VideoCodec.H264 ->
+                "profile=${record[1].toInt() and 0xff} level=${record[3].toInt() and 0xff}"
+            record.size < HEVC_LEVEL_OFFSET + 1 -> "profile=unknown level=unknown"
+            else -> {
+                val profile = record[1].toInt() and 0xff
+                "profile=${profile and 0x1f} tier=${(profile shr 5) and 1} level=${record[HEVC_LEVEL_OFFSET].toInt() and 0xff}"
+            }
+        }
+        return "Video config marker=${config.marker} at=${config.markerOffset} codec=${config.codec} " +
+            "recordBytes=${record.size} nalLengthBytes=${nalLengthBytes(config.codec, record) ?: "unknown"} $fields"
+    }
+
+    /** lengthSizeMinusOne + 1 from an avcC (byte 4) or hvcC (byte 21) record, or null when the record is too short. */
+    fun nalLengthBytes(codec: VideoCodec, record: ByteArray): Int? {
+        val offset = if (codec == VideoCodec.H264) AVC_LENGTH_SIZE_OFFSET else HEVC_LENGTH_SIZE_OFFSET
+        if (record.size <= offset || record[0].toInt() != 1) return null
+        return (record[offset].toInt() and 0x03) + 1
+    }
+
+    private const val AVC_LENGTH_SIZE_OFFSET = 4
+    private const val HEVC_LEVEL_OFFSET = 12
+    private const val HEVC_LENGTH_SIZE_OFFSET = 21
 
     private fun looksLikeAvcC(payload: ByteArray): Boolean {
         if (payload.size < 9) return false
