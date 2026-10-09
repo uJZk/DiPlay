@@ -2,5 +2,5 @@
 <resources>
     <string name="settings_tesla_browser">特斯拉瀏覽器（實驗性）</string>
     <string name="settings_phone_browser_mode">手機 + 瀏覽器模式</string>
-    <string name="settings_phone_browser_mode_description">用於開熱點給車輛的 Android 手機，車上的瀏覽器顯示 CarPlay。關閉車機專屬功能（比亞迪 HUD 和儀表、ADB、方向盤按鍵）。下次連線時生效。</string>
+    <string name="settings_phone_browser_mode_description">用於開熱點給車輛的 Android 手機：車上的瀏覽器顯示 CarPlay，車機專屬功能（比亞迪 HUD 和儀表、ADB、方向盤按鍵）保持關閉。在車機上使用時請關閉。下次連線時生效。</string>
 </resources>

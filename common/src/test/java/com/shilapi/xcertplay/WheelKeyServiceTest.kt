@@ -35,6 +35,7 @@ class WheelKeyServiceTest {
     private var learned = 0
 
     @Before fun setUp() {
+        useHeadUnitMode()
         service = Robolectric.buildService(WheelKeyService::class.java).create().get()
         service.getSharedPreferences("diplay_wheel_map_zoom", Context.MODE_PRIVATE).edit().clear().commit()
         service.mapRoute = { route }

@@ -1439,7 +1439,8 @@ class DiPlayActivity : ComponentActivity() {
             getString(R.string.car_button_in_carplay), R.drawable.ic_dp_car) { card -> carButtonCard = card; carButtonControls(card) }
         filteredSection(content, SettingsSection.AUDIO_ROUTING,
             getString(R.string.audio_routing), R.drawable.ic_dp_audio) { card ->
-            carBluetoothAudioControl(card)
+            // Only a car browser needs it (its audience sees it, so it stays in Audio); a head unit plays the sound.
+            if (AirPlayPersistence.isPhoneBrowserMode(this)) carBluetoothAudioControl(card)
             mediaChannelControl(card)
             navigationChannelControl(card)
             val bufferPresets = com.shilapi.xcertplay.media.MediaAudioBuffer.presets
@@ -3674,9 +3675,12 @@ class DiPlayActivity : ComponentActivity() {
 
     private fun carButtonControls(parent: LinearLayout) {
         val custom = AirPlayPersistence.loadCustomAirPlayIconFile(this)?.let { BitmapFactory.decodeFile(it.absolutePath) }
+        // Phone + browser mode sends a neutral car and "Tesla" instead of the BYD defaults (CarButtonDefaults).
+        val phoneBrowser = AirPlayPersistence.isPhoneBrowserMode(this)
+        val phoneIcon = if (phoneBrowser && custom == null) CarButtonDefaults.phoneBrowserIcon(this) else null
         val preview = row().apply { gravity = Gravity.CENTER_VERTICAL }
         preview.addView(ImageView(this).apply {
-            setImageBitmap(custom ?: BitmapFactory.decodeResource(resources, R.raw.ic_car_home))
+            setImageBitmap(custom ?: phoneIcon ?: BitmapFactory.decodeResource(resources, R.raw.ic_car_home))
             scaleType = ImageView.ScaleType.CENTER_CROP
             background = rounded(SURFACE, BORDER)
             clipToOutline = true
@@ -3699,7 +3703,7 @@ class DiPlayActivity : ComponentActivity() {
             refreshCarButton()
             carButtonSaved()
         }, matchButton(10, 60))
-        val name = AirPlayPersistence.loadOemLabel(this)
+        val name = CarButtonDefaults.label(AirPlayPersistence.loadOemLabel(this), phoneBrowser)
         parent.addView(button("${getString(R.string.car_button_name)} · $name", false) {
             textInput(getString(R.string.car_button_name), name, secret = false) {
                 AirPlayPersistence.saveOemLabel(this, it)
@@ -3942,7 +3946,7 @@ class DiPlayActivity : ComponentActivity() {
                     appendLine("Saved video preference (may differ from active session): ${if (AirPlayPersistence.loadHevcEnabled(appContext)) "HEVC" else "H.264"}; ${AirPlayPersistence.loadFps(appContext)} fps")
                     appendLine("CarPlay size: ${com.shilapi.xcertplay.airplay.CarPlaySize.fromWidthMillimeters(AirPlayPersistence.loadWidthPhysicalMm(appContext)).label}")
                     appendLine("Saved resolution preference (may differ from active session): ${AirPlayPersistence.loadDisplayScalePercent(appContext)}%")
-                    appendLine("Saved car Bluetooth sound (may differ from active session): ${AirPlayPersistence.loadCarBluetoothAudio(appContext)}")
+                    appendLine("Saved car Bluetooth sound (may differ from active session; phone + browser mode only): ${AirPlayPersistence.loadCarBluetoothAudio(appContext)}")
                     appendLine("Session: ${if (CarPlayBackgroundSession.active) "active" else if (CarPlayBackgroundSession.hasSession()) "connecting" else "stopped"}")
                     appendLine("Head-unit board: ${Build.BOARD}; hardware: ${Build.HARDWARE}; build: ${Build.DISPLAY}")
                     appendLine()

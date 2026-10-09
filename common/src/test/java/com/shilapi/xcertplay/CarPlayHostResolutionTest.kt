@@ -98,6 +98,7 @@ class CarPlayHostResolutionTest {
     }
 
     @Test fun phoneBrowserModeOffersNoDashboardStreamOrParkedVideo() {
+        useHeadUnitMode(activity)
         AirPlayPersistence.saveClusterMapEnabled(activity, true)
         com.shilapi.xcertplay.hud.BydOutputSettings.setVideoWhileParked(activity, true)
         try {
@@ -131,6 +132,7 @@ class CarPlayHostResolutionTest {
 
     @Test fun carBluetoothAudioReachesTheAirPlayConfig() {
         set("microphoneAvailable", true)
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.PHONE_BROWSER)
         assertEquals(CarBluetoothAudio.OFF, AirPlayPersistence.loadCarBluetoothAudio(activity))
         for ((mode, expected) in listOf(
             CarBluetoothAudio.OFF to listOf(false, false, true, true),
@@ -141,6 +143,68 @@ class CarPlayHostResolutionTest {
             val airPlay = config(100)
             assertEquals(mode.name, expected,
                 listOf(airPlay.audioViaCarBluetooth, airPlay.disableAudioOutput, airPlay.microphone, airPlay.receivesAudio))
+        }
+    }
+
+    // A choice saved in phone + browser mode must not silence a head unit: there it behaves as off.
+    @Test fun headUnitModeIgnoresASavedCarBluetoothSound() {
+        set("microphoneAvailable", true)
+        useHeadUnitMode(activity)
+        for (mode in CarBluetoothAudio.entries) {
+            AirPlayPersistence.saveCarBluetoothAudio(activity, mode)
+            val airPlay = config(100)
+            assertEquals(mode.name, listOf(false, false, true, true),
+                listOf(airPlay.audioViaCarBluetooth, airPlay.disableAudioOutput, airPlay.microphone, airPlay.receivesAudio))
+        }
+    }
+
+    // Like the other head-unit gates, a running session keeps the run mode it connected with.
+    @Test fun carBluetoothSoundFollowsTheRunModeOfTheRunningSession() {
+        set("microphoneAvailable", true)
+        AirPlayPersistence.saveCarBluetoothAudio(activity, CarBluetoothAudio.ON)
+        try {
+            AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.PHONE_BROWSER)
+            set("controller", org.mockito.Mockito.mock(com.shilapi.xcertplay.orchestration.CarPlayController::class.java))
+            assertTrue("a head-unit session keeps its sound", config(100).receivesAudio)
+
+            useHeadUnitMode(activity)
+            val phone = org.mockito.Mockito.mock(com.shilapi.xcertplay.orchestration.CarPlayController::class.java)
+            org.mockito.Mockito.`when`(phone.phoneBrowserMode()).thenReturn(true)
+            set("controller", phone)
+            assertFalse("a phone + browser session keeps car Bluetooth sound", config(100).receivesAudio)
+        } finally {
+            set("controller", null)
+        }
+        assertTrue("without a session the saved head-unit mode applies", config(100).receivesAudio)
+    }
+
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun phoneBrowserModeSendsANeutralCarButtonInsteadOfTheBydLogo() {
+        val byd = activity.resources.openRawResource(com.shilapi.xcertplay.host.R.raw.ic_car_home).use { it.readBytes() }
+        assertEquals(AirPlayPersistence.DEFAULT_OEM_LABEL, AirPlayPersistence.loadOemLabel(activity))
+
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.PHONE_BROWSER)
+        val phone = config(100)
+        assertEquals("Tesla", phone.oemLabel)
+        val icon = phone.icons.single()
+        assertEquals(CarButtonDefaults.ICON_SIZE_PX, icon.widthPixels)
+        assertEquals(CarButtonDefaults.ICON_SIZE_PX, icon.heightPixels)
+        assertFalse("phone + browser mode must not send the BYD logo", icon.data.contentEquals(byd))
+        val decoded = android.graphics.BitmapFactory.decodeByteArray(icon.data, 0, icon.data.size)
+        assertEquals(CarButtonDefaults.ICON_SIZE_PX, decoded.width)
+
+        useHeadUnitMode(activity)
+        val headUnit = config(100)
+        assertEquals(AirPlayPersistence.DEFAULT_OEM_LABEL, headUnit.oemLabel)
+        assertTrue("a head unit keeps the packaged icon", headUnit.icons.single().data.contentEquals(byd))
+    }
+
+    @Test fun aCustomCarButtonNameIsKeptInBothRunModes() {
+        AirPlayPersistence.saveOemLabel(activity, "My car")
+        for (mode in com.shilapi.xcertplay.orchestration.CarPlayRunMode.entries) {
+            AirPlayPersistence.saveRunMode(activity, mode)
+            assertEquals(mode.name, "My car", config(100).oemLabel)
         }
     }
 

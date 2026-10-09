@@ -35,6 +35,7 @@ class ClusterMapScaleCapabilityTest {
     @Before fun setUp() {
         val app = RuntimeEnvironment.getApplication()
         app.getSharedPreferences("xcertplay_airplay", Context.MODE_PRIVATE).edit().clear().commit()
+        useHeadUnitMode(app)
         activity = Robolectric.buildActivity(CarPlayHostActivity::class.java).get()
         activity.javaClass.getDeclaredField("hevcEnabled").apply { isAccessible = true }.set(activity, false)
         ShadowMediaCodecList.reset()

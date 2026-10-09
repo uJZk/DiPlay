@@ -256,10 +256,10 @@ object AirPlayPersistence {
             .apply()
     }
 
-    /** Head unit by default; the phone + browser mode applies at the next connection. */
+    /** Phone + browser by default (TiPlay's own use); head-unit mode is opt-in. Applies at the next connection. */
     fun loadRunMode(context: Context): CarPlayRunMode {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY_RUN_MODE, null)
-        return CarPlayRunMode.entries.firstOrNull { it.name == stored } ?: CarPlayRunMode.HEAD_UNIT
+        return CarPlayRunMode.entries.firstOrNull { it.name == stored } ?: CarPlayRunMode.PHONE_BROWSER
     }
 
     fun saveRunMode(context: Context, mode: CarPlayRunMode) {
