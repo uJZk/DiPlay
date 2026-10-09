@@ -281,11 +281,11 @@ class DiPlayActivity : ComponentActivity() {
         }
         enforceInterfaceSize()
         languagePreferenceAtCreate = AppLocale.preference(this)
-        // A phone has no BYD outputs to recover and no wheel keys to restore over ADB.
-        if (!AirPlayPersistence.isPhoneBrowserMode(this)) {
-            com.shilapi.xcertplay.hud.BydNavigationOutputs.onAppOpened(applicationContext)
-            WheelKeyService.restoreIfNeeded(this)
-        }
+        // A phone starts no BYD output and restores no wheel keys over ADB, but an output interrupted
+        // in head-unit mode is still put back.
+        val headUnit = !AirPlayPersistence.isPhoneBrowserMode(this)
+        com.shilapi.xcertplay.hud.BydNavigationOutputs.onAppOpened(applicationContext, headUnitIntegrations = headUnit)
+        if (headUnit) WheelKeyService.restoreIfNeeded(this)
         WindowCompat.setDecorFitsSystemWindows(window, true)
         window.statusBarColor = BG; window.navigationBarColor = BG
         WindowInsetsControllerCompat(window, window.decorView).apply {

@@ -65,6 +65,8 @@ class CarPlayControllerHeadUnitIntegrationsTest {
         assertNull(BydClusterMapPause.streamControl)
         assertNull(shadowOf(app).nextStartedActivity)
         assertNull(ReflectionHelpers.getField<Any?>(controller, "wifiScanPause"))
+        // The host and key gates follow the mode this session connected with.
+        assertTrue(controller.phoneBrowserMode())
     }
 
     @Test fun headUnitModeStartsTheBydOutputsAndOpensTheCarHomeScreen() {
@@ -75,6 +77,7 @@ class CarPlayControllerHeadUnitIntegrationsTest {
 
         assertTrue(bydOutputsAccepting())
         assertNotNull(BydClusterMapPause.streamControl)
+        assertFalse(controller.phoneBrowserMode())
         val home = shadowOf(app).nextStartedActivity
         assertEquals(Intent.ACTION_MAIN, home.action)
         assertTrue(home.hasCategory(Intent.CATEGORY_HOME))

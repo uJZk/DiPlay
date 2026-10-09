@@ -189,7 +189,11 @@ class CarPlayHostActivity : ComponentActivity() {
     )
 
     // Phone + browser mode: no BYD vehicle data, outputs, dashboard map or wheel keys, whatever a head unit saved.
-    private fun headUnitIntegrations(): Boolean = !AirPlayPersistence.isPhoneBrowserMode(this)
+    // A running session keeps the mode it connected with (the setting applies at the next connection), so a
+    // change cannot move its dashboard stream onto the main surface. startCarPlay runs without a session,
+    // so a new session takes the saved mode.
+    private fun headUnitIntegrations(): Boolean = !AirPlayPersistence.isPhoneBrowserMode(this,
+        controller ?: CarPlayBackgroundSession.snapshot()?.controller)
 
     private fun clusterMapEnabled(): Boolean = headUnitIntegrations() && AirPlayPersistence.loadClusterMapEnabled(this)
 
@@ -562,7 +566,7 @@ class CarPlayHostActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         NavigationWidgetUpdater.attach(applicationContext)
-        if (headUnitIntegrations()) CarPlayCallKeys.install(applicationContext)
+        CarPlayCallKeys.install(applicationContext) // its keys check the run mode when they arrive
         CenterMapOverlay.requestShow = ::showCenterMap
         MapMirrors.sink = mirrorSink
         MapMirrors.onChanged = mirrorsChanged
@@ -4018,6 +4022,8 @@ class CarPlayHostActivity : ComponentActivity() {
                 "microphone=${airPlayConfig.microphone} " +
                 "location=${if (config.locationReportingEnabled) "enabled" else "disabled"}" +
                 "${if (config.identification.vehicleSpeedEnabled) "+wheel-speed" else ""} " +
+                // Reports say why a session has no BYD outputs, dashboard map or wheel keys.
+                (if (config.headUnitIntegrations) "" else "run-mode=phone-browser ") +
                 "mfi=${mfiTargetLabel(config.mfiTarget)}",
         )
         Log.i(

@@ -12,6 +12,7 @@ import com.shilapi.xcertplay.hud.CarPlayCallState
 import com.shilapi.xcertplay.iap2.message.Iap2Messages
 import com.shilapi.xcertplay.media.AndroidMediaSink
 import com.shilapi.xcertplay.orchestration.CarPlayController
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import java.time.Duration
 import org.junit.After
 import org.junit.Assert.*
@@ -345,6 +346,23 @@ class WheelKeyServiceTest {
         assertTrue(key(KeyEvent.KEYCODE_F1, true, time = 1_000))
         assertTrue(key(KeyEvent.KEYCODE_F1, false, time = 1_000))
         assertEquals(2, siriRequests)
+    }
+
+    @Test fun theWheelKeysFollowTheRunModeTheSessionConnectedWith() {
+        AirPlayPersistence.saveRunMode(service, CarPlayRunMode.PHONE_BROWSER)
+        // Without a session the saved phone + browser mode leaves the keys to the phone.
+        assertEquals(false to false, press(KeyEvent.KEYCODE_F1))
+        // A session that connected as a head unit keeps its wheel keys until it reconnects.
+        CarPlayBackgroundSession.store(mock(CarPlayController::class.java), mock(AndroidMediaSink::class.java), 1, 1,
+            this, mock(CarPlaySessionDisplay::class.java)) { it() }
+        zoomOn()
+        // A phone + browser session ignores them, even after head unit is saved again.
+        AirPlayPersistence.saveRunMode(service, CarPlayRunMode.HEAD_UNIT)
+        val phoneSession = mock(CarPlayController::class.java)
+        `when`(phoneSession.phoneBrowserMode()).thenReturn(true)
+        CarPlayBackgroundSession.store(phoneSession, mock(AndroidMediaSink::class.java), 1, 1,
+            this, mock(CarPlaySessionDisplay::class.java)) { it() }
+        assertEquals(false to false, press(KeyEvent.KEYCODE_F2))
     }
 
     @Test fun aHeldSiriCallKeyCannotEndTheCallThatArrivesBeforeItsRelease() {

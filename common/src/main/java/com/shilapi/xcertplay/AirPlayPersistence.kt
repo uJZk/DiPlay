@@ -12,6 +12,7 @@ import com.shilapi.xcertplay.airplay.AirPlayIdentity
 import com.shilapi.xcertplay.airplay.PairingStore
 import com.shilapi.xcertplay.airplay.SafeAreaCodec
 import com.shilapi.xcertplay.airplay.SafeAreaRect
+import com.shilapi.xcertplay.orchestration.CarPlayController
 import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import com.shilapi.xcertplay.orchestration.ManualHotspotBand
 import com.shilapi.xcertplay.orchestration.ManualHotspotSecurity
@@ -268,6 +269,13 @@ object AirPlayPersistence {
 
     /** True on a phone whose hotspot the car's browser joins: head-unit features stay off, whatever was saved. */
     fun isPhoneBrowserMode(context: Context): Boolean = loadRunMode(context) == CarPlayRunMode.PHONE_BROWSER
+
+    /**
+     * The mode in effect for live host and key gates: a running [session] keeps the mode it connected with,
+     * so a change applies at the next connection as the setting says; without a session, the saved mode.
+     */
+    fun isPhoneBrowserMode(context: Context, session: CarPlayController?): Boolean =
+        session?.phoneBrowserMode() ?: isPhoneBrowserMode(context)
 
     fun loadMfiTarget(context: Context): MfiTarget {
         val stored = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

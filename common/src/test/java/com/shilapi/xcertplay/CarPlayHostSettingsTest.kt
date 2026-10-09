@@ -324,6 +324,38 @@ class CarPlayHostSettingsTest {
         assertTrue(phone.locationReportingEnabled)
     }
 
+    @Test fun aRunningSessionKeepsTheRunModeItConnectedWithUntilTheNextConnection() {
+        AirPlayPersistence.saveClusterMapEnabled(activity, true)
+        AirPlayPersistence.saveRunMode(activity, CarPlayRunMode.PHONE_BROWSER)
+        val sink = mock(com.shilapi.xcertplay.media.AndroidMediaSink::class.java)
+        val main = mock(android.view.Surface::class.java)
+        setField("sink", sink)
+        try {
+            assertFalse(invoke("clusterMapEnabled") as Boolean)
+            // A head-unit session keeps its dashboard stream: it must not move onto the main surface.
+            setField("controller", mock(CarPlayController::class.java))
+            assertTrue(invoke("headUnitIntegrations") as Boolean)
+            assertTrue(invoke("clusterMapEnabled") as Boolean)
+            activity.javaClass.getDeclaredMethod("attachSurface", android.view.Surface::class.java)
+                .apply { isAccessible = true }.invoke(activity, main)
+            org.mockito.Mockito.verify(sink, org.mockito.Mockito.never()).setSurface(111, main) // stream 111
+
+            // A phone + browser session stays without them after head unit is saved again.
+            AirPlayPersistence.saveRunMode(activity, CarPlayRunMode.HEAD_UNIT)
+            val phone = mock(CarPlayController::class.java)
+            `when`(phone.phoneBrowserMode()).thenReturn(true)
+            setField("controller", phone)
+            assertFalse(invoke("headUnitIntegrations") as Boolean)
+            assertFalse(invoke("clusterMapEnabled") as Boolean)
+        } finally {
+            setField("controller", null)
+            setField("sink", null)
+        }
+        // Without a session the saved mode applies, as it does to the next session's runtime config.
+        assertTrue(invoke("clusterMapEnabled") as Boolean)
+        assertTrue((invoke("createRuntimeConfig") as CarPlayRuntimeConfig).headUnitIntegrations)
+    }
+
     @Test fun localRuntimeDoesNotRequestCh341Devices() {
         AirPlayPersistence.saveMfiTarget(activity, MfiTarget.LOCAL)
         invoke("loadPersistedSettings")

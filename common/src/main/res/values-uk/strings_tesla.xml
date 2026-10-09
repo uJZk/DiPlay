@@ -2,5 +2,5 @@
 <resources>
     <string name="settings_tesla_browser">Браузер Tesla (експериментально)</string>
     <string name="settings_phone_browser_mode">Телефон і браузер автомобіля</string>
-    <string name="settings_phone_browser_mode_description">Для телефона Android, який роздає точку доступу автомобілю. CarPlay показується в браузері автомобіля. Вимикає функції головного пристрою: HUD і приладову панель BYD, ADB, кнопки на кермі. Застосовується під час наступного підключення.</string>
+    <string name="settings_phone_browser_mode_description">Для телефону Android, який роздає точку доступу автомобілю. CarPlay показується в браузері автомобіля. Вимикає функції головного пристрою: HUD і приборку BYD, ADB, кнопки на кермі. Застосовується під час наступного підключення.</string>
 </resources>
