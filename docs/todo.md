@@ -2,7 +2,7 @@
 
 ## 特斯拉浏览器 CarPlay：声音走车辆蓝牙
 
-背景：安卓手机运行 DiPlay 并开热点，特斯拉连接热点后用浏览器显示 CarPlay。
+背景：安卓手机运行 TeslaPlay 并开热点，特斯拉连接热点后用浏览器显示 CarPlay。
 安卓手机只负责视频和触摸。音乐、导航、Siri、电话和麦克风全部走 iPhone 与特斯拉之间的蓝牙。
 
 ### 依据：Carlinkit 固件的 `BtAudio` 模式
@@ -23,11 +23,11 @@
 - 只是静态分析，没有在真机上验证。
 - 2025 年 A15W 固件在仓库里没有解密版，无法确认它的逻辑相同。
 
-### DiPlay 现状
+### TeslaPlay 现状
 
 `AirPlayConfig.disableAudioOutput`（`shared/.../airplay/AirPlayConfig.kt`）目前只在测试中使用，界面上没有开关。它和 Carlinkit 的差别：
 
-| | Carlinkit `BtAudio=1` | DiPlay `disableAudioOutput` |
+| | Carlinkit `BtAudio=1` | TeslaPlay `disableAudioOutput` |
 |---|---|---|
 | `audioFormats` | 去掉 | 去掉 |
 | `audioLatencies` | 保留 | 去掉 |
@@ -46,7 +46,7 @@
   - 更新 `AdaptiveSettingsUiTest.settingsLiveWhereDriversLookForThem`。
 - [ ] 单元测试：开启该模式时 `/info` 没有 `audioFormats`，但有 `audioLatencies`，且 `features` 不变。
 - [ ] 诊断日志记录 iPhone 实际打开的音频流（期望为空）。
-- [ ] 真机验证（前提：iPhone 用蓝牙连特斯拉并设为主电话，同时以无线 CarPlay 连接 DiPlay）：
+- [ ] 真机验证（前提：iPhone 用蓝牙连特斯拉并设为主电话，同时以无线 CarPlay 连接 TeslaPlay）：
   - [ ] 音乐和导航从特斯拉的蓝牙媒体音频出声。
   - [ ] Siri 用特斯拉麦克风收音，回答从车上出声。
   - [ ] 来电和去电走特斯拉免提，CarPlay 通话界面正常。

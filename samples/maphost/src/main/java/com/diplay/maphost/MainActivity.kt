@@ -50,7 +50,7 @@ class MainActivity : Activity() {
         override fun onServiceDisconnected(name: ComponentName) {
             service = null
             attached = false
-            show("DiPlay stopped; waiting for it to come back")
+            show("TeslaPlay stopped; waiting for it to come back")
         }
     }
 
@@ -105,12 +105,12 @@ class MainActivity : Activity() {
         val intent = Intent(ACTION)
         val info = packageManager.queryIntentServices(intent, 0).firstOrNull()?.serviceInfo
         if (info == null) {
-            show("DiPlay is not installed")
+            show("TeslaPlay is not installed")
             return
         }
         intent.setClassName(info.packageName, info.name)
         bound = bindService(intent, connection, BIND_AUTO_CREATE)
-        show(if (bound) "Connecting to ${info.packageName}" else "DiPlay refused the connection")
+        show(if (bound) "Connecting to ${info.packageName}" else "TeslaPlay refused the connection")
     }
 
     override fun onStop() {
@@ -131,7 +131,7 @@ class MainActivity : Activity() {
             putInt(KEY_WIDTH, mapView.width)
             putInt(KEY_HEIGHT, mapView.height)
         }
-        show("Asking DiPlay for the map")
+        show("Asking TeslaPlay for the map")
     }
 
     private fun onReply(message: Message) {
@@ -140,7 +140,7 @@ class MainActivity : Activity() {
                 @Suppress("DEPRECATION")
                 val surfacePackage = message.data.getParcelable<SurfaceControlViewHost.SurfacePackage>(KEY_SURFACE_PACKAGE)
                 if (surfacePackage == null) {
-                    show("DiPlay sent no map")
+                    show("TeslaPlay sent no map")
                     return
                 }
                 mapView.setChildSurfacePackage(surfacePackage)
@@ -152,9 +152,9 @@ class MainActivity : Activity() {
                 attached = false
                 show(
                 when (message.data.getString(KEY_ERROR)) {
-                    ERROR_DISABLED -> "Turn on \"Share the live map with other launchers\" in DiPlay"
+                    ERROR_DISABLED -> "Turn on \"Share the live map with other launchers\" in TeslaPlay"
                     ERROR_UNSUPPORTED -> "This head unit is too old (Android 11 or newer is needed)"
-                    else -> "DiPlay could not show the map: ${message.data.getString(KEY_ERROR)}"
+                    else -> "TeslaPlay could not show the map: ${message.data.getString(KEY_ERROR)}"
                 },
                 )
             }
@@ -162,7 +162,7 @@ class MainActivity : Activity() {
     }
 
     private fun streamText(active: Boolean) =
-        if (active) "Live map from DiPlay. Tap it to open CarPlay." else "Map attached; waiting for CarPlay"
+        if (active) "Live map from TeslaPlay. Tap it to open CarPlay." else "Map attached; waiting for CarPlay"
 
     private fun send(what: Int, fill: Bundle.() -> Unit) {
         val target = service ?: return

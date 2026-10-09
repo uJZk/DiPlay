@@ -33,7 +33,7 @@
     <string name="settings_search_empty">Ничего не найдено. Попробуйте другое слово.</string>
     <string name="settings_ready_wireless">Беспроводной CarPlay подключится к %1$s.</string>
     <string name="settings_ready_usb">Подключите iPhone кабелем USB, чтобы запустить CarPlay.</string>
-    <string name="settings_connecting_description">DiPlay запускает CarPlay с вашим iPhone.</string>
+    <string name="settings_connecting_description">TeslaPlay запускает CarPlay с вашим iPhone.</string>
     <string name="settings_choose_iphone_title">Выберите iPhone</string>
     <string name="settings_choose_iphone_description">Для беспроводного CarPlay нужен сопряжённый iPhone.</string>
     <string name="settings_choose_iphone_action">Выбрать iPhone</string>

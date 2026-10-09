@@ -1,7 +1,7 @@
 # Existing Wi-Fi / Same LAN
 
 Connect the Android receiver and iPhone to the same third-party router or portable
-Wi-Fi in system settings. In DiPlay → Connection setup → Wireless, select
+Wi-Fi in system settings. In TeslaPlay → Connection setup → Wireless, select
 **Existing Wi-Fi / Same LAN**, enter the exact SSID and WPA2 password, and save.
 For an open network, leave the password empty. Keep Bluetooth enabled and the iPhone
 paired with the receiver, then start wireless CarPlay as usual.
@@ -10,7 +10,7 @@ Use WPA2-Personal or WPA2/WPA3 mixed mode. WPA3-only, enterprise authentication 
 captive portals are outside this mode’s current scope. Both clients must be able to
 communicate; allow multicast DNS for service discovery. Prefer 5 GHz when supported.
 
-DiPlay attaches to the existing connection without creating an AP, joining another
+TeslaPlay attaches to the existing connection without creating an AP, joining another
 network or changing the default route. The router supplies Internet access.
 Existing Wi-Fi credentials are stored separately from car-hotspot settings.
 Android cannot expose saved passwords to ordinary apps, so the password is entered

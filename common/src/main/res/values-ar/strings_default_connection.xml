@@ -4,5 +4,5 @@
     <string name="default_connection_last_used">آخر وضع مستخدم</string>
     <string name="default_connection_wireless">لاسلكي</string>
     <string name="default_connection_usb">USB</string>
-    <string name="default_connection_description">استخدم وضع الاتصال الافتراضي وiPhone المحدد عند فتح DiPlay. تستخدم أزرار الاتصال اليدوي الوضع الذي تختاره.</string>
+    <string name="default_connection_description">استخدم وضع الاتصال الافتراضي وiPhone المحدد عند فتح TeslaPlay. تستخدم أزرار الاتصال اليدوي الوضع الذي تختاره.</string>
 </resources>

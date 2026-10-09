@@ -7,7 +7,7 @@ for the instrument-cluster stream. Other firmware has not been vehicle-tested.
 ## Setup
 
 1. Enable the car's native cluster-map/projection mode.
-2. In DiPlay settings, enable **DiLink 4 cluster video via ADB (experimental)**.
+2. In TeslaPlay settings, enable **DiLink 4 cluster video via ADB (experimental)**.
 3. Tap **Authorize ADB / retry cluster routing** and approve the car's debugging
    prompt. Local ADB must be available; background retries never request approval.
 4. Connect or reconnect the iPhone and open Apple Maps. The main CarPlay display
@@ -45,7 +45,7 @@ placement. A manual replug may still be needed after changing connection setting
 
 For this mode, an unset dashboard-content choice defaults to **Map with turn card**
 (the phone's built-in card). Saved choices are preserved. **Map with custom turn
-card** uses DiPlay's existing maneuver overlay, with live placement/size controls.
+card** uses TeslaPlay's existing maneuver overlay, with live placement/size controls.
 It reuses upstream’s info strip for phone-supplied arrival time, duration and
 remaining distance. Missing totals stay blank. Guidance clears at route end/expiry/disconnect and hides with an inactive
 stream. Map orientation is controlled by the phone's cluster stream.
@@ -54,7 +54,7 @@ stream. Map orientation is controlled by the phone's cluster stream.
 
 DiLink 5/5.1 and public cluster displays take priority even if the ADB switch is
 saved. Until an activity confirms the private display, the original virtual stream
-remains. If confirmation arrives after CarPlay starts, DiPlay reconnects once to
+remains. If confirmation arrives after CarPlay starts, TeslaPlay reconnects once to
 request 1920×720 and covers the cluster during that transition. Turning off only
 the ADB option leaves the saved cluster-map enable preference intact.
 When the DiLink 4 ADB option is selected, automatic DiLink 3 cluster-mode

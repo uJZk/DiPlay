@@ -4,5 +4,5 @@
     <string name="default_connection_last_used">Последний использованный</string>
     <string name="default_connection_wireless">Беспроводной</string>
     <string name="default_connection_usb">USB</string>
-    <string name="default_connection_description">При открытии DiPlay используйте режим подключения по умолчанию и выбранный iPhone. Кнопки ручного подключения используют выбранный вами режим.</string>
+    <string name="default_connection_description">При открытии TeslaPlay используйте режим подключения по умолчанию и выбранный iPhone. Кнопки ручного подключения используют выбранный вами режим.</string>
 </resources>

@@ -1,6 +1,6 @@
 # Wireless startup diagnostics
 
-When a wireless connection stalls, reproduce it once and export DiPlay's diagnostic report while it is still connecting. Startup observations are emitted immediately after Bonjour starts, every ten seconds, and at session activation or teardown. They observe the connection without changing its address family, handshake, timeouts or retries.
+When a wireless connection stalls, reproduce it once and export TeslaPlay's diagnostic report while it is still connecting. Startup observations are emitted immediately after Bonjour starts, every ten seconds, and at session activation or teardown. They observe the connection without changing its address family, handshake, timeouts or retries.
 
 The report includes:
 
@@ -14,7 +14,7 @@ The report includes:
 | `control probe stage` | Attempt to connect to the iPhone's control endpoint, established TCP, and sent `/connect` request. |
 | `control probe failed after` | Last completed probe stage and exception class for each failed attempt. Exception messages and endpoint identities are omitted. |
 | `connectProbe2xx`, `lastProbe` | Successful HTTP response count and latest probe outcome. |
-| `airplay TCP accepted`, `tcpAccepted` | Incoming TCP reached DiPlay's AirPlay listener. This alone does not prove CarPlay negotiation succeeded or identify the peer as the selected iPhone. |
+| `airplay TCP accepted`, `tcpAccepted` | Incoming TCP reached TeslaPlay's AirPlay listener. This alone does not prove CarPlay negotiation succeeded or identify the peer as the selected iPhone. |
 | `airplay control request/response` | Fixed method/route category, byte counts and response status for protocol negotiation. Payloads, headers, query strings and unknown path values are omitted. Frequent feedback/command traffic is excluded. |
 | `iap2 availability` | Decoded wired/wireless/theme availability flags, without transport identifiers. Malformed metadata is logged without changing the existing reply behavior. |
 | `sessionActive`, `waitingFor` | Whether AirPlay established a session and the next startup milestone still missing. |

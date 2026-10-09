@@ -89,7 +89,7 @@ class WidgetBoard(private val activity: Activity, private val column: LinearLayo
             AlertDialog.Builder(activity)
                 .setTitle("Allow widgets")
                 .setMessage(
-                    "This head unit has no screen to allow widgets. Allow DiPlay Home once over ADB:\n\n" +
+                    "This head unit has no screen to allow widgets. Allow TeslaPlay Home once over ADB:\n\n" +
                         "adb shell appwidget grantbind --package ${activity.packageName} --user 0",
                 )
                 .setPositiveButton("OK", null)

@@ -78,7 +78,7 @@ internal object NavigationWidgetUpdater {
         when {
             !glance.connected -> {
                 views.setImageViewResource(R.id.widget_arrow, R.drawable.ic_dp_navigation)
-                views.setTextViewText(R.id.widget_distance, "DiPlay")
+                views.setTextViewText(R.id.widget_distance, context.getString(R.string.app_name))
                 views.setTextViewText(R.id.widget_road, context.getString(R.string.widget_not_connected))
                 views.setViewVisibility(R.id.widget_eta, View.GONE)
             }

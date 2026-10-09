@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.shihab.diplay"
+        applicationId = "com.ujzk.teslaplay"
         minSdk = 28
         targetSdk = 37
         versionCode = 32

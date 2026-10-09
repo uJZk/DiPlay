@@ -1,3 +1,9 @@
+# TeslaPlay — unreleased
+
+- Rename the project from DiPlay to TeslaPlay. The app uses the new package `com.ujzk.teslaplay`, so it installs alongside DiPlay (`com.shihab.diplay`). It does not take over DiPlay's settings, pairing records or updates, and the iPhone sees it as a new car.
+- Show TeslaPlay as the app name and as the CarPlay accessory name on the iPhone. Local hotspot names start with `TeslaPlay-`. Diagnostic reports save to Downloads/TeslaPlay as `TeslaPlay-<time>.txt`.
+- TeslaPlay is a fork of [DiPlay by shihabal3amri](https://github.com/shihabal3amri/DiPlay), GPL-3.0. The entries below are DiPlay's release history and keep its name and upstream issue numbers.
+
 # DiPlay 0.2.13 — 2026-10-06
 
 - Enable the legacy Android 9 Wi-Fi Direct group path with generated credentials and serialized ownership/cleanup; requested frequency remains unverified on Android 9 (#282).

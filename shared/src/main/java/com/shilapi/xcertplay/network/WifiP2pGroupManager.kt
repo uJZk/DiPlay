@@ -731,8 +731,8 @@ class WifiP2pGroupManager(
         }.getOrNull() else null
         diagnostic("Wi-Fi P2P preflight wifiEnabled=$wifiEnabled locationEnabled=$locationEnabled permissionGranted=$granted locationAccessMode=${locationAccessMode ?: "unknown"} stationMHz=${station.alignmentFrequency ?: "unknown"} stationState=${station.state ?: "unknown"} reportedStationMHz=${station.reportedFrequency ?: "unknown"} fiveGhzSupported=${fiveGhzSupported ?: "unknown"}")
         if (!granted) throw IOException(if (Build.VERSION.SDK_INT >= 33)
-            "Allow Nearby devices for DiPlay in the head unit's app permissions"
-            else "Allow precise Location for DiPlay in the head unit's app permissions")
+            "Allow Nearby devices for TeslaPlay in the head unit's app permissions"
+            else "Allow precise Location for TeslaPlay in the head unit's app permissions")
         if (wifiEnabled == false) throw IOException("Turn on Wi-Fi in the head unit's settings, then reconnect")
         // Location mode is diagnostic only: AOSP createGroup does not require it to be on.
         // Do not block firmware where Wi-Fi Direct works with Location services disabled.

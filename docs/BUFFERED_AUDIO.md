@@ -1,21 +1,21 @@
 # Buffered music (CarPlay main buffered audio)
 
-Apple calls it "Enhanced buffering" ([WWDC23, Optimize CarPlay for vehicle systems](https://developer.apple.com/videos/play/wwdc2023/10150/)): for apps that support it, the iPhone sends music ahead of time and the car keeps the timing, so short wireless gaps are not heard. DiPlay implements the receiving side. It is off by default: **Settings → Display and performance → Buffered music (experimental)**, which reconnects CarPlay.
+Apple calls it "Enhanced buffering" ([WWDC23, Optimize CarPlay for vehicle systems](https://developer.apple.com/videos/play/wwdc2023/10150/)): for apps that support it, the iPhone sends music ahead of time and the car keeps the timing, so short wireless gaps are not heard. TeslaPlay implements the receiving side. It is off by default: **Settings → Display and performance → Buffered music (experimental)**, which reconnects CarPlay.
 
 ## What changes
 
 - **Which apps:** Apple Music uses it; the SETUP names the client (`clientID=com.apple.Music`). Spotify kept the normal stream in my tests. Apps that do not use it are unaffected.
 - **How much ahead:** the iPhone sent about 1 minute 43 seconds of music within 8 seconds, then topped it up as playback went on. During a Wi-Fi Direct reconnection the queue fell from 25 to 14 seconds and nothing was heard.
-- **Playback:** the frames go to DiPlay's normal media renderer about one second ahead of playback, so audio focus, ducking under navigation and Siri, and the audio channel settings apply as for any music. Frames in that preload are retained until the estimated audible position passes them, so pausing and destroying the renderer does not discard the next second of music.
+- **Playback:** the frames go to TeslaPlay's normal media renderer about one second ahead of playback, so audio focus, ducking under navigation and Siri, and the audio channel settings apply as for any music. Frames in that preload are retained until the estimated audible position passes them, so pausing and destroying the renderer does not discard the next second of music.
 - **Limits and cancellation:** the advertised 8 MiB limit is enforced locally, including the outstanding renderer preload, with an additional two-minute frame-count limit. A full buffer applies TCP backpressure. Only the control session's peer address can claim the TCP stream. Pause, flush and close serialize with sink delivery, including a reentrant pause during renderer start; closing also cancels an accepted or waiting TCP sender. Invalid short framing closes this stream. A malformed control body, unsupported rate or unsupported packetization cannot start playback.
 
 ## How it works
 
-Names come from the strings of Xcode's CarPlay Simulator and its CarPlaySDK; the behaviour was observed between DiPlay and an iPhone.
+Names come from the strings of Xcode's CarPlay Simulator and its CarPlaySDK; the behaviour was observed between TeslaPlay and an iPhone.
 
-- **Offer:** `/info` carries `mainBufferedInfo` (an empty dictionary is accepted) and an `audioFormats` entry `{type 103, audioType media, audioOutputFormats AAC-LC}`. The iPhone proposes the session feature `mainBuffered` in its SETUP, and DiPlay enables it. Enabling the feature without `mainBufferedInfo`, or the reverse, makes the iPhone drop the session.
+- **Offer:** `/info` carries `mainBufferedInfo` (an empty dictionary is accepted) and an `audioFormats` entry `{type 103, audioType media, audioOutputFormats AAC-LC}`. The iPhone proposes the session feature `mainBuffered` in its SETUP, and TeslaPlay enables it. Enabling the feature without `mainBufferedInfo`, or the reverse, makes the iPhone drop the session.
 - **Ownership:** only one control session can own the shared buffered music renderer. A valid replacement cancels the previous TCP preload and completes its output cleanup before the new stream starts. Retired sessions cannot reclaim it with late SETUP/control/teardown requests; a fresh control session is required. Concurrent SETUP during retirement is declined. Session identities are weakly retained, and closed sessions cannot negotiate a new buffered stream.
-- **Stream SETUP (type 103):** `ct 4` (AAC), `audioFormat`, `spf 1024`, `isMedia`, `clientID`, `streamConnectionID` and `shk` (the stream key). DiPlay answers `{type 103, dataPort, audioBufferSize}` and listens on TCP.
+- **Stream SETUP (type 103):** `ct 4` (AAC), `audioFormat`, `spf 1024`, `isMedia`, `clientID`, `streamConnectionID` and `shk` (the stream key). TeslaPlay answers `{type 103, dataPort, audioBufferSize}` and listens on TCP.
 - **Data:** each frame is a 2-byte length (including itself), a 12-byte RTP header (sequence +1, timestamp +1024) and the payload sealed with ChaCha20-Poly1305 under `shk` (the header's timestamp and SSRC as associated data), followed by an 8-byte nonce. The payload is a raw AAC-LC access unit.
 - **Control:**
 

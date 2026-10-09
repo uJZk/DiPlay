@@ -1,17 +1,17 @@
 name: Connection, display or audio problem
-description: Help us reproduce an issue on your head unit.
+description: Help us reproduce an issue with TeslaPlay on your head unit or phone.
 title: '[Bug] '
 body:
   - type: markdown
     attributes:
-      value: 'Test while parked. Reports are public: review diagnostic files and remove personal information before attaching them. Never post credentials.'
+      value: 'Test while parked. Reports are public: review diagnostic files and remove personal information before attaching them. Never post credentials. Report problems with upstream DiPlay at https://github.com/shihabal3amri/DiPlay instead.'
   - type: input
     id: version
-    attributes: {label: DiPlay version, placeholder: '0.2.12'}
+    attributes: {label: TeslaPlay version or commit, placeholder: '0.2.13 or a commit hash'}
     validations: {required: true}
   - type: input
     id: car
-    attributes: {label: Car and head-unit model, placeholder: 'Car model/year, head unit, DiLink/Android version and exact firmware'}
+    attributes: {label: Car and head-unit model, placeholder: 'Car model/year, head unit, DiLink/Android or Tesla software version and exact firmware'}
     validations: {required: true}
   - type: input
     id: phone
@@ -33,4 +33,4 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostic report or recording
-      description: 'Update and reproduce on 0.2.12, then Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/DiPlay; Android 9 uses a document picker. If storage is unavailable, use View report or Share in the confirmation. Review the text before attaching it and never include your hotspot password. Include the approximate failure time.'
+      description: 'Reproduce on the latest TeslaPlay build, then Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/TeslaPlay; Android 9 uses a document picker. If storage is unavailable, use View report or Share in the confirmation. Review the text before attaching it and never include your hotspot password. Include the approximate failure time.'
