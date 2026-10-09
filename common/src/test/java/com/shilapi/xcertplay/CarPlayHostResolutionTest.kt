@@ -5,6 +5,7 @@ import android.media.MediaFormat
 import android.os.Handler
 import com.shilapi.xcertplay.airplay.AirPlayConfig
 import com.shilapi.xcertplay.airplay.AirPlayIdentity
+import com.shilapi.xcertplay.media.AndroidMediaSink
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
@@ -125,6 +126,33 @@ class CarPlayHostResolutionTest {
                 listOf(airPlay.audioViaCarBluetooth, airPlay.disableAudioOutput, airPlay.microphone, airPlay.receivesAudio))
         }
     }
+
+    // Defense in depth behind the session's SETUP gate: without received audio the host also turns off
+    // audio focus, the call echo canceller, the microphone and audio capture, whatever their own settings say.
+    @Test fun noReceivedAudioTurnsOffFocusEchoCancellerMicrophoneAndCapture() {
+        set("microphoneAvailable", true)
+        AirPlayPersistence.saveAudioFocusEnabled(activity, true)
+        AirPlayPersistence.saveCallEchoCancellation(activity, true)
+        java.io.File(activity.filesDir, "audio-capture.enabled").writeText("")
+        for (receivesAudio in listOf(true, false)) {
+            val sink = activity.javaClass.getDeclaredMethod("createMediaSink", Int::class.javaPrimitiveType,
+                Int::class.javaPrimitiveType, Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType)
+                .apply { isAccessible = true }.invoke(activity, 800, 480, 0, receivesAudio) as AndroidMediaSink
+            try {
+                assertEquals(receivesAudio, field(sink, "audioFocusEnabled"))
+                assertEquals(receivesAudio, field(sink, "callEchoCancellation"))
+                val engine = activity.javaClass.getDeclaredMethod("createMediaEngine", AndroidMediaSink::class.java,
+                    Boolean::class.javaPrimitiveType).apply { isAccessible = true }.invoke(activity, sink, receivesAudio)!!
+                assertEquals(receivesAudio, field(engine, "microphoneEnabled"))
+                assertEquals(receivesAudio, field(engine, "audioCaptureDirectory") != null)
+            } finally {
+                sink.close()
+            }
+        }
+    }
+
+    private fun field(owner: Any, name: String): Any? = owner.javaClass.getDeclaredField(name)
+        .apply { isAccessible = true }.get(owner)
 
     private fun config(percent: Int, uiPercent: Int = 100, width: Int = 1920, height: Int = 990): AirPlayConfig {
         set("displayScalePercent", percent)

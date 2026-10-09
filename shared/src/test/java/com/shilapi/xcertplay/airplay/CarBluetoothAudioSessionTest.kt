@@ -86,12 +86,43 @@ class CarBluetoothAudioSessionTest {
         } finally { session.close() }
     }
 
+    @Test
+    fun carBluetoothSoundAlsoDeclinesBufferedMusicAndIgnoresItsControls() {
+        val media = CountingMedia()
+        val session = session(base.copy(audioViaCarBluetooth = true, mainBufferedAudio = true), media)
+        try {
+            val body = BplistCodec.encode(mapOf("streams" to listOf(mapOf("type" to 103, "audioType" to "media"))))
+            val decoded = BplistCodec.decode(handle(session, "SETUP", body).body) as Map<*, *>
+            assertEquals(emptyList<Any>(), decoded["streams"])
+            assertEquals(0, media.bufferedSetups)
+            handle(session, "SETRATEANCHORTIME", BplistCodec.encode(mapOf("rate" to 1)))
+            handle(session, "GETANCHOR", ByteArray(0))
+            assertEquals(0, media.bufferedControls)
+            assertTrue(logs.contains(
+                "airplay audio SETUP type=103 audioType=media formatBits=none audioRoute=car-bluetooth " +
+                    "result=declined dataPort=none controlPort=none",
+            ))
+        } finally { session.close() }
+    }
+
     private class CountingMedia : AirPlayMediaHandler {
         var audioSetups = 0
+        var bufferedSetups = 0
+        var bufferedControls = 0
 
         override fun onAudio(session: AirPlaySession, type: Int, stream: Map<String, Any?>): Map<String, Any?>? {
             audioSetups++
             return mapOf("type" to type, "dataPort" to 1)
+        }
+
+        override fun onBufferedAudio(session: AirPlaySession, stream: Map<String, Any?>): Map<String, Any?>? {
+            bufferedSetups++
+            return mapOf("type" to 103, "dataPort" to 1)
+        }
+
+        override fun onBufferedAudioControl(session: AirPlaySession, method: String, body: Map<String, Any?>): Map<String, Any?>? {
+            bufferedControls++
+            return null
         }
     }
 

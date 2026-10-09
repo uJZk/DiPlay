@@ -4,5 +4,5 @@
     <string name="settings_car_bluetooth_audio_off">关闭</string>
     <string name="settings_car_bluetooth_audio_on">开启</string>
     <string name="settings_car_bluetooth_audio_alternative">开启（备选方式）</string>
-    <string name="settings_car_bluetooth_audio_description">适用于在浏览器中显示 CarPlay 的车辆，例如特斯拉。音乐、导航、Siri 和电话保持在 iPhone 与车辆之间的蓝牙连接上，TeslaPlay 只显示画面。请先让 iPhone 与车辆蓝牙配对。如果声音仍不从车上播放，请尝试备选方式。下次连接 CarPlay 时生效。</string>
+    <string name="settings_car_bluetooth_audio_description">适用于在浏览器中显示 CarPlay 的车辆，例如特斯拉。音乐、导航、Siri 和通话保持在 iPhone 与车辆之间的蓝牙连接上，TeslaPlay 只显示画面。请先让 iPhone 与车辆蓝牙配对。如果车上仍然没有声音，请尝试备选方式。下次连接 CarPlay 时生效。</string>
 </resources>
