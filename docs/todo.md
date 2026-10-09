@@ -87,7 +87,8 @@
     所以 HTTPS 页面可以直接 `fetch("http://100.109.220.253:8080/…")`（报告 `305294d4` 实测成功，无授权弹窗）。
     参考：https://developer.chrome.com/blog/local-network-access
   - 页面：静态 HTTPS 页面，托管在国内不开代理也能访问的地址（自定义域名，不用 `workers.dev`），用 Service Worker 缓存，首次加载后不依赖外网。
-  - 视频：Worker 里 `fetch("http://100.109.220.253:8080/video?…", { targetAddressSpace: "local" })`，手机返回不定长的 HTTP/1.1 响应，
+  - 视频：页面主线程 `fetch("http://100.109.220.253:8080/video?…", { targetAddressSpace: "local" })`，把 `response.body`（可转移的 `ReadableStream`）`postMessage` 转交给解码 Worker，由 Worker 读取；
+    这样请求从页面发起，确定享受豁免，读取和解码仍在 Worker 里。手机返回不定长的 HTTP/1.1 响应，
     持续写入帧；每帧带长度前缀和帧头（时间戳、关键帧标记、序号、编码），页面用 `ReadableStream` 读取后重组。
   - 控制和触摸：用短 `fetch` POST（keep-alive），按 `requestAnimationFrame` 合并发送；使用"简单请求"（如 `text/plain`），避免 CORS 预检。
     不用流式上传：Chrome 只在 HTTP/2 以上支持流式请求体。
@@ -96,7 +97,10 @@
   - 配对：URL 参数带配对码，只允许一个控制端。热点有 WPA 加密，明文 HTTP 的风险可以接受。
   - 不需要任何证书、域名解析或证书服务器。
   - 风险（都不受我们控制）：Chrome 取消或收紧这条混合内容豁免；特斯拉以后开始弹授权提示（只需用户允许一次）；特斯拉的拦截名单加入 100.64。
-  - 待实测：在 Worker 里发起的 `fetch` 是否同样享受豁免；长时间响应流是否会被浏览器或特斯拉中途断开。
+  - Worker 里直接发起 `fetch` 是否享受豁免：公开资料没有定论（2026-10-09 查证）。LNA 规范说该机制同样适用于 Worker，
+    但授权检查依赖关联的 Document；Chrome 文档只说明 Service Worker 和 Shared Worker 需要其来源事先获得授权，未提及 Dedicated Worker。
+    规范把 100.64.0.0/10 列为 local。因此采用上面"主线程发起、转交流给 Worker"的做法，绕开这个不确定性。
+  - 待实测：长时间响应流是否会被浏览器或特斯拉中途断开。
   - 备选：方案 B（WebTransport + 证书指纹，UDP 已实测可达），代价是证书最长 14 天要轮换、安卓端要集成 HTTP/3。
 - **以 DiPlay 为基础开发，不以 [WheelPlay](https://github.com/fython/wheelplay) 为基础**：
   - WheelPlay 基于较旧的 DiPlay 快照，没有共同 git 历史，缺少后来的热点和无线可靠性修复，难以再合并上游修复。
