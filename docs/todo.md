@@ -134,8 +134,8 @@
     - shell 只能加、不能删（删除需要 `NETWORK_STACK`）；热点重启后地址消失，由 TiPlay 自动补加。
     - Shizuku 官方 v13.6.0 在 Android 17 上授权新应用有已知问题（issue #2180），TiPlay 直接用 `ShizukuBinderWrapper`
       调系统服务，不用 UserService。Shizuku 每次手机重启后要重新启动，无线调试只在手机连着 Wi-Fi 时可用。
-    - 不可行：VpnService 的 tun 地址。Android 14（2025-01 补丁起）和 15 以上会丢弃从热点进来、发往 VPN 地址的包
-      （CVE-2024-49734）；169.254 链路本地地址被豁免，但特斯拉是否放行 169.254 的 HTTP 还没测。
+    - 暂不考虑（以后 root 和 Shizuku 都不行时再评估）：VpnService 的 tun 地址。Android 14（2025-01 补丁起）和 15 以上
+      会丢弃从热点进来、发往 VPN 地址的包（CVE-2024-49734）；169.254 链路本地地址被豁免，但特斯拉是否放行 169.254 的 HTTP 还没测。
     - Android 17 + targetSdk 37：接受热点设备的连接需要 `ACCESS_LOCAL_NETWORK` 权限，用哪种方式加地址都一样。
   - [ ] 用特斯拉浏览器访问 shell 加上的 `http://100.109.220.253:8080`，确认和 root 加的地址效果相同。
   - 端口统一用 8080（普通应用可以监听，不需要 iptables 重定向）。视频流和控制都走 HTTP（TCP 8080）。
