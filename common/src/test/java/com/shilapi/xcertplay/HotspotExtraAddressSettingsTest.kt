@@ -34,6 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
 import org.robolectric.Robolectric
 import org.robolectric.RobolectricTestRunner
@@ -169,6 +170,7 @@ class HotspotExtraAddressSettingsTest {
         RootShellProbe.answer = RootShell.Result.Done(0, "0")
         val screen = openConnection()
         val session = mock(CarPlayController::class.java)
+        `when`(session.phoneBrowserMode()).thenReturn(true)
         var stops = 0
         CarPlayBackgroundSession.store(session, mock(AndroidMediaSink::class.java), 800, 480, Any(),
             CarPlaySessionDisplay(800, 480, Surface.ROTATION_0, false, false, 800, 480)) { stops++ }
@@ -244,6 +246,49 @@ class HotspotExtraAddressSettingsTest {
         assertEquals(listOf(true), KeeperProbe.stops)
         assertTrue(HotspotExtraAddressSettings.enabled(context)) // back in phone mode it starts again
         assertFalse(screen.getString(R.string.settings_hotspot_extra_address) in texts(screen).map { it.text })
+    }
+
+    @Test fun leavingPhoneModeDuringAPhoneSessionKeepsTheAddressUntilThatSessionEnds() {
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER)
+        HotspotExtraAddressSettings.setEnabled(context, true)
+        val screen = openConnection()
+        val session = storeSession(phoneBrowser = true)
+        KeeperProbe.reset()
+        KeeperProbe.running = true
+
+        phoneModeSwitch(screen).performClick()
+
+        // The run mode applies at the next connection, so the car's page keeps its address for this session.
+        assertEquals(CarPlayRunMode.HEAD_UNIT, AirPlayPersistence.loadRunMode(context))
+        assertTrue(PendingReconnect.isPending(session))
+        assertTrue(KeeperProbe.stops.isEmpty())
+        assertTrue(KeeperProbe.starts.all { it == (defaultAddress to false) }) // at most a refresh
+        val service = Robolectric.buildService(DiPlaySessionService::class.java, Intent()).create().startCommand(0, 1)
+        assertEquals(defaultAddress to false, KeeperProbe.starts.last())
+        assertTrue(KeeperProbe.stops.isEmpty())
+
+        // That session ends: now the address goes, once.
+        CarPlayBackgroundSession.clear(session)
+        service.destroy()
+        assertEquals(listOf(true), KeeperProbe.stops)
+        assertTrue(RootShellProbe.scripts.isEmpty())
+    }
+
+    @Test fun aHeadUnitSessionStartsNoKeeperUntilThePhoneModeConnection() {
+        HotspotExtraAddressSettings.setEnabled(context, true)
+        val session = storeSession(phoneBrowser = false) // connected in head-unit mode
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER) // picked during that session
+        openConnection()
+        val headUnit = Robolectric.buildService(DiPlaySessionService::class.java, Intent()).create().startCommand(0, 1)
+
+        assertTrue(KeeperProbe.starts.isEmpty())
+        assertTrue(RootShellProbe.scripts.isEmpty())
+
+        CarPlayBackgroundSession.clear(session)
+        headUnit.destroy()
+        storeSession(phoneBrowser = true) // the next connection uses phone + browser mode
+        Robolectric.buildService(DiPlaySessionService::class.java, Intent()).create().startCommand(0, 1)
+        assertEquals(listOf(defaultAddress to false), KeeperProbe.starts)
     }
 
     @Test fun theAddressRowAcceptsOnlyTheSharedAddressSpaceAndMovesTheKeeper() {
@@ -417,6 +462,18 @@ class HotspotExtraAddressSettingsTest {
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
         finishProbes()
     }
+
+    private fun storeSession(phoneBrowser: Boolean): CarPlayController =
+        mock(CarPlayController::class.java).also { session ->
+            `when`(session.phoneBrowserMode()).thenReturn(phoneBrowser)
+            CarPlayBackgroundSession.store(session, mock(AndroidMediaSink::class.java), 800, 480, Any(),
+                CarPlaySessionDisplay(800, 480, Surface.ROTATION_0, false, false, 800, 480)) { }
+            CarPlayBackgroundSession.active = true
+        }
+
+    private fun phoneModeSwitch(screen: DiPlayActivity): Switch =
+        descendants(screen.window.decorView).filterIsInstance<Switch>()
+            .single { it.contentDescription == screen.getString(R.string.settings_phone_browser_mode) }
 
     private fun extraAddressSwitch(screen: DiPlayActivity): Switch =
         descendants(screen.window.decorView).filterIsInstance<Switch>()

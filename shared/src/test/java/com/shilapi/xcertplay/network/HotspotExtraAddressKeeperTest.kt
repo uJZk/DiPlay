@@ -60,6 +60,7 @@ class HotspotExtraAddressKeeperTest {
             nowMillis = { 0L },
             log = {},
         )
+        HotspotExtraAddressKeeper.rootRefused = false
         HotspotExtraAddressKeeper.addListener(listener)
     }
 
@@ -67,6 +68,7 @@ class HotspotExtraAddressKeeperTest {
         HotspotExtraAddressKeeper.stop(removeAddress = false)
         HotspotExtraAddressKeeper.removeListener(listener)
         HotspotExtraAddressKeeper.dependencies = HotspotExtraAddressKeeper.Dependencies()
+        HotspotExtraAddressKeeper.rootRefused = false
     }
 
     @Test fun startAddsTheAddressOnTheWorkerAndPublishesIt() {
@@ -161,6 +163,35 @@ class HotspotExtraAddressKeeperTest {
         assertEquals(2, scripts.size)
     }
 
+    @Test fun aRefusalOutlivesTheSessionThatMetItUntilTheToggleAsksAgain() {
+        root = false
+        HotspotExtraAddressKeeper.start(context, first)
+        await { HotspotExtraAddressKeeper.state == State.RootDenied }
+
+        // The session ends, then the next connection or an activity resume starts the keeper again.
+        HotspotExtraAddressKeeper.stop(removeAddress = false)
+        HotspotExtraAddressKeeper.start(context, first)
+        await { HotspotExtraAddressKeeper.state == State.RootDenied }
+        HotspotExtraAddressKeeper.stop(removeAddress = true)
+        HotspotExtraAddressKeeper.start(context, second)
+        await { HotspotExtraAddressKeeper.state == State.RootDenied }
+        context.sendBroadcast(Intent("android.net.conn.TETHER_STATE_CHANGED"))
+        shadowOf(Looper.getMainLooper()).idle()
+        Thread.sleep(200)
+        assertEquals(1, scripts.size)
+
+        // Only the settings toggle, after its own root check, tries again.
+        root = true
+        HotspotExtraAddressKeeper.stop(removeAddress = false)
+        HotspotExtraAddressKeeper.start(context, first, retryRootDenied = true)
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        assertEquals(2, scripts.size)
+        assertFalse(HotspotExtraAddressKeeper.rootRefused)
+        HotspotExtraAddressKeeper.stop(removeAddress = false)
+        HotspotExtraAddressKeeper.start(context, first)
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+    }
+
     @Test fun anIneligibleLinkLeavesTheHotspotAlone() {
         eligible = false
         HotspotExtraAddressKeeper.start(context, first, eligible = { eligible })
@@ -174,11 +205,20 @@ class HotspotExtraAddressKeeperTest {
     }
 
     @Test fun theRootCheckAsksOnceWithThePromptTimeout() {
+        HotspotExtraAddressKeeper.rootRefused = true
         assertTrue(HotspotExtraAddressKeeper.checkRoot())
         assertEquals(listOf("id -u"), scripts)
         assertEquals(listOf(RootShell.PROMPT_TIMEOUT_MILLIS), timeouts)
+        // A grant forgets the refusal, so the next session (here: the next connection) adds the address.
+        assertFalse(HotspotExtraAddressKeeper.rootRefused)
+        HotspotExtraAddressKeeper.start(context, first)
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        HotspotExtraAddressKeeper.stop(removeAddress = false)
+
         root = false
+        HotspotExtraAddressKeeper.rootRefused = true
         assertFalse(HotspotExtraAddressKeeper.checkRoot())
+        assertTrue(HotspotExtraAddressKeeper.rootRefused)
     }
 
     private fun await(timeoutMillis: Long = 3_000, condition: () -> Boolean) {

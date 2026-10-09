@@ -12,7 +12,7 @@ class HotspotExtraAddressLoopTest {
     private val address = HotspotExtraAddress.parse("100.109.220.253")!!
 
     /** A phone whose hotspot interface and addresses the test controls; `ip` changes them like the kernel would. */
-    private inner class Phone {
+    private inner class Phone(rootDenied: Boolean = false) {
         var now = 1_000L
         var iface: String? = "wlan2"
         var eligible = true
@@ -40,6 +40,7 @@ class HotspotExtraAddressLoopTest {
             findIface = { finds++; iface },
             eligible = { eligible },
             nowMillis = { now },
+            rootDenied = rootDenied,
         )
 
         /** Runs ticks as the keeper's scheduler would until [untilMillis]. */
@@ -127,6 +128,20 @@ class HotspotExtraAddressLoopTest {
         phone.loop.tick()
         assertEquals(2, phone.scripts.size)
         assertEquals(State.Added("wlan2"), phone.loop.state)
+    }
+
+    @Test fun aSessionAfterARefusalStartsStoppedAndNeverProbes() {
+        val phone = Phone(rootDenied = true)
+
+        assertEquals(State.RootDenied, phone.loop.state)
+        repeat(3) { assertNull(phone.loop.tick()) }
+        assertTrue(phone.scripts.isEmpty())
+        assertEquals(0, phone.finds)
+
+        phone.loop.clearRootDenied()
+        phone.loop.tick()
+        assertEquals(State.Added("wlan2"), phone.loop.state)
+        assertEquals(1, phone.scripts.size)
     }
 
     @Test fun failuresBackOffFromFiveToSixtySecondsAndStillWatchBetweenTries() {

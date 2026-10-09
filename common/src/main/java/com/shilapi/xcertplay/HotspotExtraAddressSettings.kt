@@ -33,9 +33,17 @@ internal object HotspotExtraAddressSettings {
         prefs(context).edit().putString(KEY_ADDRESS, address.hostAddress).apply()
     }
 
-    /** Phone + browser mode with the setting on: the keeper should run. */
+    /**
+     * The setting is on and the run mode in effect is phone + browser: the keeper should run. A running session keeps
+     * the mode it connected with (the run-mode switch applies at the next connection), so leaving phone mode does not
+     * cut the car's page off in the middle of a session.
+     */
     fun wanted(context: Context): Boolean =
-        AirPlayPersistence.isPhoneBrowserMode(context) && enabled(context)
+        enabled(context) && AirPlayPersistence.isPhoneBrowserMode(context, CarPlayBackgroundSession.snapshot()?.controller)
+
+    /** The saved settings still want the address once the current session is over. */
+    private fun wantedAfterSession(context: Context): Boolean =
+        enabled(context) && AirPlayPersistence.isPhoneBrowserMode(context)
 
     /** The keeper only touches the phone's own hotspot, never a joined Wi-Fi network (whose link it would disturb). */
     fun manualHotspotLink(context: Context): Boolean =
@@ -56,9 +64,12 @@ internal object HotspotExtraAddressSettings {
         }
     }
 
-    /** The session service ended: stop watching, but keep the address so the car's page still opens. */
-    fun onSessionServiceStopped() {
-        HotspotExtraAddressKeeper.stop(removeAddress = false)
+    /**
+     * The session service ended: stop watching, but keep the address so the car's page still opens. The address goes
+     * only when the driver left phone + browser mode during the session, which kept it until now.
+     */
+    fun onSessionServiceStopped(context: Context) {
+        HotspotExtraAddressKeeper.stop(removeAddress = !wantedAfterSession(context.applicationContext))
     }
 
     /** For the diagnostic report; no address. */

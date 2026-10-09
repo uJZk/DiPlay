@@ -46,6 +46,9 @@ object HotspotExtraAddressKeeper {
     private val listeners = CopyOnWriteArraySet<(State) -> Unit>()
     private val lock = Any()
     @Volatile private var session: Session? = null
+    // A refusal outlives the session that met it: a later start (activity resume, next connection) does not ask
+    // again; only the settings toggle does, through [start] with retryRootDenied.
+    @Volatile internal var rootRefused = false
     @Volatile internal var dependencies = Dependencies()
     private val worker: ScheduledThreadPoolExecutor by lazy {
         ScheduledThreadPoolExecutor(1) { task -> Thread(task, "tiplay-hotspot-address").apply { isDaemon = true } }
@@ -61,13 +64,15 @@ object HotspotExtraAddressKeeper {
         retryRootDenied: Boolean = false) {
         require(HotspotExtraAddress.isCgnat(address)) { "address must be in 100.64.0.0/10" }
         synchronized(lock) {
+            if (retryRootDenied) rootRefused = false
             val current = session
             if (current != null && current.address == address) {
                 current.refresh(retryRootDenied)
                 return
             }
             current?.close(removeAddress = true)
-            session = Session(context.applicationContext, address, eligible, dependencies).also(Session::open)
+            session = Session(context.applicationContext, address, eligible, dependencies, rootRefused)
+                .also(Session::open)
         }
     }
 
@@ -89,9 +94,13 @@ object HotspotExtraAddressKeeper {
         session?.refresh(retryRootDenied = false)
     }
 
-    /** Blocking: asks for root once (the root manager may show its prompt) and reports whether uid 0 answered. */
+    /**
+     * Blocking: asks for root once (the root manager may show its prompt) and reports whether uid 0 answered. A grant
+     * forgets an earlier refusal, even when the keeper starts only at the next connection.
+     */
     fun checkRoot(): Boolean = HotspotExtraAddress.rootGranted(
-        dependencies.shell(HotspotExtraAddress.ROOT_CHECK_SCRIPT, RootShell.PROMPT_TIMEOUT_MILLIS))
+        dependencies.shell(HotspotExtraAddress.ROOT_CHECK_SCRIPT, RootShell.PROMPT_TIMEOUT_MILLIS),
+    ).also { granted -> if (granted) rootRefused = false }
 
     /** [listener] runs on a background thread. */
     fun addListener(listener: (State) -> Unit) { listeners += listener }
@@ -132,6 +141,7 @@ object HotspotExtraAddressKeeper {
         val address: Inet4Address,
         eligible: () -> Boolean,
         private val dependencies: Dependencies,
+        rootDenied: Boolean,
     ) {
         @Volatile private var closed = false
         // Worker thread only.
@@ -145,6 +155,7 @@ object HotspotExtraAddressKeeper {
             eligible = eligible,
             nowMillis = dependencies.nowMillis,
             log = dependencies.log,
+            rootDenied = rootDenied,
         )
         private val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -200,6 +211,7 @@ object HotspotExtraAddressKeeper {
                 dependencies.log("check failed: ${it.javaClass.simpleName}")
                 HotspotExtraAddressLoop.POLL_MILLIS
             }
+            if (!closed) rootRefused = loop.state == State.RootDenied
             publish(this, loop.state)
             if (next != null && !closed) {
                 pending = runCatching { worker.schedule({ tick() }, next, TimeUnit.MILLISECONDS) }.getOrNull()
@@ -229,8 +241,11 @@ internal class HotspotExtraAddressLoop(
     private val eligible: () -> Boolean,
     private val nowMillis: () -> Long,
     private val log: (String) -> Unit = {},
+    /** Root was refused before this session: it starts stopped, as the refusing session ended. */
+    rootDenied: Boolean = false,
 ) {
-    var state: HotspotExtraAddressKeeper.State = HotspotExtraAddressKeeper.State.Off
+    var state: HotspotExtraAddressKeeper.State =
+        if (rootDenied) HotspotExtraAddressKeeper.State.RootDenied else HotspotExtraAddressKeeper.State.Off
         private set
     private var failures = 0
     private var retryAtMillis: Long? = null

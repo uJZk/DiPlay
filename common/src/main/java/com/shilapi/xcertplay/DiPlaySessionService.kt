@@ -51,7 +51,7 @@ class DiPlaySessionService : Service() {
         return START_NOT_STICKY
     }
     override fun onDestroy() {
-        HotspotExtraAddressSettings.onSessionServiceStopped() // keeps the address for the car's page
+        HotspotExtraAddressSettings.onSessionServiceStopped(this) // keeps the address for the car's page
         super.onDestroy()
     }
     override fun onTaskRemoved(rootIntent: Intent?) {
