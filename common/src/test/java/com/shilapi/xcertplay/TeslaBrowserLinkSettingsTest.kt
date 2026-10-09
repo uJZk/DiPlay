@@ -166,30 +166,37 @@ class TeslaBrowserLinkSettingsTest {
         assertTrue(shown(screen).contains(listening))
     }
 
-    @Test fun theLinksCarryTheCodeAndTheExtraAddressOnlyWhenItDiffers() {
+    @Test fun theCarLinkAlwaysNamesThePhoneInTAndKeepsTheCodeInTheFragment() {
         HotspotProbe.result = HotspotAddresses.Current("wlan2", listOf(ip("10.176.81.135")))
         var screen = openConnection()
         val code = TeslaBrowserLink.pairingCode(context)
-        assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/#c=$code"))
+        assertTrue("Without the extra address the car link names the hotspot's own address",
+            shown(screen).contains("https://ujzk.github.io/DiPlay/play/?t=10.176.81.135#c=$code"))
         assertTrue(shown(screen).contains("http://10.176.81.135:8080/play/#c=$code"))
         assertTrue("The probe ran off the main thread", HotspotProbe.threads.none { it == Looper.getMainLooper().thread })
 
-        // The extra address at its default changes nothing in the car link.
+        // The extra address names the phone even at the page's default.
         HotspotExtraAddressSettings.setEnabled(context, true)
         rerender(screen)
-        assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/#c=$code"))
+        assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/?t=100.109.220.253#c=$code"))
+        assertTrue("Until it is added, the phone's page is at the hotspot's own address",
+            shown(screen).contains("http://10.176.81.135:8080/play/#c=$code"))
 
         HotspotExtraAddressSettings.saveAddress(context, ip("100.64.7.9"))
         KeeperProbe.state = HotspotExtraAddressKeeper.State.Added("wlan2")
+        HotspotProbe.threads.clear()
         rerender(screen)
-        assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/#c=$code&h=100.64.7.9:8080"))
+        assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/?t=100.64.7.9#c=$code"))
         assertTrue("Once added, the phone's page uses the extra address",
             shown(screen).contains("http://100.64.7.9:8080/play/#c=$code"))
+        assertTrue("An added extra address needs no interface look", HotspotProbe.threads.none { it.name == "tiplay-browser-link-probe" })
 
         activity?.finish()
         HotspotProbe.result = null
         HotspotExtraAddressSettings.setEnabled(context, false)
         screen = openConnection()
+        assertTrue("Without any address the page uses the one it saved",
+            shown(screen).contains("https://ujzk.github.io/DiPlay/play/#c=$code"))
         assertEquals("The hotspot line and the phone's page link both say so", 2,
             shown(screen).count { it == screen.getString(R.string.settings_hotspot_not_found) })
     }
@@ -203,7 +210,7 @@ class TeslaBrowserLinkSettingsTest {
         assertEquals(2, copies.size)
         val clipboard = context.getSystemService(ClipboardManager::class.java)
         copies[0].performClick()
-        assertEquals("https://ujzk.github.io/DiPlay/play/#c=$code", clipboard.primaryClip!!.getItemAt(0).text.toString())
+        assertEquals("https://ujzk.github.io/DiPlay/play/?t=10.176.81.135#c=$code", clipboard.primaryClip!!.getItemAt(0).text.toString())
         copies[1].performClick()
         assertEquals("http://10.176.81.135:8080/play/#c=$code", clipboard.primaryClip!!.getItemAt(0).text.toString())
     }
@@ -318,11 +325,13 @@ class TeslaBrowserLinkSettingsTest {
     }
 
     private fun finishProbes() {
-        HotspotProbe.threads.forEach { it.join(3_000) }
-        shadowOf(Looper.getMainLooper()).idle()
-        // A probe can start while the main looper idles (a render after a dialog).
-        HotspotProbe.threads.forEach { it.join(3_000) }
-        shadowOf(Looper.getMainLooper()).idle()
+        // A probe can start while the main looper idles (a render after a dialog). The link rows' probe does not look
+        // at the interfaces when the extra address is on the hotspot, so wait for it by name too.
+        repeat(2) {
+            (HotspotProbe.threads + Thread.getAllStackTraces().keys.filter { it.name == "tiplay-browser-link-probe" })
+                .forEach { it.join(3_000) }
+            shadowOf(Looper.getMainLooper()).idle()
+        }
     }
 
     private fun rerender(screen: DiPlayActivity) {

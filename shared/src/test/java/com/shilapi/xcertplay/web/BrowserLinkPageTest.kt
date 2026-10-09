@@ -83,6 +83,9 @@ class BrowserLinkPageTest {
             return Response(lines[0].split(' ')[1].toInt(), headers, body)
         }
 
+        /** True when the phone closed the connection (end of stream) instead of keeping it open for another request. */
+        fun closedByPhone(): Boolean = input.read() < 0
+
         override fun close() = socket.close()
     }
 
@@ -171,20 +174,66 @@ class BrowserLinkPageTest {
         assertEquals(200, get(port, "/hello").status)
     }
 
-    @Test fun thePageKeepsTheHostCheckAndKeepAlive() {
+    @Test fun thePageKeepsTheHostCheck() {
         val port = serveFiles()
         assertEquals(421, get(port, "/play/", host = "tiplay.example").status)
         assertEquals(200, get(port, "/play/", host = "localhost:8080").status)
-        Client(port).use { client ->
-            for (path in listOf("/play/", "/play/app.js", "/play/style.css")) {
+        val hello = get(port, "/hello")
+        assertEquals("The protocol routes keep no-store", "no-store", hello.headers["cache-control"])
+        assertNull(hello.headers["content-security-policy"])
+    }
+
+    /**
+     * Chromium loads the page over up to six connections and keeps them open, and its uncredentialed /hello, /video,
+     * /control and /bye use other connections. Kept open, the page's connections took the 8 connection slots, so the
+     * decoder worker's module or the page's /bye was refused as busy (seen in tests/web-e2e/phone-run.mjs).
+     */
+    @Test fun aPageFileClosesItsConnectionSoTheProtocolRoutesStillGetTheirOwn() {
+        val port = serveFiles()
+        val pageClients = (1..6).map { Client(port) }
+        val linkClients = mutableListOf<Client>()
+        try {
+            for ((index, client) in pageClients.withIndex()) {
+                val path = if (index == 0) "/" else "/play/app.js"
                 client.send("GET $path HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
-                assertEquals(path, 200, client.response().status)
+                val response = client.response()
+                assertEquals(path, if (index == 0) 302 else 200, response.status)
+                assertEquals(path, "close", response.headers["connection"])
+                assertTrue("$path: the phone closes the connection after the page's file", client.closedByPhone())
             }
-            client.send("GET /hello HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
-            val hello = client.response()
-            assertEquals("The protocol routes keep no-store", "no-store", hello.headers["cache-control"])
-            assertNull(hello.headers["content-security-policy"])
+            repeat(BrowserLinkServer.MAX_CONNECTIONS) {
+                val client = Client(port).also(linkClients::add)
+                client.send("GET /hello HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+                assertEquals("Connection ${it + 1} after the page loaded", 200, client.response().status)
+            }
+            linkClients.first().send("GET /hello HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            assertEquals("The protocol routes keep their connection alive", 200, linkClients.first().response().status)
+        } finally {
+            (pageClients + linkClients).forEach(Client::close)
         }
+    }
+
+    /** Escapes, NUL, non-ASCII bytes, other target forms and oversized heads never reach the loader. */
+    @Test fun escapedNulNonAsciiAndOversizedTargetsNeverReachTheLoader() {
+        val port = serveFiles()
+        for (path in listOf(
+            "/play/%2e%2e%2fsecret.js", "/play/%2E%2E/app.js", "/play/%252e%252e%252fsecret.js", "/play/..%252fapp.js",
+            "/play/%5c..%5capp.js", "/play/%69ndex.html", "/play/app.js%00.html", "/play/app.js\u0000.html",
+            "/play/\u00c3\u00a9.js", "/play/./app.js", "/play/app.js/", "/play/app.js;x", "/play/app.js%20",
+            "/PLAY/app.js", "/play/${"a".repeat(7_000)}.js",
+        )) {
+            val response = get(port, path)
+            assertEquals(path.take(48), 404, response.status)
+            assertEquals(path.take(48), "no-store", response.headers["cache-control"])
+        }
+        for (target in listOf("http://127.0.0.1/play/app.js", "play/app.js", "*", "/play/${"a".repeat(9_000)}.js")) {
+            val response = Client(port).use {
+                it.send("GET $target HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+                it.response()
+            }
+            assertEquals(target.take(48), 400, response.status)
+        }
+        assertTrue("Only valid page names reach the loader: $loads", loads.isEmpty())
     }
 
     /** Every file of the real page has a served type, so a new page file cannot silently answer 404 from the phone. */

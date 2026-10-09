@@ -249,15 +249,18 @@ internal object TeslaBrowserLink {
     }
 
     /**
-     * The address the car's browser reaches the phone at, when the driver set one: the extra hotspot address. Null
-     * leaves the page's default (`100.109.220.253`), which is also the extra address's default.
+     * The address the car's browser reaches the phone at: the extra hotspot address when the driver set one, else
+     * [hotspotAddress], the hotspot's own IPv4 that the caller looked up off the main thread; null when neither is known.
      */
-    fun browserAddress(context: Context): String? =
-        if (HotspotExtraAddressSettings.enabled(context)) HotspotExtraAddressSettings.address(context).hostAddress else null
+    fun browserAddress(context: Context, hotspotAddress: String?): String? =
+        if (HotspotExtraAddressSettings.enabled(context)) HotspotExtraAddressSettings.address(context).hostAddress else hotspotAddress
 
-    /** The link for the Tesla and other Chromium browsers. Creates the pairing code if needed; no network access. */
-    fun pageLink(context: Context): String =
-        TeslaBrowserPageLinks.pageLink(pageAddress(context), pairingCode(context), browserAddress(context), PORT)
+    /**
+     * The link for the Tesla and other Chromium browsers, naming the phone at [browserAddress] in `?t=`. Creates the
+     * pairing code if needed; no network access.
+     */
+    fun pageLink(context: Context, hotspotAddress: String?): String = TeslaBrowserPageLinks.pageLink(
+        pageAddress(context), pairingCode(context), browserAddress(context, hotspotAddress), PORT)
 
     /**
      * Why CarPlay should reconnect for the browser's "Apply and reconnect", or null when it should not: no session runs

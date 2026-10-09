@@ -1,26 +1,25 @@
 package com.shilapi.xcertplay
 
-import com.shilapi.xcertplay.network.HotspotExtraAddress
 import com.shilapi.xcertplay.web.BrowserLinkServer
 import java.net.URI
 import java.net.URISyntaxException
 
 /**
- * The links the Tesla browser card shows (integration E1 and the owner decision on other browsers). Pure.
+ * The links the Tesla browser card shows (integration E1, the owner decision on other browsers and the page link
+ * format). Pure.
  *
- * - The HTTPS page, for the Tesla and other Chromium browsers: `<page address>#c=<code>`, plus `&h=<address>:8080`
- *   only when the car must reach the phone at another address than the page's default `100.109.220.253`.
+ * - The HTTPS page, for the Tesla and other Chromium browsers: `<page address>?t=<phone address>#c=<code>`, the form
+ *   `buildLink` in `site/play/link.js` makes. `t` names the phone (`:port` only when it is not 8080) and stays in the
+ *   address bar, so a bookmark reopens the same phone.
  * - The page the phone serves itself, for other browsers (Safari, Firefox): `http://<address>:8080/play/#c=<code>`.
+ *   It talks to its own origin, so it needs no `t`.
  *
- * The page reads both parameters from the fragment, stores them and removes the fragment, so the code never reaches
- * a server or the browser history.
+ * The code is always in the fragment, which never reaches the page host; the page saves it and removes the fragment,
+ * so it stays out of bookmarks and the browser history.
  */
 internal object TeslaBrowserPageLinks {
     /** The page published from `site/play/` with the GitHub Pages site. */
     const val DEFAULT_PAGE_ADDRESS = "https://ujzk.github.io/DiPlay/play/"
-
-    /** The address the page tries when the link names none (`DEFAULT_HOST` in `site/play/link.js`). */
-    const val DEFAULT_BROWSER_ADDRESS = HotspotExtraAddress.DEFAULT
 
     private const val MAX_LENGTH = 512
 
@@ -37,10 +36,17 @@ internal object TeslaBrowserPageLinks {
         return address
     }
 
-    /** The HTTPS page link for the car's browser. [browserAddress] is the IPv4 address the car reaches the phone at. */
-    fun pageLink(pageAddress: String, code: String, browserAddress: String?, port: Int): String {
-        val host = browserAddress?.takeIf { it != DEFAULT_BROWSER_ADDRESS || port != BrowserLinkServer.DEFAULT_PORT }
-        return "$pageAddress#c=$code" + (host?.let { "&h=$it:$port" } ?: "")
+    /**
+     * The HTTPS page link for the car's browser. [phoneAddress] is the IPv4 address the car reaches the phone at; null
+     * leaves `t` out, and the page then uses the address it saved, else its default. The page address keeps its other
+     * query parameters; a `t` of its own is replaced.
+     */
+    fun pageLink(pageAddress: String, code: String, phoneAddress: String?, port: Int): String {
+        val path = pageAddress.substringBefore('?')
+        val others = pageAddress.substringAfter('?', "").split('&').filter { it.isNotEmpty() && it != "t" && !it.startsWith("t=") }
+        val phone = phoneAddress?.let { if (port == BrowserLinkServer.DEFAULT_PORT) "t=$it" else "t=$it:$port" }
+        val query = listOfNotNull(phone) + others
+        return path + (if (query.isEmpty()) "" else query.joinToString("&", prefix = "?")) + "#c=$code"
     }
 
     /** The page the phone serves at [address], for browsers without the HTTPS page's features. */

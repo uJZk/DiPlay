@@ -30,7 +30,7 @@ import kotlin.math.roundToInt
  * the HTTPS page for the Tesla and other Chromium browsers, and the page the phone serves itself for other browsers.
  *
  * Building the search index ([indexing]) adds the row titles only: it starts no server, creates no pairing code and
- * reads no network interface. Otherwise only the phone-served link probes the hotspot, on a thread.
+ * reads no network interface. Otherwise the links probe the hotspot's address, on a thread.
  */
 internal class TeslaBrowserLinkCard(
     private val activity: Activity,
@@ -60,9 +60,10 @@ internal class TeslaBrowserLinkCard(
         if (indexing) return
 
         parent.addView(note(activity.getString(R.string.settings_browser_link_car)).withTopPadding())
-        val pageLink = TeslaBrowserLink.pageLink(app)
-        parent.addView(linkText(pageLink))
-        actionRow(parent, activity.getString(R.string.settings_browser_link_copy)) { copy(pageLink) }
+        // Final at once with the extra address; otherwise the probe adds the hotspot's own address as `t`.
+        var copyPageLink = TeslaBrowserLink.pageLink(app, hotspotAddress = null)
+        val pageLink = linkText(copyPageLink).also(parent::addView)
+        actionRow(parent, activity.getString(R.string.settings_browser_link_copy)) { copy(copyPageLink) }
 
         parent.addView(note(activity.getString(R.string.settings_browser_link_other)).withTopPadding())
         val phoneLink = linkText(activity.getString(R.string.settings_hotspot_address_checking)).also(parent::addView)
@@ -70,18 +71,20 @@ internal class TeslaBrowserLinkCard(
         actionRow(parent, activity.getString(R.string.settings_browser_link_copy)) {
             copyPhoneLink?.let(::copy) ?: Toast.makeText(activity, R.string.settings_hotspot_not_found, Toast.LENGTH_SHORT).show()
         }
-        val showPhoneLink: (String?) -> Unit = { link ->
-            copyPhoneLink = link
-            phoneLink.text = link ?: activity.getString(R.string.settings_hotspot_not_found)
-            phoneLink.setTextColor(if (link == null) colors.warning else colors.muted)
+        val showLinks: (String, String?) -> Unit = { page, phone ->
+            copyPageLink = page
+            pageLink.text = page
+            copyPhoneLink = phone
+            phoneLink.text = phone ?: activity.getString(R.string.settings_hotspot_not_found)
+            phoneLink.setTextColor(if (phone == null) colors.warning else colors.muted)
         }
-        probe(showPhoneLink)
+        probe(showLinks)
 
         val stateListener: (TeslaBrowserLink.State) -> Unit = { state ->
             activity.runOnUiThread { if (status.isAttachedToWindow) showState(status, state) }
         }
         val keeperListener: (HotspotExtraAddressKeeper.State) -> Unit = {
-            activity.runOnUiThread { if (status.isAttachedToWindow) probe(showPhoneLink) } // the address list changes with it
+            activity.runOnUiThread { if (status.isAttachedToWindow) probe(showLinks) } // the address list changes with it
         }
         // Only while the rows are on screen; a new render replaces them.
         status.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
@@ -142,16 +145,22 @@ internal class TeslaBrowserLinkCard(
         }
     }
 
-    /** The phone-served page: at the extra address once it is on the hotspot, else at the hotspot's own address. */
-    private fun probe(show: (String?) -> Unit) {
+    /**
+     * Both links, on a thread: the HTTPS page names the extra address when the driver set one, else the hotspot's own
+     * address; the phone-served page is at the extra address once it is on the hotspot, else at the hotspot's own.
+     */
+    private fun probe(show: (page: String, phone: String?) -> Unit) {
         val generation = probes.incrementAndGet()
         val code = TeslaBrowserLink.pairingCode(app)
         val extra = HotspotExtraAddressSettings.address(app).hostAddress
             .takeIf { HotspotExtraAddressSettings.enabled(app) && HotspotExtraAddressKeeper.state is HotspotExtraAddressKeeper.State.Added }
         Thread({
-            val address = extra ?: runCatching { HotspotAddresses.current(app) }.getOrNull()?.ipv4?.firstOrNull()?.hostAddress
-            val link = address?.let { TeslaBrowserPageLinks.phoneLink(it, code, TeslaBrowserLink.PORT) }
-            activity.runOnUiThread { if (generation == probes.get()) show(link) }
+            // An added extra address answers both links, so the interfaces need no look.
+            val hotspot = if (extra != null) null
+            else runCatching { HotspotAddresses.current(app) }.getOrNull()?.ipv4?.firstOrNull()?.hostAddress
+            val page = TeslaBrowserLink.pageLink(app, hotspot)
+            val phone = (extra ?: hotspot)?.let { TeslaBrowserPageLinks.phoneLink(it, code, TeslaBrowserLink.PORT) }
+            activity.runOnUiThread { if (generation == probes.get()) show(page, phone) }
         }, "tiplay-browser-link-probe").start()
     }
 

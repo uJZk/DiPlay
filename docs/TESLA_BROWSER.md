@@ -36,16 +36,18 @@ Open **Settings → Connection → Tesla browser (experimental)**.
 - **Page address** is the HTTPS page. It must start with `https://`.
 - **Pairing code** shows the 6-digit code. **New code** disconnects the browser that uses the old code.
 - The first link is for the Tesla and other Chromium browsers. Open it in the car's browser, or copy it to send it to
-  yourself. It has the form `https://ujzk.github.io/DiPlay/play/#c=123456`.
+  yourself. It has the form `https://ujzk.github.io/DiPlay/play/?t=100.109.220.253#c=123456`.
 - The second link is for other browsers (see section 5): `http://<phone address>:8080/play/#c=123456`.
 
-The link to the HTTPS page names the phone's address (`&h=100.64.1.2:8080`) only when the extra hotspot address differs
-from the page's default, `100.109.220.253`.
+The link to the HTTPS page names the phone in `?t=`: the extra hotspot address when it is on, else the hotspot's own
+address (`:port` follows only when it is not 8080). The page keeps `?t=` in the address bar, so a bookmark opens the same
+phone. The phone's own page talks to the address it was loaded from and needs no `?t=`.
 
 ## 3. Pairing
 
 The pairing code is created once and kept until you tap **New code**. The link carries it in the fragment (`#c=…`). The
-page stores it in the browser and removes the fragment, so the code reaches no server and stays out of the history.
+page stores it in the browser and removes the fragment, so the code reaches no server and stays out of the history and
+bookmarks.
 You can also type the code on the page.
 
 One browser shows CarPlay at a time: the latest page that pairs takes over, and the previous one says so. After five wrong
@@ -58,8 +60,8 @@ The Tesla browser blocks private addresses (10.0.0.0/8, 172.16.0.0/12, 192.168.0
 use. It opens addresses in 100.64.0.0/10.
 
 - **With root:** turn on **Extra hotspot address (experimental)** in the same card. TiPlay adds `100.109.220.253` (or the
-  address you set) to the hotspot interface, and again after the hotspot restarts. The page tries `100.109.220.253` by
-  default, so the link needs no address.
+  address you set) to the hotspot interface, and again after the hotspot restarts. The link names that address in
+  `?t=`.
 - **Without root:** no tested way exists yet. See the 169.254 test in section 9.
 
 ## 5. Other browsers
@@ -99,7 +101,8 @@ starts; without it neither the iPhone nor the car can reach the phone.
 - Another app on port 8080 blocks the link until it frees the port.
 - The phone listens on port 8080 of every IPv4 address, on every network it joins. Without the pairing code a device
   gets only the page and `/hello`.
-- At most 8 connections at a time. One browser uses at most 6, so two browsers loading the page at once can be refused.
+- At most 8 connections at a time. One browser needs two or three (video, controls, and one per file of the phone's own
+  page while it loads, closed after each file); several browsers at once can be refused.
 - Chrome may tighten its local network access rules, and Tesla may start asking for permission or block 100.64.0.0/10.
 - Sound never goes through the browser.
 
@@ -129,6 +132,6 @@ localNetworkPermission=…`; the session log has `Browser link: …`, `Web video
       `isLinkLocalAddress()`). The Tesla does not block 169.254.0.0/16 and Chrome treats it as local. So the address of a
       VPN that TiPlay or a test app starts (`VpnService.Builder.addAddress("169.254.77.1", 32)`, which needs no root)
       might be reachable from the car through the hotspot. With such a VPN running and the extra hotspot address off,
-      open `https://<page>/play/#h=169.254.77.1:8080&c=<code>` in the car and note whether the page reaches the phone,
+      open `https://<page>/play/?t=169.254.77.1#c=<code>` in the car and note whether the page reaches the phone,
       and whether wireless CarPlay keeps working while the VPN runs. This is untested: the car may not route
       169.254.0.0/16 to the hotspot's gateway.

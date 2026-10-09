@@ -219,7 +219,12 @@ class BrowserLinkServer(
         val host = request.headers["host"]
         if (!isIpv4Host(host) && !isLocalhost(host)) return respond(output, request, refuse(421, "host"))
         if (request.method == "OPTIONS") return respond(output, request, preflight(request))
-        page(request)?.let { return respond(output, request, it) }
+        page(request)?.let {
+            // A browser loads the page over several connections and keeps them open. Idle, they would count against
+            // MAX_CONNECTIONS, and the page's own /video, /control or /bye would then be refused as busy.
+            write(output, request, it, keepAlive = false)
+            return false
+        }
         val method = ROUTES[request.path] ?: return respond(output, request, refuse(404, "not-found"))
         if (request.method != method) {
             return respond(output, request, refuse(405, "method", listOf("Allow" to "$method, OPTIONS")))
