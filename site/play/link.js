@@ -49,6 +49,18 @@ export function parseLinkSearch(search) {
   return { host: params.has('t') ? normalizeHost(params.get('t')) : null };
 }
 
+/**
+ * The phone and code that the page's address names over the `saved` link, or null when it names neither. `?t=` (or the
+ * older `#h=`) names the phone. A link with a code but no phone is a pairing link for DEFAULT_HOST, because links leave
+ * `t` out for it; on the page the phone serves, it is for that phone. Without a code (a bookmark) the saved phone stays.
+ */
+export function linkFromAddress(search, hash, saved, pageHost = null) {
+  const { host: bookmarked } = parseLinkSearch(search), linked = parseLinkHash(hash);
+  if (!bookmarked && !linked.host && !linked.code) return null;
+  const host = bookmarked ?? linked.host ?? (linked.code ? pageHost ?? DEFAULT_HOST : saved.host);
+  return { host, code: linked.code ?? saved.code };
+}
+
 /** The `t` value for a host: the default port 8080 is left out. */
 export function hostParam(host) {
   return String(host).replace(/:8080$/, '');
@@ -56,16 +68,19 @@ export function hostParam(host) {
 
 /**
  * The address-bar path for the current phone address: `?t=` names the phone so a bookmark reopens it, other query
- * parameters stay, and the fragment (which may hold the pairing code) is dropped. A page the phone serves itself
- * already talks to its own origin, so `t` is left out there.
+ * parameters stay, and the fragment (which may hold the pairing code) is dropped. `t` is left out for DEFAULT_HOST, so
+ * the usual link is the page's own address, and on a page the phone serves itself, which talks to its own origin.
  */
 export function linkLocation(pathname, search, host, pageHost = null) {
   const params = String(search ?? '').replace(/^\?/, '').split('&').filter(part => part && !/^t(=|$)/.test(part));
-  if (host && host !== pageHost) params.unshift(`t=${hostParam(host)}`);
+  if (host && host !== DEFAULT_HOST && host !== pageHost) params.unshift(`t=${hostParam(host)}`);
   return `${pathname}${params.length ? `?${params.join('&')}` : ''}`;
 }
 
-/** A link to the page: `?t=` carries the phone address, `#c=` the pairing code (a fragment never reaches the page host). */
+/**
+ * A link to the page: `?t=` carries the phone address unless it is DEFAULT_HOST, `#c=` the pairing code (a fragment
+ * never reaches the page host).
+ */
 export function buildLink(base, { host, code }) {
   const [path, query] = String(base).split('#')[0].split('?');
   return `${linkLocation(path, query, host)}${code ? `#c=${code}` : ''}`;

@@ -16,7 +16,11 @@ const { chromium } = createRequire(import.meta.url)('playwright-core');
 const CODE = '271828';
 const WIDTH = 800, HEIGHT = 480, FPS = 30;
 const PLAY = fileURLToPath(new URL('../../site/play/', import.meta.url));
-const PAGE_PATH = '/nested/deeper/play/'; // the page must not assume where it is hosted
+// The page must not assume where it is hosted. As published, it is the root of a project site, with the download pages
+// beside it in download/.
+const PAGE_PATH = '/nested/deeper/';
+const DOWNLOAD_PATH = `${PAGE_PATH}download/`;
+const DEFAULT_HOST = '100.109.220.253:8080';
 const CHROMIUM = process.env.CHROMIUM ?? ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find(existsSync);
 const FFMPEG = process.env.FFMPEG ?? 'ffmpeg';
 const FFPROBE = process.env.FFPROBE ?? FFMPEG.replace(/ffmpeg$/, 'ffprobe');
@@ -169,6 +173,11 @@ function startPageServer() {
   const server = createServer((req, res) => {
     const path = new URL(req.url, 'http://page').pathname;
     if (path === '/blank') return res.writeHead(200, { 'Content-Type': 'text/html' }).end('<!doctype html><title>blank</title>');
+    if (path === DOWNLOAD_PATH) {
+      return res.writeHead(200, { 'Content-Type': 'text/html' })
+        .end('<!doctype html><title>download</title><link rel="stylesheet" href="assets/site.css"><p id="download">TiPlay download</p>');
+    }
+    if (path === `${DOWNLOAD_PATH}assets/site.css`) return res.writeHead(200, { 'Content-Type': 'text/css' }).end('body { color: rgb(1, 2, 3); }');
     const name = path === PAGE_PATH ? 'index.html' : path.startsWith(PAGE_PATH) ? path.slice(PAGE_PATH.length) : null;
     if (!name || name.includes('/') || !existsSync(join(PLAY, name))) return res.writeHead(404).end();
     res.writeHead(200, { 'Content-Type': types[extname(name)] ?? 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -325,20 +334,68 @@ async function main() {
     check(await zhPage.textContent('#connect') === '连接' && await zhPage.getAttribute('html', 'lang') === 'zh-CN', 'a zh-CN browser gets the Chinese page');
     await zh.close();
 
+    // The default phone needs no ?t=, and a pairing link without it is for that phone, whatever was saved before.
+    // A plain-HTTP page at an IPv4 address is the phone's own copy to the page, so this origin is a *.localhost name:
+    // still a secure context, and the page treats it as the public HTTPS page.
+    const publicOrigin = `http://page.localhost:${pageServer.address().port}`;
+    const short = await browser.newContext({ locale: 'en-US', serviceWorkers: 'block' });
+    await short.route(/^http:\/\/100\./, route => route.abort());
+    const shortPage = await short.newPage();
+    const shortState = () => shortPage.evaluate(() => ({
+      search: location.search, hash: location.hash, host: JSON.parse(localStorage.getItem('tiplay.link'))?.host,
+    }));
+    await shortPage.goto(`${publicOrigin}${PAGE_PATH}?t=100.109.220.253:8080#c=${CODE}`);
+    let state = await shortState();
+    check(state.search === '' && state.hash === '' && state.host === DEFAULT_HOST,
+      `the default phone leaves just the page address in the address bar (${JSON.stringify(state)})`);
+    await shortPage.goto(`${publicOrigin}${PAGE_PATH}?t=100.64.0.1`);
+    state = await shortState();
+    check(state.search === '?t=100.64.0.1' && state.host === '100.64.0.1:8080', `another phone keeps ?t= (${JSON.stringify(state)})`);
+    await shortPage.goto(`${publicOrigin}${PAGE_PATH}#c=${CODE}`);
+    state = await shortState();
+    check(state.search === '' && state.hash === '' && state.host === DEFAULT_HOST,
+      `a pairing link without ?t= is for the default phone, not the one saved before (${JSON.stringify(state)})`);
+    await shortPage.goto(`${publicOrigin}${PAGE_PATH}`);
+    state = await shortState();
+    check(state.search === '' && state.host === DEFAULT_HOST && await shortPage.evaluate(() => window.isSecureContext),
+      `the bare page address (a bookmark) keeps the saved phone (${JSON.stringify(state)})`);
+    await short.close();
+
     // Each later rung takes over the display from the page before, as a new session.
     await checkPath(browser, pageUrl, phone, 'worker-chunks', NO_STREAM_TRANSFER);
     await checkPath(browser, pageUrl, phone, 'worker-frames', NO_OFFSCREEN_CANVAS);
     await checkPath(browser, pageUrl, phone, 'main', noWorkerVideoDecoder);
     check(/Another browser took over/.test(await page.textContent('#status')), 'the first page, replaced by the others, says so and stops');
 
-    // The cached page opens without the page server; the phone requests still reach the fake phone.
+    // The worker's scope is the site root, which also holds the download pages: it must leave them to the network.
     await page.evaluate(() => navigator.serviceWorker.ready);
+    const download = await context.newPage();
+    const fromWorker = [];
+    download.on('response', response => { if (response.fromServiceWorker()) fromWorker.push(response.url()); });
+    const downloaded = await download.goto(`${origin}${DOWNLOAD_PATH}`);
+    check(downloaded.ok() && await download.textContent('#download') === 'TiPlay download' &&
+      await download.evaluate(() => getComputedStyle(document.body).color) === 'rgb(1, 2, 3)', 'the download page beside the page loads with its stylesheet');
+    check(await download.evaluate(() => Boolean(navigator.serviceWorker.controller)) && !fromWorker.length,
+      `the page's Service Worker controls the download page but answers none of its requests${fromWorker.length ? `: ${fromWorker.join(', ')}` : ''}`);
+
+    // The cached page opens without the page server; the phone requests still reach the fake phone.
     await new Promise(resolve => pageServer.close(resolve));
     pageServer.closeAllConnections();
     const decodedOnline = eventsOf(phone, 'dec').length;
     await page.reload();
     await waitFor('decoding from the cached page', () => eventsOf(phone, 'dec').length > decodedOnline);
     check(await page.evaluate(() => Boolean(navigator.serviceWorker.controller)), 'the page reloaded from the Service Worker cache and decoded again');
+    const offline = await download.goto(`${origin}${DOWNLOAD_PATH}`).then(() => null, error => error.message.split('\n')[0]);
+    check(offline !== null, `without the page server the download page stays offline (${offline}): the worker never caches it`);
+    await download.close();
+    // The pairing link opens offline too: the worker ignores the fragment that holds the code.
+    const decodedCached = eventsOf(phone, 'dec').length;
+    const linked = await context.newPage();
+    const relinked = await linked.goto(pageUrl);
+    await waitFor('decoding from the pairing link without the page server', () => eventsOf(phone, 'dec').length > decodedCached);
+    check(relinked.fromServiceWorker() && await linked.evaluate(() => location.hash === ''),
+      'without the page server the pairing link (#c=) opens the cached page, which decodes again');
+    await linked.close();
 
     // The phone-served copy over plain HTTP is not a secure context: MSE plays VP9 in fragmented MP4 there.
     const address = lanAddress(), vp9 = address && encodeIvf('libvpx-vp9');

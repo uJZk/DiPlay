@@ -257,7 +257,7 @@ function rawStatus(origin, request) {
 /** Replaces VideoDecoder in the decoder worker with the stand-in, and keeps the workers for the stand-in's reports. */
 async function useDecoderStandIn(context) {
   await context.addInitScript(WATCH_WORKERS);
-  await context.route('**/play/decoder-worker.js', async route => {
+  await context.route('**/decoder-worker.js', async route => {
     const response = await route.fetch();
     await route.fulfill({ response, body: `${DECODER_STAND_IN}\n${await response.text()}` });
   });
@@ -281,11 +281,11 @@ async function checkTap(page, phone, x, y, label) {
   `${label}: a tap at ${x}/${y} reaches onTouch as ${JSON.stringify(touches[0])} then ${JSON.stringify(touches.at(-1))}`);
 }
 
-/** The page from another origin, as the public HTTPS page is: a static server for the page directory. */
+/** The page from another origin, as the public HTTPS page is: a static server for the page directory at its root. */
 function startPageHost() {
   const types = { html: 'text/html', js: 'text/javascript', css: 'text/css', svg: 'image/svg+xml' };
   const server = createServer((req, res) => {
-    const name = new URL(req.url, 'http://page').pathname.replace(/^\/play\//, '') || 'index.html';
+    const name = new URL(req.url, 'http://page').pathname.slice(1) || 'index.html';
     const file = join(PAGE_DIR, name);
     if (name.includes('/') || !existsSync(file)) return res.writeHead(404).end();
     res.writeHead(200, { 'Content-Type': types[name.split('.').pop()] ?? 'application/octet-stream', 'Cache-Control': 'no-cache' });
@@ -494,7 +494,7 @@ async function main() {
         const mark = phone.events.length;
         phone.command('restart');
         await waitFor('the next session', () => phone.since(mark, 'restarted').length);
-        await page.goto(`${origin}/play/#h=127.0.0.1:${phone.port}&c=${CODE}`);
+        await page.goto(`${origin}/?t=127.0.0.1:${phone.port}#c=${CODE}`);
         const decoded = await waitFor('"first frame rendered" from the other origin',
           () => phone.since(mark, 'diagnostic').find(event => event.message === 'first frame rendered'));
         check(decoded.session === 3, 'a page from another origin decodes the new session and its "dec" reaches that session');

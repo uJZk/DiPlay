@@ -8,7 +8,7 @@
  * transferred canvas; other browsers take a later rung of the fallback ladder (link.js choosePath). */
 import {
   DEFAULT_HOST, PROTOCOL, addressSpaceFor, backoffDelay, choosePath, createControlOutbox, createTouchSlots, flatStats,
-  isCode, linkLocation, mapPoint, newSessionId, normalizeHost, parseLinkHash, parseLinkSearch, PROBE_CODECS, supportedCodecs,
+  isCode, linkFromAddress, linkLocation, mapPoint, newSessionId, normalizeHost, PROBE_CODECS, supportedCodecs,
   timeoutSignal, viewportFor,
 } from './link.js';
 
@@ -112,12 +112,12 @@ function saveLink() {
 }
 
 let link = loadLink();
-const linked = parseLinkHash(location.hash), bookmarked = parseLinkSearch(location.search);
-if (bookmarked.host || linked.host || linked.code) {
-  link = { host: bookmarked.host ?? linked.host ?? link.host, code: linked.code ?? link.code };
+const addressed = linkFromAddress(location.search, location.hash, link, pageHost);
+if (addressed) {
+  link = addressed;
   saveLink();
 }
-// `?t=` keeps the phone address in bookmarks; the pairing code stays out of history entries and copied URLs.
+// `?t=` keeps a phone other than the default in bookmarks; the pairing code stays out of history entries and copied URLs.
 const showLink = () => history.replaceState(null, '', linkLocation(location.pathname, location.search, link.host, pageHost));
 showLink();
 

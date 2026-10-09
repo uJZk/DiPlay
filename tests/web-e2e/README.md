@@ -4,7 +4,8 @@
 server (protocol v1: `/hello`, `/video`, `/control`, `/bye`, CORS preflights). CI does not run it.
 
 It serves the page from `http://127.0.0.1` under a nested path, which is a secure context, so WebCodecs and the
-Service Worker work without HTTPS. Headless Chromium decodes VP8 and VP9 but not H.264, so the fake phone streams VP8
+Service Worker work without HTTPS. As on GitHub Pages, the page is the root of that path and a download page lives
+beside it in `download/`. Headless Chromium decodes VP8 and VP9 but not H.264, so the fake phone streams VP8
 (and VP9 for the MSE check).
 The page does not assume H.264 or HEVC; it configures `VideoDecoder` with whatever codec string the config record names.
 
@@ -38,15 +39,22 @@ Each check prints one `ok -` line, and the script ends with `all checks passed` 
    viewport. After a garbage key frame the decoder fails; the page asks for a key frame and decodes again.
 7. "Apply and reconnect" appears when `status.fit` is true, and clicking it sends `{"k":"fit"}`.
 8. A `zh-CN` browser gets the Chinese page.
-9. Each fallback rung decodes and maps a tap, with one feature taken away per run: `worker-chunks` (streams not
-   transferable), `worker-frames` (no `OffscreenCanvas`) and `main` (no `VideoDecoder` in workers). Each run takes
-   the display over, and the first page says so and stops instead of taking it back.
-10. With the page server stopped, a reload is served by the Service Worker and decodes again.
-11. `mse`: the fake phone serves the page itself on the first non-loopback IPv4 address. That origin is not a secure
+9. The default phone (`100.109.220.253:8080`) leaves only the page address in the address bar, another phone keeps
+   `?t=`, a link with a code and no `?t=` is for the default phone even after another one was saved, and the bare page
+   address keeps the saved phone. These run on `http://page.localhost`: the page treats a plain-HTTP IPv4 origin as the
+   phone's own copy, and a `*.localhost` name as the public page.
+10. Each fallback rung decodes and maps a tap, with one feature taken away per run: `worker-chunks` (streams not
+    transferable), `worker-frames` (no `OffscreenCanvas`) and `main` (no `VideoDecoder` in workers). Each run takes
+    the display over, and the first page says so and stops instead of taking it back.
+11. The page's Service Worker, whose scope is the site root, controls the download page but answers none of its
+    requests; with the page server stopped the download page does not open.
+12. With the page server stopped, a reload and the pairing link (with `#c=`) are served by the Service Worker and decode
+    again.
+13. `mse`: the fake phone serves the page itself on the first non-loopback IPv4 address. That origin is not a secure
     context, so the page plays VP9 in fragmented MP4 through MSE (this Chromium has no H.264 MSE). A garbage frame
     ends that `<video>` with a decode error; the page reconnects with a new media element and plays again.
-12. Without MSE as well, the page disables Connect and names what is missing.
-13. Before the browser starts, ffmpeg (libx264) checks that H.264 access units muxed by `fmp4.js` decode frame for frame.
+14. Without MSE as well, the page disables Connect and names what is missing.
+15. Before the browser starts, ffmpeg (libx264) checks that H.264 access units muxed by `fmp4.js` decode frame for frame.
 
 ## Real phone side (`phone-run.mjs`)
 
@@ -91,9 +99,9 @@ NODE_PATH=/tmp/pw/node_modules node tests/web-e2e/phone-run.mjs
    "Apply and reconnect" reaches `onFit`; after a decoder error the page's `kf` reaches the session's recovery handler;
    after a new session (the old tap closed, and its screen coming up late) the page decodes the new session's epoch;
    leaving the page sends `/bye`.
-5. The page from another origin (a static server, as the car opens the public HTTPS page) with `#h=`: it decodes a new
-   session and its `dec` reaches that session, the phone echoes the page's origin with `Vary: Origin` and `no-store`
-   on `/hello`, `/video` and `/control`, and a tap reaches `onTouch`.
+5. The page from another origin (a static server with the page at its root, as the car opens the public HTTPS page)
+   with `?t=`: it decodes a new session and its `dec` reaches that session, the phone echoes the page's origin with
+   `Vary: Origin` and `no-store` on `/hello`, `/video` and `/control`, and a tap reaches `onTouch`.
 6. In every run: all requests go to the page's own origin (the phone's, for the page the phone serves), only `/video`
    carries the code in its URL, no request sends a `Referer`, there are no CSP violations or page errors, and the phone
    never answers busy. The phone side never logs the code or a page session id.

@@ -1,12 +1,24 @@
 #!/usr/bin/env python3
-"""Generate the static GitHub Pages editions, one per language in content.json; no runtime dependencies."""
+"""Generate the static GitHub Pages editions, one per language in content.json; no runtime dependencies.
+
+The pages are published under download/ (scripts/assemble_site.py; the TiPlay page is at the site root). SITE_BASE_URL
+is the site's public address, set by .github/workflows/pages.yml from the repository variable of the same name; without
+it the address is DEFAULT_SITE_URL. Canonical, alternate and Open Graph URLs are <site>download/...
+"""
 from pathlib import Path
+from urllib.parse import urlsplit
 import json
+import os
 from html import escape as e
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / 'site'
 data = json.loads((SITE / 'content.json').read_text())
-BASE = 'https://ujzk.github.io/DiPlay/'
+DEFAULT_SITE_URL = 'https://ujzk.github.io/DiPlay/'
+SITE_URL = (os.environ.get('SITE_BASE_URL', '').strip() or DEFAULT_SITE_URL).rstrip('/') + '/'
+parts = urlsplit(SITE_URL)
+if parts.scheme != 'https' or not parts.hostname or parts.query or parts.fragment or any(c in SITE_URL for c in '"<> '):
+    raise SystemExit(f'SITE_BASE_URL must be an https:// address without a query or fragment, not {SITE_URL!r}')
+BASE = SITE_URL + 'download/'
 REPO = 'https://github.com/uJZk/DiPlay'
 VERSION = '0.2.13'
 RELEASE = REPO + '/releases'

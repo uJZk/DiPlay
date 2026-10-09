@@ -238,13 +238,21 @@ internal object TeslaBrowserLink {
 
     /** The HTTPS page the links open; [TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS] unless the driver hosts their own. */
     fun pageAddress(context: Context): String =
-        prefs(context).getString(KEY_PAGE_ADDRESS, null)?.let(TeslaBrowserPageLinks::pageAddress)
-            ?: TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS
+        TeslaBrowserPageLinks.savedPageAddress(prefs(context).getString(KEY_PAGE_ADDRESS, null))
 
-    /** Saves [text] when it is a valid page address ([TeslaBrowserPageLinks.pageAddress]); false otherwise. */
+    /**
+     * Saves [text] when it is a valid page address ([TeslaBrowserPageLinks.pageAddress]); false otherwise. The default
+     * is not stored, so a dialog saved unchanged follows the default of a later build.
+     */
     fun savePageAddress(context: Context, text: String): Boolean {
         val address = TeslaBrowserPageLinks.pageAddress(text) ?: return false
-        prefs(context).edit().putString(KEY_PAGE_ADDRESS, address).apply()
+        val editor = prefs(context).edit()
+        if (TeslaBrowserPageLinks.savedPageAddress(address) == TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS) {
+            editor.remove(KEY_PAGE_ADDRESS)
+        } else {
+            editor.putString(KEY_PAGE_ADDRESS, address)
+        }
+        editor.apply()
         return true
     }
 
@@ -256,8 +264,8 @@ internal object TeslaBrowserLink {
         if (HotspotExtraAddressSettings.enabled(context)) HotspotExtraAddressSettings.address(context).hostAddress else hotspotAddress
 
     /**
-     * The link for the Tesla and other Chromium browsers, naming the phone at [browserAddress] in `?t=`. Creates the
-     * pairing code if needed; no network access.
+     * The link for the Tesla and other Chromium browsers, naming the phone at [browserAddress] in `?t=` unless it is the
+     * page's default phone. Creates the pairing code if needed; no network access.
      */
     fun pageLink(context: Context, hotspotAddress: String?): String = TeslaBrowserPageLinks.pageLink(
         pageAddress(context), pairingCode(context), browserAddress(context, hotspotAddress), PORT)
