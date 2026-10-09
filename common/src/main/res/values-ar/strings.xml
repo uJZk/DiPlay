@@ -283,7 +283,7 @@
     <string name="preparing_mfi_authentication">جارٍ تجهيز مصادقة MFi</string>
     <string name="ready">جاهز</string>
     <string name="ready_when_you_are">جاهز عندما تكون مستعداً</string>
-    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">‏TiPlay نسخة معدّلة من DiPlay ‏(github.com/shihabal3amri/DiPlay)، مرخّصة بموجب GPL-3.0. يعتمد مستقبل DiPlay على xcertplay المرخّص بموجب GPL-3.0، وتتبع واجهته تصميم DiAuto المرخّص بموجب AGPL-3.0.\n\nيتضمن AndroidX وBouncy Castle وJmDNS وSLF4J. يرافق هذا الإصدار الشفرة المصدر وإشعارات الترخيص.\n\n‏CarPlay وأيقونة CarPlay ملك لشركة Apple Inc. ‏Tesla علامة تجارية لشركة Tesla, Inc. ‏TiPlay مشروع مستقل لا علاقة له بـ Apple أو Tesla.</string>
+    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">‏TiPlay نسخة معدّلة من DiPlay ‏(github.com/shihabal3amri/DiPlay)، مرخّصة بموجب GPL-3.0. يعتمد مستقبل DiPlay على xcertplay المرخّص بموجب GPL-3.0، وتتبع واجهته تصميم DiAuto المرخّص بموجب AGPL-3.0.\n\nيتضمن AndroidX وBouncy Castle وJmDNS وShizuku API وSLF4J. يرافق هذا الإصدار الشفرة المصدر وإشعارات الترخيص.\n\n‏CarPlay وأيقونة CarPlay ملك لشركة Apple Inc. ‏Tesla علامة تجارية لشركة Tesla, Inc. ‏TiPlay مشروع مستقل لا علاقة له بـ Apple أو Tesla.</string>
     <string name="reconnecting_to_your_iphone">جارٍ إعادة الاتصال بـ iPhone…</string>
     <string name="remote">عن بُعد</string>
     <string name="remote_server_address_contains_u_0000">عنوان الخادم البعيد يحتوي على U+0000</string>

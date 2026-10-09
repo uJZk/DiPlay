@@ -33,3 +33,6 @@ The last line printed starts with `RESULT:`:
 | `SecurityException` | The ROM blocks it; the shell user cannot change interface addresses |
 
 The address goes away when the hotspot restarts. The shell user cannot remove it.
+
+TiPlay's Shizuku hotspot address method makes the same call from the app; see
+[docs/HOTSPOT_ADDRESS.md](../../docs/HOTSPOT_ADDRESS.md).

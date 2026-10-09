@@ -19,6 +19,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.shilapi.xcertplay.host.R
+import com.shilapi.xcertplay.network.HotspotAddressVpn
 import com.shilapi.xcertplay.network.HotspotAddresses
 import com.shilapi.xcertplay.network.HotspotExtraAddressKeeper
 import java.util.concurrent.atomic.AtomicInteger
@@ -86,16 +87,19 @@ internal class TeslaBrowserLinkCard(
         val keeperListener: (HotspotExtraAddressKeeper.State) -> Unit = {
             activity.runOnUiThread { if (status.isAttachedToWindow) probe(showLinks) } // the address list changes with it
         }
+        val vpnListener: (HotspotAddressVpn.State) -> Unit = { keeperListener(HotspotExtraAddressKeeper.state) }
         // Only while the rows are on screen; a new render replaces them.
         status.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
             override fun onViewAttachedToWindow(view: View) {
                 TeslaBrowserLink.addListener(stateListener)
                 HotspotExtraAddressKeeper.addListener(keeperListener)
+                HotspotAddressVpn.addListener(vpnListener)
                 showState(status, TeslaBrowserLink.state) // it may have changed since build()
             }
             override fun onViewDetachedFromWindow(view: View) {
                 TeslaBrowserLink.removeListener(stateListener)
                 HotspotExtraAddressKeeper.removeListener(keeperListener)
+                HotspotAddressVpn.removeListener(vpnListener)
             }
         })
     }
@@ -152,8 +156,7 @@ internal class TeslaBrowserLinkCard(
     private fun probe(show: (page: String, phone: String?) -> Unit) {
         val generation = probes.incrementAndGet()
         val code = TeslaBrowserLink.pairingCode(app)
-        val extra = HotspotExtraAddressSettings.address(app).hostAddress
-            .takeIf { HotspotExtraAddressSettings.enabled(app) && HotspotExtraAddressKeeper.state is HotspotExtraAddressKeeper.State.Added }
+        val extra = HotspotExtraAddressSettings.liveAddress(app)?.hostAddress
         Thread({
             // An added extra address answers both links, so the interfaces need no look.
             val hotspot = if (extra != null) null

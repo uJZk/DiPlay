@@ -124,7 +124,7 @@ class HotspotExtraAddressLoopTest {
         assertEquals(1, phone.finds)
 
         phone.answer = { RootShell.Result.Done(0, "").also { phone.addresses.getOrPut("wlan2") { mutableSetOf() } += address } }
-        phone.loop.clearRootDenied()
+        phone.loop.clearDenied()
         phone.loop.tick()
         assertEquals(2, phone.scripts.size)
         assertEquals(State.Added("wlan2"), phone.loop.state)
@@ -138,7 +138,7 @@ class HotspotExtraAddressLoopTest {
         assertTrue(phone.scripts.isEmpty())
         assertEquals(0, phone.finds)
 
-        phone.loop.clearRootDenied()
+        phone.loop.clearDenied()
         phone.loop.tick()
         assertEquals(State.Added("wlan2"), phone.loop.state)
         assertEquals(1, phone.scripts.size)
@@ -256,6 +256,67 @@ class HotspotExtraAddressLoopTest {
         never.loop.tick()
         assertFalse(never.loop.remove())
         assertTrue(never.scripts.isEmpty())
+    }
+
+    private fun shizukuLoop(fake: HotspotAddressBackendTest.FakeShizuku, addresses: MutableSet<Inet4Address>,
+        iface: () -> String? = { "wlan2" }) = HotspotExtraAddressLoop(
+        address = address,
+        backend = ShizukuHotspotAddressBackend(fake),
+        hasAddress = { name, wanted -> name == "wlan2" && wanted in addresses },
+        findIface = iface,
+        eligible = { true },
+        nowMillis = { 0L },
+    )
+
+    @Test fun shizukuFileExistsCountsAsAdded() {
+        val fake = HotspotAddressBackendTest.FakeShizuku()
+        fake.error = IllegalStateException("android.os.ServiceSpecificException: File exists (code 17)")
+        val loop = shizukuLoop(fake, mutableSetOf())
+
+        assertEquals(HotspotExtraAddressLoop.POLL_MILLIS, loop.tick())
+
+        assertEquals(State.Added("wlan2"), loop.state)
+    }
+
+    @Test fun shizukuReAddsAfterTheHotspotRestarts() {
+        val fake = HotspotAddressBackendTest.FakeShizuku()
+        val addresses = mutableSetOf<Inet4Address>()
+        fake.onCall = { _, added -> addresses += added }
+        var iface: String? = "wlan2"
+        val loop = shizukuLoop(fake, addresses) { iface }
+        loop.tick()
+        iface = null
+        addresses.clear()
+        loop.tick()
+        assertEquals(State.NoHotspot, loop.state)
+        iface = "wlan2"
+
+        loop.tick()
+
+        assertEquals(State.Added("wlan2"), loop.state)
+        assertEquals(listOf("wlan2:tp", "wlan2:tp"), fake.calls.map { it.first })
+        assertFalse(loop.remove()) // Shizuku cannot remove it
+        assertEquals(2, fake.calls.size)
+    }
+
+    @Test fun shizukuWaitingStatesDoNotBackOffAndABlockedRomStops() {
+        val fake = HotspotAddressBackendTest.FakeShizuku()
+        val loop = shizukuLoop(fake, mutableSetOf())
+        fake.running = false
+        repeat(3) { assertEquals(HotspotExtraAddressLoop.POLL_MILLIS, loop.tick()) }
+        assertEquals(State.ShizukuUnavailable, loop.state)
+        fake.running = true
+        fake.granted = false
+        repeat(3) { assertEquals(HotspotExtraAddressLoop.POLL_MILLIS, loop.tick()) }
+        assertEquals(State.ShizukuPermissionNeeded, loop.state)
+        assertTrue(fake.calls.isEmpty())
+
+        fake.granted = true
+        fake.error = SecurityException("blocked")
+        assertNull(loop.tick())
+        assertEquals(State.Blocked, loop.state)
+        assertNull(loop.tick())
+        assertEquals(1, fake.calls.size)
     }
 
     @Test fun backoffSchedule() {

@@ -376,6 +376,9 @@ class AdaptiveSettingsUiTest {
         phonePages.forEach { (category, page) ->
             assertEquals(text(category), category == R.string.audio,
                 page.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
+            // The hotspot address chooser helps the car browser connect: Connection only.
+            assertEquals(text(category), category == R.string.connection,
+                page.any { it.startsWith(text(R.string.settings_hotspot_address_method) + " · ") })
         }
     }
 

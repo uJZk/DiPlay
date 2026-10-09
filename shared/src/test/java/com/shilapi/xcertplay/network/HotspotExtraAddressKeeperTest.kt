@@ -221,6 +221,117 @@ class HotspotExtraAddressKeeperTest {
         assertTrue(HotspotExtraAddressKeeper.rootRefused)
     }
 
+    private fun shizuku(): Pair<HotspotAddressBackendTest.FakeShizuku, ShizukuHotspotAddressBackend> {
+        val fake = HotspotAddressBackendTest.FakeShizuku()
+        fake.onCall = { name, address -> if (name == "$iface:tp") onInterface += address }
+        return fake to ShizukuHotspotAddressBackend(fake)
+    }
+
+    @Test fun shizukuAddsTheAliasAndAddsItAgainAfterTheHotspotRestarts() {
+        val (fake, backend) = shizuku()
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        assertEquals("shizuku", HotspotExtraAddressKeeper.backendId)
+
+        onInterface.clear() // the hotspot restarted
+        context.sendBroadcast(Intent("android.net.conn.TETHER_STATE_CHANGED"))
+        shadowOf(Looper.getMainLooper()).idle()
+
+        await(2_000) { fake.calls.size == 2 && first in onInterface }
+        assertEquals(listOf("wlan2:tp", "wlan2:tp"), fake.calls.map { it.first })
+        assertTrue(scripts.isEmpty()) // no root
+    }
+
+    @Test fun leavingShizukuLeavesTheAddressItCannotRemove() {
+        val (fake, backend) = shizuku()
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { first in onInterface }
+
+        HotspotExtraAddressKeeper.stop(removeAddress = true)
+
+        await { closedFinders == finders }
+        assertTrue(first in onInterface)
+        assertEquals(1, fake.calls.size)
+        assertTrue(scripts.isEmpty())
+        assertEquals(State.Off, HotspotExtraAddressKeeper.state)
+        assertEquals(null, fake.onChange) // its events are no longer watched
+    }
+
+    @Test fun switchingFromRootToShizukuRemovesTheRootAddressFirst() {
+        HotspotExtraAddressKeeper.start(context, first)
+        await { first in onInterface }
+        val (fake, backend) = shizuku()
+
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+
+        await { fake.calls.size == 1 && first in onInterface }
+        assertEquals(listOf("/system/bin/ip -4 addr replace 100.109.220.253/32 dev wlan2",
+            "/system/bin/ip -4 addr del 100.109.220.253/32 dev wlan2"), scripts)
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+    }
+
+    @Test fun shizukuWaitsForItsPermissionAndForItsBinderWithoutBackingOff() {
+        val (fake, backend) = shizuku()
+        fake.granted = false
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { HotspotExtraAddressKeeper.state == State.ShizukuPermissionNeeded }
+        assertTrue(fake.calls.isEmpty())
+
+        // The driver allows TiPlay in Shizuku's dialog: its answer checks again at once.
+        fake.granted = true
+        fake.onChange!!.invoke()
+        await(2_000) { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+
+        // Shizuku dies, then the hotspot restarts: TiPlay waits for Shizuku.
+        fake.running = false
+        onInterface.clear()
+        fake.onChange!!.invoke()
+        await(2_000) { HotspotExtraAddressKeeper.state == State.ShizukuUnavailable }
+        assertEquals(1, fake.calls.size)
+
+        // Shizuku is started again: its binder arrives and the address comes back.
+        fake.running = true
+        fake.onChange!!.invoke()
+        await(2_000) { first in onInterface && HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        assertEquals(2, fake.calls.size)
+    }
+
+    @Test fun aRomThatBlocksTheShellUserStopsTheShizukuSession() {
+        val (fake, backend) = shizuku()
+        fake.error = SecurityException("blocked")
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { HotspotExtraAddressKeeper.state == State.Blocked }
+
+        fake.onChange!!.invoke()
+        HotspotExtraAddressKeeper.checkNow()
+        Thread.sleep(200)
+
+        assertEquals(1, fake.calls.size)
+        // A root refusal elsewhere is not affected.
+        assertFalse(HotspotExtraAddressKeeper.rootRefused)
+    }
+
+    @Test fun choosingShizukuAgainRetriesABlockWithoutForgettingARootRefusal() {
+        val (fake, backend) = shizuku()
+        fake.error = SecurityException("blocked")
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { HotspotExtraAddressKeeper.state == State.Blocked }
+        HotspotExtraAddressKeeper.rootRefused = true
+
+        // A resume or a new connection leaves the block alone.
+        HotspotExtraAddressKeeper.start(context, first, backend = ShizukuHotspotAddressBackend(fake))
+        Thread.sleep(200)
+        assertEquals(1, fake.calls.size)
+
+        // The driver chooses Shizuku again in the settings.
+        fake.error = null
+        HotspotExtraAddressKeeper.start(context, first, retryRootDenied = true, backend = ShizukuHotspotAddressBackend(fake))
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        assertEquals(2, fake.calls.size)
+        assertTrue(HotspotExtraAddressKeeper.rootRefused) // only a root check forgets that
+        assertTrue(scripts.isEmpty())
+    }
+
     private fun await(timeoutMillis: Long = 3_000, condition: () -> Boolean) {
         val deadline = System.nanoTime() + timeoutMillis * 1_000_000
         while (!condition()) {

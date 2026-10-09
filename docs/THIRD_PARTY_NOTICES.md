@@ -29,6 +29,7 @@ CarPlay and the CarPlay icon are Apple Inc. marks/assets. This asset is not cove
 - Bouncy Castle 1.79 — The Legion of the Bouncy Castle Inc.; Bouncy Castle license (MIT-style).
 - JmDNS 3.6.3 — JmDNS contributors; Apache License 2.0.
 - SLF4J — QOS.ch; MIT license.
+- Shizuku API 13.1.5 (`dev.rikka.shizuku:api`, `:provider` and their `aidl` and `shared` modules) — Copyright (c) 2021 RikkaW; MIT license, text in `docs/licenses/dependencies/Shizuku-API-LICENSE.txt`. Used only by the Shizuku hotspot address method (`docs/HOTSPOT_ADDRESS.md`).
 
 Gradle dependency declarations and version catalog accompany the source. License files available in the resolved artifacts are included under `docs/licenses/dependencies/`.
 
