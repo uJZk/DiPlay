@@ -6,9 +6,15 @@ TeslaPlay is a fork of [DiPlay](https://github.com/shihabal3amri/DiPlay). Change
 
 - The project is now called TeslaPlay, with the package `com.ujzk.teslaplay`. It installs alongside DiPlay and does not reuse DiPlay's settings or pairing records.
 
+## Phone + browser by default
+
+- New installs, and installs that never chose a run mode, start in the phone + browser run mode (Settings → Connection → Tesla browser). Head-unit features stay in the app; turn "Phone and car browser" off to use them on a car head unit.
+- In phone + browser mode, CarPlay's car button shows a neutral car icon instead of the BYD logo, and the label "Tesla" while the car button name is still the default "BYD". A custom icon or name is kept. Applies at the next CarPlay connection.
+
 ## Sound through car Bluetooth
 
 - Settings → Audio has a new experimental choice, "Sound through car Bluetooth", for cars that show CarPlay in their web browser, such as Tesla. When it is on, `/info` leaves out only `audioFormats`, as the Carlinkit `BtAudio=1` mode does; audio latencies, feature bits and Bluetooth IDs stay the same. TeslaPlay then declines any audio stream the iPhone still opens and starts no audio output, microphone, echo canceller or audio focus. "On, alternative method" also leaves out the audio latencies and audio feature bits. The choice is off by default and applies at the next CarPlay connection. It is not yet verified in a car.
+- The choice appears, and applies, only in the phone + browser run mode; a head unit always plays CarPlay sound itself, whatever was saved.
 - The diagnostic report shows the saved choice, the audio route at each start, the `/info` audio declaration and every audio stream the iPhone asks for.
 
 ## Connection reliability

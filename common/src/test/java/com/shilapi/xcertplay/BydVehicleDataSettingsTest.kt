@@ -56,6 +56,7 @@ class BydVehicleDataSettingsTest {
         context.getSharedPreferences("diplay_byd_outputs", 0).edit().clear().commit()
         context.getSharedPreferences("diplay_byd_vehicle_fields", 0).edit().clear().commit()
         BydVehicleFieldStore.clearMemoryForTests()
+        useHeadUnitMode()
     }
 
     @After fun tearDown() {

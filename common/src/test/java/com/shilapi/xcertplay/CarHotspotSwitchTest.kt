@@ -45,6 +45,7 @@ class CarHotspotSwitchTest {
             app.getSharedPreferences(name, 0).edit().clear().commit()
         }
         BydVehicleFieldStore.clearMemoryForTests()
+        useHeadUnitMode(app)
         CarPlayBackgroundSession.clear()
         CarHotspotAdbGrantTest.WritePermission.allowed = false
         ShadowSettings.setCanDrawOverlays(false)

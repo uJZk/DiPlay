@@ -19,6 +19,7 @@ import com.shilapi.xcertplay.adb.LocalAdb
 import com.shilapi.xcertplay.host.R
 import com.shilapi.xcertplay.orchestration.WirelessHotspotMode
 import com.shilapi.xcertplay.orchestration.CarPlayController
+import com.shilapi.xcertplay.orchestration.CarPlayRunMode
 import com.shilapi.xcertplay.media.AndroidMediaSink
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.CountDownLatch
@@ -108,6 +109,7 @@ class AdaptiveSettingsUiTest {
     @Test
     @Config(shadows = [HotspotSearchProbe::class])
     fun hotspotSearchIndexesItsAsyncCardWithoutStartingAnAdbProbe() {
+        useHeadUnitMode()
         installBydSettingsPackage()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.MANUAL)
         HotspotSearchProbe.workers.clear()
@@ -293,6 +295,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun advancedContainsOnlyExpertSections() {
+        useHeadUnitMode()
         val screen = openSettings()
         descendants(screen.window.decorView)
             .single { candidate ->
@@ -324,6 +327,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun settingsLiveWhereDriversLookForThem() {
+        useHeadUnitMode() // the wheel keys live on a head unit
         val screen = openSettings()
         fun visibleIn(category: Int): List<CharSequence> {
             descendants(screen.window.decorView).first { candidate ->
@@ -340,9 +344,10 @@ class AdaptiveSettingsUiTest {
         val advanced = visibleIn(R.string.settings_advanced)
 
         assertTrue(audio.any { it.startsWith(text(R.string.music_buffer)) })
-        assertTrue(audio.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
-        assertFalse(advanced.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
-        assertFalse(display.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
+        // Car Bluetooth sound only exists for a car browser: a head unit has it in no category.
+        listOf(connection, display, audio, vehicle, advanced).forEach { page ->
+            assertFalse(page.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
+        }
         listOf(R.string.main_buffered_audio, R.string.efficient_video, R.string.smooth_video, R.string.call_echo_cancellation, R.string.call_voice_filter, R.string.contrib_audio_home_toggle_audio_focus).forEach {
             assertTrue(text(it), text(it) in advanced)
             assertFalse(text(it), text(it) in audio)
@@ -360,6 +365,15 @@ class AdaptiveSettingsUiTest {
         assertTrue(text(R.string.settings_phone_browser_mode) in connection)
         listOf(display, audio, vehicle, advanced).forEach {
             assertFalse(text(R.string.settings_phone_browser_mode) in it)
+        }
+
+        // Phone + browser mode: its audience sees car Bluetooth sound, in Audio only.
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER)
+        val phonePages = listOf(R.string.connection, R.string.settings_display, R.string.audio, R.string.settings_navigation,
+            R.string.settings_vehicle, R.string.diagnostics, R.string.settings_advanced).associateWith(::visibleIn)
+        phonePages.forEach { (category, page) ->
+            assertEquals(text(category), category == R.string.audio,
+                page.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
         }
     }
 
@@ -400,6 +414,7 @@ class AdaptiveSettingsUiTest {
 
     @Test fun carBluetoothSoundIsOffByDefaultAndMarksTheActiveSessionForReconnect() {
         assertEquals(CarBluetoothAudio.OFF, AirPlayPersistence.loadCarBluetoothAudio(context))
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER) // only a car browser offers it
         val screen = openSettings()
         val session = mock(CarPlayController::class.java)
         var stops = 0

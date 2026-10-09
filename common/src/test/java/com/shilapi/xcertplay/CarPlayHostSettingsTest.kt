@@ -308,6 +308,7 @@ class CarPlayHostSettingsTest {
     }
 
     @Test fun phoneBrowserModeKeepsBydVehicleDataAndOutputsOutOfTheRuntime() {
+        useHeadUnitMode(activity)
         com.shilapi.xcertplay.hud.BydOutputSettings.setBatteryToIphone(activity, true)
         com.shilapi.xcertplay.hud.BydOutputSettings.setWheelSpeedToIphone(activity, true)
         setField("locationReportingEnabled", true)

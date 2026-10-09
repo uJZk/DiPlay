@@ -17,6 +17,7 @@ class VirtualClusterDisplayTest {
     private lateinit var activity: CarPlayHostActivity
 
     @Before fun setUp() {
+        useHeadUnitMode()
         activity = Robolectric.buildActivity(CarPlayHostActivity::class.java).get()
         AirPlayPersistence.saveClusterMapEnabled(activity, false)
     }

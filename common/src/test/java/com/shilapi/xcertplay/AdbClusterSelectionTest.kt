@@ -23,6 +23,7 @@ class AdbClusterSelectionTest {
 
     @Before fun reset() {
         app.getSharedPreferences("xcertplay_airplay", Context.MODE_PRIVATE).edit().clear().commit()
+        useHeadUnitMode(app)
     }
 
     @Test fun turningOffAdbKeepsTheExistingClusterMapPreference() {

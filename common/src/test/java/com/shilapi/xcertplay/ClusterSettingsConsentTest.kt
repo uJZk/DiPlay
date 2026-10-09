@@ -41,6 +41,7 @@ class ClusterSettingsConsentTest {
         app.getSharedPreferences("diplay", 0).edit().clear().commit()
         // These existing sessions have already answered the optional notification prompt.
         app.getSharedPreferences("diplay", 0).edit().putBoolean("notification_asked", true).commit()
+        useHeadUnitMode(app)
         PendingReconnect.clear()
         CarPlayBackgroundSession.clear()
         ClusterActivityOutput.stopForSettings()

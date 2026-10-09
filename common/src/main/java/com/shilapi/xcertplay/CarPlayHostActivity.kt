@@ -3570,7 +3570,8 @@ class CarPlayHostActivity : ComponentActivity() {
         appendLog(requestSummary)
         appendLog(support.details)
         appendLog(effectiveSummary)
-        val carBluetoothAudio = AirPlayPersistence.loadCarBluetoothAudio(this)
+        // Only in phone + browser mode, in the same session-aware mode as headUnitIntegrations(): a head unit plays the sound.
+        val carBluetoothAudio = CarBluetoothAudio.effective(this, controller ?: CarPlayBackgroundSession.snapshot()?.controller)
         return AirPlayConfig(
             deviceName = "TeslaPlay",
             deviceId = DiPlayBootstrap.deviceId(airPlayIdentity),
@@ -3583,7 +3584,7 @@ class CarPlayHostActivity : ComponentActivity() {
             microphone = microphoneAvailable && carBluetoothAudio == CarBluetoothAudio.OFF,
             manufacturer = normalizedManufacturer(),
             model = normalizedModel(),
-            oemLabel = oemLabel,
+            oemLabel = CarButtonDefaults.label(oemLabel, phoneBrowser = !headUnitIntegrations()),
             icons = listOf(loadAirPlayIcon()),
             videoInCar = headUnitIntegrations() && com.shilapi.xcertplay.hud.BydOutputSettings.videoWhileParkedActive(this),
             mainBufferedAudio = AirPlayPersistence.loadMainBufferedAudio(this),
@@ -3618,6 +3619,8 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     private fun defaultAirPlayIconBytes(): ByteArray =
+        // Phone + browser mode: a neutral car instead of the BYD logo.
+        (if (headUnitIntegrations()) null else CarButtonDefaults.phoneBrowserIconPng(this)) ?:
         // Shown in CarPlay's app list as the "back to the car" button.
         resources.openRawResource(R.raw.ic_car_home).use { it.readBytes() }
 

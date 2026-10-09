@@ -55,15 +55,69 @@ class PhoneBrowserModeSettingsTest {
         context.getSharedPreferences("xcertplay_airplay", 0).edit().clear().commit()
     }
 
-    @Test fun headUnitIsTheDefaultAndUnknownRunMode() {
-        assertEquals(CarPlayRunMode.HEAD_UNIT, AirPlayPersistence.loadRunMode(context))
+    @Test fun phoneBrowserIsTheDefaultAndUnknownRunMode() {
+        assertEquals(CarPlayRunMode.PHONE_BROWSER, AirPlayPersistence.loadRunMode(context))
+        assertTrue(AirPlayPersistence.isPhoneBrowserMode(context))
         context.getSharedPreferences("xcertplay_airplay", 0).edit().putString("run_mode", "TABLET").commit()
 
+        assertEquals(CarPlayRunMode.PHONE_BROWSER, AirPlayPersistence.loadRunMode(context))
+        assertTrue(AirPlayPersistence.isPhoneBrowserMode(context))
+
+        // A head unit chosen in Settings stays chosen.
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.HEAD_UNIT)
         assertEquals(CarPlayRunMode.HEAD_UNIT, AirPlayPersistence.loadRunMode(context))
         assertFalse(AirPlayPersistence.isPhoneBrowserMode(context))
     }
 
+    // The default mode is the switch's "on"; turning it off is the way back to head-unit mode.
+    @Test fun aFreshInstallShowsTheRunModeSwitchOnInTheTeslaBrowserCard() {
+        val screen = openSettings()
+        ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
+        ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
+
+        assertTrue(runModeSwitch(screen).isChecked)
+        assertTrue(texts(screen).any { it.text == screen.getString(R.string.settings_tesla_browser) })
+        assertTrue(texts(screen).any { it.text == screen.getString(R.string.settings_phone_browser_mode_description) })
+        // Only the card says experimental; the switch is the run mode itself.
+        assertFalse(screen.getString(R.string.settings_phone_browser_mode).contains("experimental"))
+    }
+
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun theCarButtonPreviewShowsWhatTheNextConnectionSends() {
+        val screen = openSettings()
+        fun carButton(): Pair<String, android.graphics.Bitmap> {
+            ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.VEHICLE)
+            ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
+            val name = descendants(screen.window.decorView).filterIsInstance<android.widget.Button>()
+                .single { it.text.startsWith(screen.getString(R.string.car_button_name) + " · ") }.text.toString()
+            val card = ReflectionHelpers.getField<ViewGroup>(screen, "carButtonCard")
+            val icon = descendants(card).filterIsInstance<android.widget.ImageView>()
+                .mapNotNull { (it.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap }.single()
+            return name.substringAfter(" · ") to icon
+        }
+        val phoneIcon = requireNotNull(CarButtonDefaults.phoneBrowserIcon(context))
+        val bydIcon = android.graphics.BitmapFactory.decodeResource(context.resources, R.raw.ic_car_home)
+
+        val (phoneName, phonePreview) = carButton()
+        assertEquals("Tesla", phoneName)
+        assertTrue(phonePreview.sameAs(phoneIcon))
+        assertFalse(phonePreview.sameAs(bydIcon))
+
+        useHeadUnitMode()
+        val (headUnitName, headUnitPreview) = carButton()
+        assertEquals(AirPlayPersistence.DEFAULT_OEM_LABEL, headUnitName)
+        assertTrue(headUnitPreview.sameAs(bydIcon))
+
+        // A name the driver chose is kept in both modes.
+        AirPlayPersistence.saveOemLabel(context, "My car")
+        assertEquals("My car", carButton().first)
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER)
+        assertEquals("My car", carButton().first)
+    }
+
     @Test fun searchFindsTheHeadUnitControlsOnlyOutsidePhoneMode() {
+        useHeadUnitMode()
         installBydSettingsPackage()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.MANUAL)
         val screen = openSettings()
@@ -78,6 +132,9 @@ class PhoneBrowserModeSettingsTest {
         headUnitControls.forEach { assertFalse(screen.getString(it), screen.getString(it) in phone) }
         assertTrue(screen.getString(R.string.settings_phone_browser_mode) in phone)
         assertTrue(screen.getString(R.string.settings_tesla_browser) in phone)
+        // Car Bluetooth sound is the other way round: only a car browser offers it.
+        assertFalse(screen.getString(R.string.settings_car_bluetooth_audio) in headUnit)
+        assertTrue(screen.getString(R.string.settings_car_bluetooth_audio) in phone)
     }
 
     @Test fun phoneModeHidesTheHeadUnitCardsWhereDriversLook() {
@@ -108,6 +165,7 @@ class PhoneBrowserModeSettingsTest {
     }
 
     @Test fun headUnitModeKeepsTheHeadUnitCardsWhereDriversLook() {
+        useHeadUnitMode()
         installBydSettingsPackage()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.WIFI_P2P)
         val screen = openSettings()
@@ -137,7 +195,7 @@ class PhoneBrowserModeSettingsTest {
         CarPlayBackgroundSession.active = true
         try {
             ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
-            listOf(CarPlayRunMode.PHONE_BROWSER, CarPlayRunMode.HEAD_UNIT).forEach { mode ->
+            listOf(CarPlayRunMode.HEAD_UNIT, CarPlayRunMode.PHONE_BROWSER).forEach { mode ->
                 PendingReconnect.clear()
                 ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
                 val setting = runModeSwitch(screen)
