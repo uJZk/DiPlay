@@ -94,6 +94,7 @@ class HotspotExtraAddressSettingsTest {
     }
 
     @Test fun headUnitModeHasNoHotspotAddressRowsAndProbesNothing() {
+        useHeadUnitMode(context)
         HotspotExtraAddressSettings.setEnabled(context, true)
         val screen = openSettings()
 
@@ -368,6 +369,7 @@ class HotspotExtraAddressSettingsTest {
     }
 
     @Test fun theSessionServiceStartsTheKeeperOnlyInPhoneModeAndKeepsTheAddressWhenItStops() {
+        useHeadUnitMode(context)
         HotspotExtraAddressSettings.setEnabled(context, true)
         val headUnit = Robolectric.buildService(DiPlaySessionService::class.java, Intent()).create().startCommand(0, 1)
         headUnit.destroy()
