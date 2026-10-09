@@ -46,5 +46,26 @@ class WirelessHostAddressTest {
         assertEquals(7, (existingWifiHostAddresses(listOf(ip("fe80::1")), 7).single() as Inet6Address).scopeId)
     }
 
+    @Test fun manualHotspotNeverAdvertisesOrBindsTheExtraSharedAddress() {
+        // The interface may list the root-added /32 before the tethering address.
+        val addresses = listOf(ip("100.109.220.253"), ip("10.176.81.135"), ip("fe80::1"))
+        assertEquals(ip("100.109.220.253"), existingWifiHostAddresses(addresses, 7).first())
+
+        val hosts = manualHotspotHostAddresses(addresses, 7)
+
+        assertEquals(ip("10.176.81.135"), hosts.first())
+        assertEquals(7, (hosts.last() as Inet6Address).scopeId)
+        assertFalse(hosts.any(HotspotExtraAddress::isCgnat))
+        assertEquals(2, hosts.size)
+    }
+
+    @Test fun manualHotspotWithOnlyTheExtraIpv4KeepsItsLinkLocalAddress() {
+        val hosts = manualHotspotHostAddresses(listOf(ip("100.64.0.1"), ip("fe80::1")), 7)
+        assertEquals(1, hosts.size)
+        assertTrue(hosts.single() is Inet6Address)
+        assertEquals(emptyList<InetAddress>(), manualHotspotHostAddresses(listOf(ip("100.127.255.254")), 7))
+        assertEquals(listOf(ip("192.168.43.1")), manualHotspotHostAddresses(listOf(ip("192.168.43.1")), 0))
+    }
+
     private fun ip(value: String) = InetAddress.getByName(value)
 }

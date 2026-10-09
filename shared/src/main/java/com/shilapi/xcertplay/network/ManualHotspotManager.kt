@@ -122,7 +122,7 @@ class ManualHotspotManager(
         // Keep the existing IPv4-first endpoint selection and also publish the selected AP's
         // scoped IPv6 address, using the same dual-stack policy as existing Wi-Fi connections.
         val hostAddresses = network?.let {
-            existingWifiHostAddresses(Collections.list(it.inetAddresses), selected.index)
+            manualHotspotHostAddresses(Collections.list(it.inetAddresses), selected.index)
         }?.takeIf { it.isNotEmpty() } ?: listOfNotNull(localInterface.hostAddress)
         onDiagnostic("Manual hotspot configReadable=${apConfiguration != null} " +
             "security=$security channelKnown=${channel > 0} " +

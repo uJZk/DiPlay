@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_hotspot_address_checking">正在尋找這支手機的熱點…</string>
+    <string name="settings_hotspot_current_address">目前熱點位址：%1$s</string>
+    <string name="settings_hotspot_address_blocked">特斯拉瀏覽器很可能無法開啟這個位址。請開啟下方的「熱點位址增加」。</string>
+    <string name="settings_hotspot_not_found">找不到熱點。請開啟這支手機的熱點。</string>
+    <string name="settings_hotspot_extra_address">熱點位址增加（實驗性）</string>
+    <string name="settings_hotspot_extra_address_description">需要 root。為這支手機的熱點加上 %1$s，讓特斯拉瀏覽器連上 TiPlay；熱點重新啟動後會自動重新加入。立即生效，不需要重新連線。</string>
+    <string name="settings_hotspot_extra_address_value">位址</string>
+    <string name="settings_hotspot_extra_address_value_hint">100.64.0.0/10 內的位址，特斯拉瀏覽器可以開啟這個範圍。立即生效。</string>
+    <string name="settings_hotspot_extra_address_invalid">請輸入 100.64.0.0/10 內的位址，例如 100.109.220.253。</string>
+    <string name="settings_hotspot_extra_address_root_checking">正在要求 root 權限…</string>
+    <string name="settings_hotspot_extra_address_root_refused">TiPlay 沒有取得 root 權限，因此熱點位址增加維持關閉。請在 root 管理工具（例如 Magisk）中允許 TiPlay，然後再次開啟。</string>
+    <string name="settings_hotspot_extra_address_added">已加入 %1$s。</string>
+    <string name="settings_hotspot_extra_address_waiting">正在等待這支手機的熱點。</string>
+    <string name="settings_hotspot_extra_address_no_root">root 權限遭拒，TiPlay 已停止嘗試。關閉再開啟此設定即可重試。</string>
+    <string name="settings_hotspot_extra_address_failed">無法加入位址。TiPlay 稍後會再試一次。</string>
+    <string name="settings_hotspot_extra_address_paused">已暫停。TiPlay 開啟或連線時會重新加入位址。</string>
+    <string name="settings_hotspot_extra_address_manual_only">僅在連線方式為「%1$s」時有效。</string>
+</resources>

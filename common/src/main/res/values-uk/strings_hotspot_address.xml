@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_hotspot_address_checking">Пошук точки доступу цього телефону…</string>
+    <string name="settings_hotspot_current_address">Адреса точки доступу: %1$s</string>
+    <string name="settings_hotspot_address_blocked">Браузер Tesla, імовірно, не відкриє цю адресу. Увімкніть нижче додаткову адресу точки доступу.</string>
+    <string name="settings_hotspot_not_found">Точку доступу не знайдено. Увімкніть точку доступу на цьому телефоні.</string>
+    <string name="settings_hotspot_extra_address">Додаткова адреса точки доступу (експериментально)</string>
+    <string name="settings_hotspot_extra_address_description">Потрібен root. Додає %1$s до точки доступу цього телефону, щоб браузер Tesla міг відкрити TiPlay, і додає її знову після перезапуску точки доступу. Застосовується одразу, повторне підключення не потрібне.</string>
+    <string name="settings_hotspot_extra_address_value">Адреса</string>
+    <string name="settings_hotspot_extra_address_value_hint">Адреса з діапазону 100.64.0.0/10, який відкриває браузер Tesla. Застосовується одразу.</string>
+    <string name="settings_hotspot_extra_address_invalid">Введіть адресу з діапазону 100.64.0.0/10, наприклад 100.109.220.253.</string>
+    <string name="settings_hotspot_extra_address_root_checking">Запит root-доступу…</string>
+    <string name="settings_hotspot_extra_address_root_refused">TiPlay не отримав root-доступу, тому додаткова адреса залишається вимкненою. Дозвольте TiPlay у менеджері root, наприклад Magisk, і ввімкніть налаштування знову.</string>
+    <string name="settings_hotspot_extra_address_added">Адресу додано до %1$s.</string>
+    <string name="settings_hotspot_extra_address_waiting">Очікування точки доступу цього телефону.</string>
+    <string name="settings_hotspot_extra_address_no_root">У root-доступі відмовлено, тому TiPlay припинив спроби. Вимкніть і знову ввімкніть налаштування, щоб повторити.</string>
+    <string name="settings_hotspot_extra_address_failed">Не вдалося додати адресу. TiPlay незабаром спробує знову.</string>
+    <string name="settings_hotspot_extra_address_paused">Призупинено. TiPlay знову додасть адресу, коли відкриється або підключиться.</string>
+    <string name="settings_hotspot_extra_address_manual_only">Працює, лише коли підключення використовує «%1$s».</string>
+</resources>
