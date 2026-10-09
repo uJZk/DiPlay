@@ -77,3 +77,8 @@ Keep these internal names unchanged, so that upstream changes still merge: Kotli
 Do not edit Kotlin comments or KDoc only to rename DiPlay.
 The application ID is `com.ujzk.tiplay`; debug builds add `.hudtest`.
 Link issues, releases, downloads and the site to https://github.com/uJZk/DiPlay. Keep links to numbered upstream issues, pull requests and commits, and credits, on https://github.com/shihabal3amri/DiPlay.
+
+## Upstream
+
+TiPlay merges upstream DiPlay and contributes nothing back: send no pull requests or patches to https://github.com/shihabal3amri/DiPlay.
+Put new features in new files. Give upstream files only small hook edits, and do not rename, move or delete upstream files or identifiers. Follow `docs/UPSTREAM_SYNC.md` to merge.
