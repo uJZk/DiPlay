@@ -141,6 +141,7 @@ class AdaptiveSettingsUiTest {
     @Test
     @Config(shadows = [HotspotSearchProbe::class])
     fun hotspotSearchKeepsTheBydAndCarHotspotAudienceGates() {
+        useHeadUnitMode() // phone + browser mode hides the card whatever these gates say
         installBydSettingsPackage()
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.EXISTING_WIFI)
         HotspotSearchProbe.workers.clear()
@@ -152,6 +153,7 @@ class AdaptiveSettingsUiTest {
 
         assertFalse(index().any { it.title == title })
         AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.MANUAL)
+        assertTrue("both gates open", index().any { it.title == title })
         shadowOf(context.packageManager).removePackage("com.byd.carsettings")
         assertFalse(index().any { it.title == title })
         assertTrue(HotspotSearchProbe.workers.isEmpty())
