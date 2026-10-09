@@ -138,7 +138,7 @@ export function startFakePhone({ code, frames, width, height, fps = 30, codec = 
     }
     const route = `${req.method} ${url.pathname}`;
     if (pageDir && req.method === 'GET' && (url.pathname === '/' || url.pathname.startsWith('/play/'))) return servePage(res, url.pathname);
-    if (route === 'GET /hello') return json(res, 200, { app: 'TeslaPlay', protocol: 1 });
+    if (route === 'GET /hello') return json(res, 200, { app: 'TiPlay', protocol: 1 });
     if (route === 'GET /video') {
       if (authorize(res, url.searchParams.get('c'), url.searchParams.get('s'))) streamVideo(res);
       return;

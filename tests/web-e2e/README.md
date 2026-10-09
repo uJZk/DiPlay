@@ -28,7 +28,7 @@ Each check prints one `ok -` line, and the script ends with `all checks passed` 
 
 ## What it checks
 
-1. The page decodes frames: the fake phone receives `dec` for epoch 1, and `teslaplayStats` shows `decodedFps > 0`.
+1. The page decodes frames: the fake phone receives `dec` for epoch 1, and `tiplayStats` shows `decodedFps > 0`.
 2. The link fragment is stored and removed from the address, and the stats never contain the pairing code.
 3. A `vp` event matches the video area (CSS × DPR, rounded to even), and the canvas backing store has the size of
    the video area in device pixels (a page that connects before its decoder is ready must still size it).

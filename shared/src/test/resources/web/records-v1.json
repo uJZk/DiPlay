@@ -1,5 +1,5 @@
 {
-  "description": "TeslaPlay browser video records, protocol v1: records-v1.bin is these records back to back. payload is the base64 record payload as sent (parameter sets included).",
+  "description": "TiPlay browser video records, protocol v1: records-v1.bin is these records back to back. payload is the base64 record payload as sent (parameter sets included).",
   "headerSize": 24,
   "records": [
     {"name":"config","offset":0,"payloadLength":147,"kind":1,"flags":0,"codec":1,"version":1,"sequence":0,"epoch":1,"timestampUs":0,"payload":"eyJjb2RlYyI6ImF2YzEuNjQwMDI4Iiwid2lkdGgiOjExODIsImhlaWdodCI6OTIwLCJmcHMiOjYwLCJmb3JtYXQiOiJhbm5leGIiLCJtYXJrZXIiOiJhdmNDIiwibmFsTGVuZ3RoQnl0ZXMiOjQsInJlY29yZCI6IkFXUUFLUC9oQUFSblpBQW9BUUFDYU80PSJ9"},

@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * The phone side of the browser link (protocol v1): a small HTTP/1.1 server for the TeslaPlay page.
+ * The phone side of the browser link (protocol v1): a small HTTP/1.1 server for the TiPlay page.
  *
  * - `GET /hello` names the app and protocol.
  * - `GET /video` streams [WebVideoRecords] from [hub] as a close-delimited body (no length, no chunking).
@@ -611,7 +611,7 @@ class BrowserLinkServer(
         private const val LINGER_MILLIS = 500
         private const val INITIAL_RECORD_BUFFER = 64 * 1024
         private const val MAX_STATS = 2 * 1024
-        private const val HELLO = """{"app":"TeslaPlay","protocol":1}"""
+        private const val HELLO = """{"app":"TiPlay","protocol":1}"""
         private const val TOKEN_CHARACTERS = "!#$%&'*+-.^_`|~"
         private val HEADER_NAME_PATTERN = Regex("[a-z0-9-]{1,48}")
         private val KEYS = setOf("home", "back", "siri")

@@ -1,5 +1,5 @@
 name: Connection, display or audio problem
-description: Help us reproduce an issue with TeslaPlay on your head unit or phone.
+description: Help us reproduce an issue with TiPlay on your head unit or phone.
 title: '[Bug] '
 body:
   - type: markdown
@@ -7,7 +7,7 @@ body:
       value: 'Test while parked. Reports are public: review diagnostic files and remove personal information before attaching them. Never post credentials. Report problems with upstream DiPlay at https://github.com/shihabal3amri/DiPlay instead.'
   - type: input
     id: version
-    attributes: {label: TeslaPlay version or commit, placeholder: '0.2.13 or a commit hash'}
+    attributes: {label: TiPlay version or commit, placeholder: '0.2.13 or a commit hash'}
     validations: {required: true}
   - type: input
     id: car
@@ -33,4 +33,4 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostic report or recording
-      description: 'Reproduce on the latest TeslaPlay build, then Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/TeslaPlay; Android 9 uses a document picker. If storage is unavailable, use View report or Share in the confirmation. Review the text before attaching it and never include your hotspot password. Include the approximate failure time.'
+      description: 'Reproduce on the latest TiPlay build, then Settings → Diagnostics → Save diagnostic report. Android 10+ normally saves to Downloads/TiPlay; Android 9 uses a document picker. If storage is unavailable, use View report or Share in the confirmation. Review the text before attaching it and never include your hotspot password. Include the approximate failure time.'

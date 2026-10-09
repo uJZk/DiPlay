@@ -64,7 +64,7 @@ function ffmpeg(args) {
 /** A two-second test clip as IVF frames from ffmpeg's libvpx, or null when ffmpeg or libvpx is missing. */
 function encodeIvf(encoder) {
   if (process.env.E2E_VP8 === 'browser' && encoder === 'libvpx') return null;
-  const dir = mkdtempSync(join(tmpdir(), 'teslaplay-e2e-'));
+  const dir = mkdtempSync(join(tmpdir(), 'tiplay-e2e-'));
   try {
     const clip = join(dir, 'clip.ivf');
     const result = ffmpeg(['-f', 'lavfi', '-i', `testsrc2=size=${WIDTH}x${HEIGHT}:rate=${FPS}`, '-t', '2', '-c:v', encoder,
@@ -120,7 +120,7 @@ async function encodeInBrowser(context, origin) {
  * libx264 Annex-B access units (split at AUDs) are muxed like the page does and must decode frame for frame.
  */
 function checkH264Muxing() {
-  const dir = mkdtempSync(join(tmpdir(), 'teslaplay-fmp4-'));
+  const dir = mkdtempSync(join(tmpdir(), 'tiplay-fmp4-'));
   try {
     const stream = join(dir, 'clip.h264'), muxed = join(dir, 'clip.mp4');
     const encoded = ffmpeg(['-f', 'lavfi', '-i', `testsrc2=size=${WIDTH}x${HEIGHT}:rate=${FPS}`, '-t', '1', '-c:v', 'libx264',
@@ -178,7 +178,7 @@ function startPageServer() {
 }
 
 const eventsOf = (phone, k, from = 0) => phone.events.slice(from).filter(entry => entry.event.k === k);
-const stats = page => page.evaluate(() => window.teslaplayStats);
+const stats = page => page.evaluate(() => window.tiplayStats);
 
 /** Taps at (x, y) of the letterboxed picture and returns the touch events the phone received for it. */
 async function tap(page, phone, x, y) {
@@ -278,9 +278,9 @@ async function main() {
     const first = await stats(page);
     check(first.page.link.path === 'worker' && first.page.link.fallback === null, 'Chromium takes the Tesla path: worker, transferred stream, OffscreenCanvas');
     check(first.page.video.decodedFps > 0, `decodedFps ${first.page.video.decodedFps} with renderer ${first.page.video.renderer} (${first.page.video.acceleration})`);
-    check(!JSON.stringify(first).includes(CODE), 'teslaplayStats never contains the pairing code');
+    check(!JSON.stringify(first).includes(CODE), 'tiplayStats never contains the pairing code');
     check(await page.evaluate(() => location.hash === ''), 'the link fragment was removed from the address');
-    check(await page.evaluate(code => JSON.parse(localStorage.getItem('teslaplay.link')).code === code, CODE), 'the link was stored');
+    check(await page.evaluate(code => JSON.parse(localStorage.getItem('tiplay.link')).code === code, CODE), 'the link was stored');
     check(/VP8 · \d+ fps/.test(await page.textContent('#status')), `status line reads "${await page.textContent('#status')}"`);
 
     const rect = await page.evaluate(() => JSON.parse(JSON.stringify(document.getElementById('touch').getBoundingClientRect())));
@@ -352,7 +352,7 @@ async function main() {
       await mse.goto(`http://${address}:${served.port}/play/#c=${CODE}`);
       await waitFor('MSE playback', async () => (await stats(mse)).page.video.decodedFps > 0);
       const decodedBefore = eventsOf(served, 'dec').length;
-      await corruptUntil(served, mse, () => mse.evaluate(() => window.teslaplayStats.page.video.mediaErrors > 0 || document.getElementById('video').error !== null));
+      await corruptUntil(served, mse, () => mse.evaluate(() => window.tiplayStats.page.video.mediaErrors > 0 || document.getElementById('video').error !== null));
       await waitFor('MSE playback after a decode error',
         async () => eventsOf(served, 'dec').length > decodedBefore && (await stats(mse)).page.video.decodedFps > 0);
       check(true, 'after a decode error ends its <video>, the MSE page reconnects with a new media element and plays again');

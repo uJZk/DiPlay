@@ -1,12 +1,12 @@
 # Credits and license notices
 
-## TeslaPlay
+## TiPlay
 
-TeslaPlay is a modified version of [DiPlay by shihabal3amri](https://github.com/shihabal3amri/DiPlay), licensed under GNU GPL version 3. It was renamed from DiPlay to TeslaPlay in October 2026 and is maintained at https://github.com/uJZk/DiPlay. DiPlay's changelog entries and release notes keep their original name. Tesla is a trademark of Tesla, Inc. TeslaPlay is not affiliated with or endorsed by Tesla, Inc.
+TiPlay is a modified version of [DiPlay by shihabal3amri](https://github.com/shihabal3amri/DiPlay), licensed under GNU GPL version 3. It was renamed from DiPlay to TiPlay in October 2026 and is maintained at https://github.com/uJZk/DiPlay. DiPlay's changelog entries and release notes keep their original name. Tesla is a trademark of Tesla, Inc. TiPlay is not affiliated with or endorsed by Tesla, Inc.
 
 ## Receiver
 
-DiPlay, and therefore TeslaPlay, is a modified version of [xcertplay by shilapi](https://github.com/shilapi/xcertplay). The upstream receiver is licensed under GNU GPL version 3; the full text is in `LICENSE` and the original README is retained in `docs/UPSTREAM-README.md`.
+DiPlay, and therefore TiPlay, is a modified version of [xcertplay by shilapi](https://github.com/shilapi/xcertplay). The upstream receiver is licensed under GNU GPL version 3; the full text is in `LICENSE` and the original README is retained in `docs/UPSTREAM-README.md`.
 
 Upstream credits [LIVI](https://github.com/f-io/LIVI) and [Showcase](https://github.com/amineross/showcase) for protocol research. Existing source comments and attribution are preserved.
 
@@ -34,7 +34,7 @@ Gradle dependency declarations and version catalog accompany the source. License
 
 ## Experimental authentication data
 
-The public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay or TeslaPlay and are not relicensed as project source code. They are bundled in the preview APK to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. The source archive does not contain the private key, and the separate Android APK-signing key is never distributed.
+The public preview APK includes an accessory certificate/key pair recovered from public Carlinkit C2Air Allwinner V821 firmware during the owner's local investigation. These data are not newly generated Apple-issued credentials for DiPlay or TiPlay and are not relicensed as project source code. They are bundled in the preview APK to reproduce the offline experiment; continued acceptance and suitability for general distribution are unresolved. The source archive does not contain the private key, and the separate Android APK-signing key is never distributed.
 
 ## Download website
 

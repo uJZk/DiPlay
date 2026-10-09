@@ -7,7 +7,7 @@ failure from a failure after the Wi-Fi link is established.
 
 First check Bluetooth, Wi-Fi and Auto-Join for the CarPlay network, as described
 in [Apple's CarPlay troubleshooting](https://support.apple.com/en-us/105109).
-Reproduce while parked and share a reviewed TeslaPlay diagnostic report with the
+Reproduce while parked and share a reviewed TiPlay diagnostic report with the
 receiver firmware/Android version, phone/iOS version, connection mode and whether
 manual selection succeeds. Keep passwords, full network captures, addresses and
 private device backups out of public reports.
@@ -23,7 +23,7 @@ those elements.
 [Apple's WWDC 2023 connectivity discussion](https://developer.apple.com/videos/play/wwdc2023/10150/)
 states that the simplified endpoint exchange supports iOS 14 onward. No reviewed
 public Apple notice identifies the failure below as an iOS 14.0.1-specific defect.
-These public presentations do not certify TeslaPlay or describe every private
+These public presentations do not certify TiPlay or describe every private
 accessory specification detail.
 
 ## Controlled interoperability observation
@@ -90,7 +90,7 @@ evidence for a general in-app fix.
 
 ## Opt-in app repair
 
-**Connection setup → Built-in car hotspot → Check hotspot repair** runs TeslaPlay's
+**Connection setup → Built-in car hotspot → Check hotspot repair** runs TiPlay's
 authorized local-ADB/app_process helper. Opening the screen, resuming the app or
 starting CarPlay does not run this repair. Check reads the saved configuration
 and prepares a private full rollback snapshot; it does not change the hotspot.
@@ -126,7 +126,7 @@ adbd reconfiguration or TLS downgrade is performed.
 
 While parked, disconnect CarPlay and turn the hotspot off in car settings before
 Apply or Restore. Both writes require a fresh, authoritative **disabled** AP
-state; starting/stopping/failed/hidden states are refused. TeslaPlay never stops or
+state; starting/stopping/failed/hidden states are refused. TiPlay never stops or
 restarts the hotspot. Turn it on yourself afterward to update broadcasts, then
 verify a fresh scan and automatic joining. Saved-configuration readback is not
 proof that an OEM HAL broadcasts the element or that CarPlay joins successfully.

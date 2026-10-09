@@ -1,5 +1,5 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
- * TeslaPlay decoder worker (see video.js).
+ * TiPlay decoder worker (see video.js).
  * In:  {type:'canvas', canvas} · {type:'resize', width, height} · {type:'stream', id, stream} · {type:'stop'}
  *      {type:'feed', id}, {type:'chunk', id, chunk}, {type:'feed-end', id, error}: the main thread pumps the body
  *      when streams are not transferable.

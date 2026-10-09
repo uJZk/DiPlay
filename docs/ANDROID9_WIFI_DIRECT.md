@@ -3,11 +3,11 @@
 Android 9 uses the public two-argument `WifiP2pManager.createGroup` overload and reads the
 system-generated credentials from `requestGroupInfo`. Unlike the Android 10 configuration
 overload, Android 9 asks the framework to create or reuse a persistent group-owner profile.
-TeslaPlay removes its active group on close; it never deletes persistent profiles belonging to
+TiPlay removes its active group on close; it never deletes persistent profiles belonging to
 the framework or another app. A retained group is reclaimed only by exact recorded ownership.
 
 The hidden Android 9 `setWifiP2pChannels` API changes the supplicant's shared operating-frequency
-restriction. TeslaPlay calls it only after checking that no foreign active group is present. It
+restriction. TiPlay calls it only after checking that no foreign active group is present. It
 serializes selection and cleanup, clears its own restriction before a system-default retry,
 and clears on close only when the current group is absent or still has this attempt's identity.
 Clearing means operating channel 0 (unrestricted); Android exposes no readback for restoring a

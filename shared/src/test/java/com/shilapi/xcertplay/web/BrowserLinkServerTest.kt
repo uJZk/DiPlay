@@ -30,7 +30,7 @@ class BrowserLinkServerTest {
     private val code = "123456"
     private val session = "page-session-0001"
     private val other = "page-session-0002"
-    private val origin = "https://teslaplay.example"
+    private val origin = "https://tiplay.example"
 
     private val hub = WebVideoHub(Executor { it.run() })
     private val owner = Any()
@@ -176,7 +176,7 @@ class BrowserLinkServerTest {
     @Test fun helloNamesTheAppWithCorsAndHygieneHeaders() {
         val response = get("/hello")
         assertEquals(200, response.status)
-        assertEquals("""{"app":"TeslaPlay","protocol":1}""", response.text)
+        assertEquals("""{"app":"TiPlay","protocol":1}""", response.text)
         assertEquals("application/json", response.headers["content-type"])
         assertEquals(origin, response.headers["access-control-allow-origin"])
         assertEquals("Origin", response.headers["vary"])

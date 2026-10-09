@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // mapPoint cases adapted from WheelPlay (https://github.com/fython/wheelplay), GPL-3.0-only,
-// test/client.test.js and test/outbox.test.js at commit c1bd077. Modified for TeslaPlay, 2026-10.
+// test/client.test.js and test/outbox.test.js at commit c1bd077. Modified for TiPlay, 2026-10.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {

@@ -1,10 +1,10 @@
-# TeslaPlay next release notes
+# TiPlay next release notes
 
-TeslaPlay is a fork of [DiPlay](https://github.com/shihabal3amri/DiPlay). Changes through DiPlay 0.2.13 are documented in [DiPlay 0.2.13 release notes](RELEASE-NOTES-0.2.13.md). Measured checks are in [VALIDATION.md](VALIDATION.md). Add future unreleased changes here.
+TiPlay is a fork of [DiPlay](https://github.com/shihabal3amri/DiPlay). Changes through DiPlay 0.2.13 are documented in [DiPlay 0.2.13 release notes](RELEASE-NOTES-0.2.13.md). Measured checks are in [VALIDATION.md](VALIDATION.md). Add future unreleased changes here.
 
 ## Rename
 
-- The project is now called TeslaPlay, with the package `com.ujzk.teslaplay`. It installs alongside DiPlay and does not reuse DiPlay's settings or pairing records.
+- The project is now called TiPlay, with the package `com.ujzk.tiplay`. It installs alongside DiPlay and does not reuse DiPlay's settings or pairing records.
 
 ## Phone + browser by default
 
@@ -13,7 +13,7 @@ TeslaPlay is a fork of [DiPlay](https://github.com/shihabal3amri/DiPlay). Change
 
 ## Sound through car Bluetooth
 
-- Settings → Audio has a new experimental choice, "Sound through car Bluetooth", for cars that show CarPlay in their web browser, such as Tesla. When it is on, `/info` leaves out only `audioFormats`, as the Carlinkit `BtAudio=1` mode does; audio latencies, feature bits and Bluetooth IDs stay the same. TeslaPlay then declines any audio stream the iPhone still opens and starts no audio output, microphone, echo canceller or audio focus. "On, alternative method" also leaves out the audio latencies and audio feature bits. The choice is off by default and applies at the next CarPlay connection. It is not yet verified in a car.
+- Settings → Audio has a new experimental choice, "Sound through car Bluetooth", for cars that show CarPlay in their web browser, such as Tesla. When it is on, `/info` leaves out only `audioFormats`, as the Carlinkit `BtAudio=1` mode does; audio latencies, feature bits and Bluetooth IDs stay the same. TiPlay then declines any audio stream the iPhone still opens and starts no audio output, microphone, echo canceller or audio focus. "On, alternative method" also leaves out the audio latencies and audio feature bits. The choice is off by default and applies at the next CarPlay connection. It is not yet verified in a car.
 - The choice appears, and applies, only in the phone + browser run mode; a head unit always plays CarPlay sound itself, whatever was saved.
 - The diagnostic report shows the saved choice, the audio route at each start, the `/info` audio declaration and every audio stream the iPhone asks for.
 

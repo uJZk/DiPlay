@@ -9,11 +9,11 @@
     <string name="hotspot_join_confirm">Con el coche estacionado, desconecta CarPlay y apaga primero el punto de acceso en los ajustes del coche. Esta acción solo cambia la configuración guardada y verifica su lectura. Después, enciéndelo tú para actualizar las emisiones. Los clientes se desconectarán al apagarlo. Conserva la copia privada para restaurar.</string>
     <string name="hotspot_join_disconnect">Desconecta CarPlay antes de cambiar el punto de acceso.</string>
     <string name="hotspot_join_ready">Configuración de 5 GHz compatible. Copia privada completa preparada; aún no hay cambios.</string>
-    <string name="hotspot_join_present">La información probada ya está presente. No se añadió un duplicado; TeslaPlay no puede restaurar un elemento preexistente.</string>
+    <string name="hotspot_join_present">La información probada ya está presente. No se añadió un duplicado; TiPlay no puede restaurar un elemento preexistente.</string>
     <string name="hotspot_join_applied">Configuración guardada verificada. Enciende el punto de acceso en los ajustes para actualizar las emisiones y prueba la unión automática. La emisión y CarPlay aún requieren una prueba en el dispositivo.</string>
     <string name="hotspot_join_restored">Configuración completa restaurada y verificada. Enciende el punto de acceso en los ajustes del coche.</string>
     <string name="hotspot_join_unsupported">API, firmware, banda o información de proveedor conflictiva no compatibles. No se aplicó la reparación. Usa una configuración compatible de solo 5 GHz; otras bandas no están verificadas.</string>
-    <string name="hotspot_join_off_required">El punto de acceso debe estar confirmado como apagado. Desconecta clientes, apágalo en los ajustes y reintenta. TeslaPlay no lo reiniciará automáticamente.</string>
+    <string name="hotspot_join_off_required">El punto de acceso debe estar confirmado como apagado. Desconecta clientes, apágalo en los ajustes y reintenta. TiPlay no lo reiniciará automáticamente.</string>
     <string name="hotspot_join_drift">La configuración cambió desde la copia. No se sobrescribió nada. Comprueba de nuevo; se conserva la copia de restauración pendiente.</string>
     <string name="hotspot_join_firmware_changed">El firmware cambió. La copia privada se conserva, pero no se puede restaurar de forma segura en este firmware.</string>
     <string name="hotspot_join_cancelled">Cancelado antes de escribir. Comprueba de nuevo el estado de restauración retenido.</string>

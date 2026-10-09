@@ -79,7 +79,7 @@ data class AirPlayConfig(
     /**
      * Car Bluetooth sound (docs/todo.md): /info omits only audioFormats, as Carlinkit's BtAudio=1 does, so the
      * iPhone keeps music, navigation, Siri and calls on its own Bluetooth link to the car. audioLatencies,
-     * features and bluetoothIDs stay. TeslaPlay then declines audio streams and opens no microphone.
+     * features and bluetoothIDs stay. TiPlay then declines audio streams and opens no microphone.
      */
     val audioViaCarBluetooth: Boolean = false,
 ) {

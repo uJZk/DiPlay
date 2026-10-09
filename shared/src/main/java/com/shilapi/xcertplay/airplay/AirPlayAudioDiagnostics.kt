@@ -8,7 +8,7 @@ internal object AirPlayAudioDiagnostics {
         config.disableAudioOutput && config.audioViaCarBluetooth -> "car-bluetooth-alternative"
         config.audioViaCarBluetooth -> "car-bluetooth"
         config.disableAudioOutput -> "disabled"
-        else -> "teslaplay"
+        else -> "tiplay"
     }
 
     fun audioType(stream: Map<String, Any?>): String {

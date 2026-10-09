@@ -1,5 +1,5 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
- * TeslaPlay WebCodecs video: §3 records → VideoDecoder → frames, and a presenter that draws frames on a canvas
+ * TiPlay WebCodecs video: §3 records → VideoDecoder → frames, and a presenter that draws frames on a canvas
  * (WebGL, 2D as a fallback). Runs in decoder-worker.js on the Tesla path, or on the main thread as a fallback. */
 import { FLAG, RECORD, RecordError, Samples, chooseDecoderConfig, createRecordStream, letterbox } from './link.js';
 

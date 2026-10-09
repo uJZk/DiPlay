@@ -6,4 +6,4 @@ The public Git tree and corresponding source archive exclude accessory keys and 
 
 The Android APK-signing key is separate, stays local and is never bundled in the APK. Current acceptance of the experimental accessory identity does not establish Apple certification or guarantee future compatibility.
 
-Review diagnostic reports before posting. Never include credentials or pairing records in public issues. Use GitHub private vulnerability reporting on https://github.com/uJZk/DiPlay for sensitive TeslaPlay findings. Report findings that also affect upstream DiPlay to https://github.com/shihabal3amri/DiPlay.
+Review diagnostic reports before posting. Never include credentials or pairing records in public issues. Use GitHub private vulnerability reporting on https://github.com/uJZk/DiPlay for sensitive TiPlay findings. Report findings that also affect upstream DiPlay to https://github.com/shihabal3amri/DiPlay.

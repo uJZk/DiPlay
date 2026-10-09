@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Instructions for coding agents that work on TeslaPlay.
+Instructions for coding agents that work on TiPlay.
 
 ## Checks
 
@@ -29,7 +29,7 @@ Ask which goal the driver has when they look for the setting. Use the first row 
 
 | Category | Put a setting here when it controls… | Examples |
 | --- | --- | --- |
-| Connection | how the iPhone connects and how TeslaPlay starts | connection setup, connect on open, start with the car, USB permissions, car hotspot automation, iPhone choice, Android permissions, Tesla browser, the phone + browser run mode and the extra hotspot address |
+| Connection | how the iPhone connects and how TiPlay starts | connection setup, connect on open, start with the car, USB permissions, car hotspot automation, iPhone choice, Android permissions, Tesla browser, the phone + browser run mode and the extra hotspot address |
 | Display | how CarPlay looks on the head-unit screen | day/night mode, picture, size, resolution, frame rate, dock, system bars, multi-window resolution |
 | Audio | what the driver hears | media and navigation streams, music buffer |
 | Navigation | location and turn-by-turn guidance | location to iPhone, BYD HUD and cluster guidance |
@@ -71,9 +71,9 @@ Do not add a new setting to Overview. Add it to its category. Then promote it to
 
 ## Naming
 
-The product is TeslaPlay. Use TeslaPlay in every name a user can see: strings in all locales, guides, the site and issue templates.
+The product is TiPlay. Use TiPlay in every name a user can see: strings in all locales, guides, the site and issue templates.
 Keep DiPlay in `docs/RELEASE-NOTES-0.2.*.md`, past `CHANGELOG.md` entries, audit, review and validation records, upstream README copies and credits to the upstream project.
 Keep these internal names unchanged, so that upstream changes still merge: Kotlin packages (`com.shilapi.xcertplay`), class and file names (`DiPlayActivity`), Android resource names, SharedPreferences names, log tags, thread names, intent actions (`com.shihab.diplay.action.EMBED_MAP`, `com.shihab.diplay.DISCONNECT`), `DIPLAY_AUTH_ASSETS_DIR` and `rootProject.name`.
 Do not edit Kotlin comments or KDoc only to rename DiPlay.
-The application ID is `com.ujzk.teslaplay`; debug builds add `.hudtest`.
+The application ID is `com.ujzk.tiplay`; debug builds add `.hudtest`.
 Link issues, releases, downloads and the site to https://github.com/uJZk/DiPlay. Keep links to numbered upstream issues, pull requests and commits, and credits, on https://github.com/shihabal3amri/DiPlay.

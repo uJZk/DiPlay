@@ -154,7 +154,7 @@ class WebVideoRecordsTest {
             offset += WebVideoRecords.HEADER_SIZE + header.payloadLength
         }
         return "{\n" +
-            "  \"description\": \"TeslaPlay browser video records, protocol v1: records-v1.bin is these records back to back. " +
+            "  \"description\": \"TiPlay browser video records, protocol v1: records-v1.bin is these records back to back. " +
             "payload is the base64 record payload as sent (parameter sets included).\",\n" +
             "  \"headerSize\": ${WebVideoRecords.HEADER_SIZE},\n" +
             "  \"records\": [\n    " + lines.joinToString(",\n    ") + "\n  ]\n}\n"

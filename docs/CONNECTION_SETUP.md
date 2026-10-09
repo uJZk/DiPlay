@@ -1,6 +1,6 @@
 # Built-in car hotspot setup
 
-DiAuto (Android Auto) and TeslaPlay (CarPlay, formerly DiPlay) share this
+DiAuto (Android Auto) and TiPlay (CarPlay, formerly DiPlay) share this
 built-in car hotspot setup. Install the APK on the car, not on your phone.
 Update an existing installation of the same app without uninstalling to
 preserve settings.
@@ -10,7 +10,7 @@ default; Wi-Fi Direct and USB remain available. Previous Local hotspot
 selections switch to built-in hotspot. Check and save the car's real hotspot
 details before connecting.
 
-IN-SESSION SETTINGS AND AUTHENTICATION — TESLAPLAY
+IN-SESSION SETTINGS AND AUTHENTICATION — TIPLAY
 In CarPlay, swipe down with the configured number of fingers (2, 3 or 4;
 default 3) to open the hidden settings menu. Opening or cancelling the menu
 keeps a healthy session connected. Save and reconnect applies the edits;
@@ -30,7 +30,7 @@ the menu open and preserves the previously saved authentication choice.
 BUILT-IN HOTSPOT SETUP — BOTH APPS
 1. In the car's settings, turn on its built-in Wi-Fi hotspot. Select 5 GHz
    if available. Note the hotspot name and password exactly.
-2. Open DiAuto or TeslaPlay on the car. Go to Settings → Connection setup
+2. Open DiAuto or TiPlay on the car. Go to Settings → Connection setup
    (tap Open connection setup if shown).
 3. Select Built-in car hotspot. Tap Save hotspot details and use this mode
    (or Edit saved hotspot), enter the car's hotspot name and password, and
@@ -38,7 +38,7 @@ BUILT-IN HOTSPOT SETUP — BOTH APPS
 4. Turn on Bluetooth and Wi-Fi on your phone. Pair it with the car's
    Bluetooth. Allow the app permissions requested on the car.
 5. Return to the app and tap Connect phone. Select your phone when asked.
-   In TeslaPlay, use Choose iPhone if you need to select a different phone.
+   In TiPlay, use Choose iPhone if you need to select a different phone.
 6. Accept the Android Auto or CarPlay prompts on your phone.
 
 You do not need to join the hotspot manually on your phone before tapping
@@ -49,26 +49,26 @@ required; phone internet availability depends on its network settings.
 If you change the car hotspot name or password, update it in the app too.
 Test one projection app at a time.
 
-EXISTING WI-FI / SAME LAN — TESLAPLAY
+EXISTING WI-FI / SAME LAN — TIPLAY
 Connect the car and iPhone to the same external router or portable Wi-Fi in
-system settings. In TeslaPlay Connection setup, select Existing Wi-Fi / Same LAN
+system settings. In TiPlay Connection setup, select Existing Wi-Fi / Same LAN
 and save that network's exact name and WPA2 password. Keep Bluetooth enabled,
 then connect as usual. No car hotspot or Wi-Fi Direct group is created. Disable
 router client isolation. See [Existing Wi-Fi](EXISTING_WIFI.md) for build
 requirements, network limitations and device validation.
 
-WI-FI DIRECT CHANNEL — TESLAPLAY
+WI-FI DIRECT CHANNEL — TIPLAY
 In Settings → Connection setup, choose Wi-Fi Direct, then Preferred channel.
-Auto is the default and keeps TeslaPlay's automatic channel selection. You can
+Auto is the default and keeps TiPlay's automatic channel selection. You can
 choose a 5 GHz channel (36, 40, 44, 48, 149, 153, 157, 161 or 165), or a
 2.4 GHz channel (1–11). The car and its regional Wi-Fi settings must support
 the selected channel. Save applies the choice to the next Wi-Fi Direct
 connection; an existing connection continues until you disconnect/reconnect.
-If the car rejects the channel or creates a different one, TeslaPlay reports an
+If the car rejects the channel or creates a different one, TiPlay reports an
 error. Choose Auto or another channel and reconnect. Switching to the built-in
 hotspot preserves this choice without applying it to the car hotspot.
 
-OPTIONAL: TESLAPLAY BYD FEATURES REQUIRING ADB
+OPTIONAL: TIPLAY BYD FEATURES REQUIRING ADB
 Settings → BYD features · needs ADB appears only when BYD navigation services or
 the factory BYD car settings app are present, and traditional network ADB is
 reachable at 127.0.0.1:5555. The hotspot check also covers older QUALCOMM/qti
@@ -89,7 +89,7 @@ Automatically turn on the car hotspot appears as one switch and description in
 the same section only when Built-in car hotspot is selected. Wi-Fi Direct hides
 it without changing the saved choice or the other BYD ADB options.
 The switch is off by default. Turning it on automatically requests missing
-WRITE_SETTINGS through ADB, without a separate setup button or TeslaPlay confirmation.
+WRITE_SETTINGS through ADB, without a separate setup button or TiPlay confirmation.
 Approve the car's system ADB prompt if needed. The switch is enabled only after
 the required permissions are verified; a failed grant leaves it off and shows a message.
 After the grant, firmware that allows the app's direct hotspot request can turn
@@ -110,10 +110,10 @@ For startup after boot, also enable Open after the car starts. When both options
 are selected, the switch being enabled also requests missing SYSTEM_ALERT_WINDOW
 for boot launch. This does not enable a floating map or turn on the boot option
 automatically. The head unit may also require its own auto-start permission.
-Connect when TeslaPlay opens remains a separate choice: the app can start the hotspot
+Connect when TiPlay opens remains a separate choice: the app can start the hotspot
 without connecting to an iPhone.
 
-OPTIONAL: TESLAPLAY AUTOMATIC INSTRUMENT MAP
+OPTIONAL: TIPLAY AUTOMATIC INSTRUMENT MAP
 On the supported DiLink 5.1 firmware, open Settings → BYD navigation →
 Automatic map setup · ADB. Follow the displayed one-time computer setup,
 then tap Check and enable. Open the cluster's map card or select Map theme.
@@ -126,5 +126,5 @@ music/audio, and any instrument-map features supported by your car.
 If something fails, note the time and steps, car model, DiLink/Android
 version, phone model/OS, and which app you used. Export a diagnostic report
 from Settings → Diagnostics → Save diagnostic report. Reports are saved
-under Downloads/DiAuto or Downloads/TeslaPlay. Share the report with your test
+under Downloads/DiAuto or Downloads/TiPlay. Share the report with your test
 feedback; do not include your hotspot password.

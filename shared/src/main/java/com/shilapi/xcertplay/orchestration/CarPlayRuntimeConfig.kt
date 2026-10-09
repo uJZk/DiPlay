@@ -25,7 +25,7 @@ enum class WirelessHotspotMode {
     EXISTING_WIFI,
 }
 
-/** Where TeslaPlay runs: on the car's head unit, or on a phone whose hotspot the car's browser joins. */
+/** Where TiPlay runs: on the car's head unit, or on a phone whose hotspot the car's browser joins. */
 enum class CarPlayRunMode {
     HEAD_UNIT,
     PHONE_BROWSER,

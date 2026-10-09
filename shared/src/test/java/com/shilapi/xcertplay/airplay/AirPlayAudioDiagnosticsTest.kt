@@ -13,7 +13,7 @@ class AirPlayAudioDiagnosticsTest {
     @Test fun infoReportsTheRouteAndHowMuchAudioIsDeclared() {
         assertEquals("airplay /info audioRoute=car-bluetooth audioFormats=0 audioLatencies=9 features=0x615653aee2",
             AirPlayAudioDiagnostics.info(bt, AirPlayInfoPlist.build(bt)))
-        assertEquals("airplay /info audioRoute=teslaplay audioFormats=9 audioLatencies=9 features=0x615653aee2",
+        assertEquals("airplay /info audioRoute=tiplay audioFormats=9 audioLatencies=9 features=0x615653aee2",
             AirPlayAudioDiagnostics.info(base, AirPlayInfoPlist.build(base)))
         val alternative = bt.copy(disableAudioOutput = true)
         assertEquals("airplay /info audioRoute=car-bluetooth-alternative audioFormats=0 audioLatencies=0 features=0x615203a4e2",
@@ -30,12 +30,12 @@ class AirPlayAudioDiagnosticsTest {
             AirPlayAudioDiagnostics.setup(bt, 100, stream, null),
         )
         assertEquals(
-            "airplay audio SETUP type=100 audioType=media formatBits=0x8000 audioRoute=teslaplay " +
+            "airplay audio SETUP type=100 audioType=media formatBits=0x8000 audioRoute=tiplay " +
                 "result=accepted dataPort=6000 controlPort=6001",
             AirPlayAudioDiagnostics.setup(base, 100, stream, mapOf("type" to 100, "dataPort" to 6000, "controlPort" to 6001)),
         )
         assertEquals(
-            "airplay audio SETUP type=102 audioType=none formatBits=none audioRoute=teslaplay " +
+            "airplay audio SETUP type=102 audioType=none formatBits=none audioRoute=tiplay " +
                 "result=declined dataPort=none controlPort=none",
             AirPlayAudioDiagnostics.setup(base, 102, emptyMap(), null),
         )
@@ -50,13 +50,13 @@ class AirPlayAudioDiagnosticsTest {
 
     @Test fun recordedSaysWhetherAudioSetupsAreExpected() {
         assertEquals("airplay audio route=car-bluetooth expecting no audio SETUP", AirPlayAudioDiagnostics.recorded(bt))
-        assertEquals("airplay audio route=teslaplay receiving audio streams", AirPlayAudioDiagnostics.recorded(base))
+        assertEquals("airplay audio route=tiplay receiving audio streams", AirPlayAudioDiagnostics.recorded(base))
     }
 
     @Test fun summaryCountsSetupsAndListsDistinctStreams() {
         assertEquals("airplay audio summary audioRoute=car-bluetooth audioSetups=0 streams=none",
             AirPlayAudioDiagnostics.summary(bt, emptyList()))
-        assertEquals("airplay audio summary audioRoute=teslaplay audioSetups=3 streams=100/media,101/default",
+        assertEquals("airplay audio summary audioRoute=tiplay audioSetups=3 streams=100/media,101/default",
             AirPlayAudioDiagnostics.summary(base, listOf("100/media", "101/default", "100/media")))
     }
 }

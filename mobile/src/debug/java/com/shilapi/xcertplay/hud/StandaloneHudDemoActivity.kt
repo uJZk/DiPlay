@@ -81,7 +81,7 @@ class StandaloneHudDemoActivity : Activity() {
     }
 
     private fun validateTarget() {
-        check(packageName == "com.ujzk.teslaplay.hudtest" && Process.myUid() >= 10000)
+        check(packageName == "com.ujzk.tiplay.hudtest" && Process.myUid() >= 10000)
         check(Build.FINGERPRINT == "BYD-AUTO/IVI/IVI:13/TP1A.220624.014/eng.build20260722.221155:user/release-keys") {
             "This test is restricted to the inspected firmware"
         }

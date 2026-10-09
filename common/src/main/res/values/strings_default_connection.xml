@@ -4,5 +4,5 @@
     <string name="default_connection_last_used">Last used</string>
     <string name="default_connection_wireless">Wireless</string>
     <string name="default_connection_usb">USB</string>
-    <string name="default_connection_description">Use the default connection mode and selected iPhone when TeslaPlay opens. Manual connection buttons use the mode you choose.</string>
+    <string name="default_connection_description">Use the default connection mode and selected iPhone when TiPlay opens. Manual connection buttons use the mode you choose.</string>
 </resources>

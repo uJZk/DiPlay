@@ -49,7 +49,7 @@ class CarBluetoothAudioSessionTest {
             assertEquals(3, (decoded["streams"] as List<*>).size)
             assertEquals(3, media.audioSetups)
             assertTrue(logs.contains(
-                "airplay audio SETUP type=100 audioType=media formatBits=0x8000 audioRoute=teslaplay " +
+                "airplay audio SETUP type=100 audioType=media formatBits=0x8000 audioRoute=tiplay " +
                     "result=accepted dataPort=1 controlPort=none",
             ))
         } finally { session.close() }

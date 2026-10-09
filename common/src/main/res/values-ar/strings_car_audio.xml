@@ -4,5 +4,5 @@
     <string name="settings_car_bluetooth_audio_off">إيقاف</string>
     <string name="settings_car_bluetooth_audio_on">تشغيل</string>
     <string name="settings_car_bluetooth_audio_alternative">تشغيل، طريقة بديلة</string>
-    <string name="settings_car_bluetooth_audio_description">للسيارات التي تعرض CarPlay في متصفحها، مثل Tesla. تبقى الموسيقى والملاحة وSiri والمكالمات على اتصال البلوتوث بين iPhone والسيارة، ويعرض TeslaPlay الصورة فقط. اقرن iPhone ببلوتوث السيارة أولًا. إذا بقي الصوت لا يخرج من السيارة، فجرّب الطريقة البديلة. يُطبَّق عند الاتصال التالي بـ CarPlay.</string>
+    <string name="settings_car_bluetooth_audio_description">للسيارات التي تعرض CarPlay في متصفحها، مثل Tesla. تبقى الموسيقى والملاحة وSiri والمكالمات على اتصال البلوتوث بين iPhone والسيارة، ويعرض TiPlay الصورة فقط. اقرن iPhone ببلوتوث السيارة أولًا. إذا بقي الصوت لا يخرج من السيارة، فجرّب الطريقة البديلة. يُطبَّق عند الاتصال التالي بـ CarPlay.</string>
 </resources>

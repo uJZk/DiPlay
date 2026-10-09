@@ -52,7 +52,7 @@ class DiPlayMapPanel(context: Context) : FrameLayout(context) {
         override fun onServiceDisconnected(name: ComponentName) {
             service = null
             attached = false
-            show("TeslaPlay stopped")
+            show("TiPlay stopped")
         }
     }
 
@@ -83,12 +83,12 @@ class DiPlayMapPanel(context: Context) : FrameLayout(context) {
         val info = context.packageManager.queryIntentServices(intent, 0).firstOrNull()?.serviceInfo
         diPlayPackage = info?.packageName
         if (info == null) {
-            show("TeslaPlay is not installed")
+            show("TiPlay is not installed")
             return
         }
         intent.setClassName(info.packageName, info.name)
         bound = context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
-        show(if (bound) "Connecting to TeslaPlay…" else "TeslaPlay refused the connection")
+        show(if (bound) "Connecting to TiPlay…" else "TiPlay refused the connection")
     }
 
     fun stop() {
@@ -127,7 +127,7 @@ class DiPlayMapPanel(context: Context) : FrameLayout(context) {
             MSG_ATTACHED -> {
                 @Suppress("DEPRECATION")
                 val surfacePackage = message.data.getParcelable<SurfaceControlViewHost.SurfacePackage>(KEY_SURFACE_PACKAGE)
-                    ?: return show("TeslaPlay sent no map")
+                    ?: return show("TiPlay sent no map")
                 map.setChildSurfacePackage(surfacePackage)
                 attached = true
                 // DiPlay draws its own "waiting" text until the map streams.
@@ -137,9 +137,9 @@ class DiPlayMapPanel(context: Context) : FrameLayout(context) {
                 attached = false
                 show(
                 when (message.data.getString(KEY_ERROR)) {
-                    ERROR_DISABLED -> "In TeslaPlay, turn on\n\"Share the live map with other launchers\""
+                    ERROR_DISABLED -> "In TiPlay, turn on\n\"Share the live map with other launchers\""
                     ERROR_UNSUPPORTED -> "This head unit is too old for the live map"
-                    else -> "TeslaPlay could not show the map"
+                    else -> "TiPlay could not show the map"
                 },
                 )
             }

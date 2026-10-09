@@ -33,7 +33,7 @@
     <string name="settings_search_empty">Ningún ajuste coincide. Prueba con otra palabra.</string>
     <string name="settings_ready_wireless">CarPlay inalámbrico se conectará a %1$s.</string>
     <string name="settings_ready_usb">Conecta tu iPhone con un cable USB para iniciar CarPlay.</string>
-    <string name="settings_connecting_description">TeslaPlay está iniciando CarPlay con tu iPhone.</string>
+    <string name="settings_connecting_description">TiPlay está iniciando CarPlay con tu iPhone.</string>
     <string name="settings_choose_iphone_title">Elige tu iPhone</string>
     <string name="settings_choose_iphone_description">CarPlay inalámbrico necesita un iPhone emparejado para conectarse.</string>
     <string name="settings_choose_iphone_action">Elegir iPhone</string>

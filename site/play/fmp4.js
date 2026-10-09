@@ -66,7 +66,7 @@ export function initSegment({ codec, width, height, record }) {
     fullBox('stsz', 0, 0, u32(0), u32(0)), fullBox('stco', 0, 0, u32(0)));
   const minf = box('minf', fullBox('vmhd', 0, 1, zeros(8)), box('dinf', fullBox('dref', 0, 0, u32(1), fullBox('url ', 0, 1))), stbl);
   const mdia = box('mdia', fullBox('mdhd', 0, 0, u32(0), u32(0), u32(TIMESCALE), u32(0), u16(0x55c4), u16(0)),
-    fullBox('hdlr', 0, 0, u32(0), ascii('vide'), zeros(12), ascii('TeslaPlay\0')), minf);
+    fullBox('hdlr', 0, 0, u32(0), ascii('vide'), zeros(12), ascii('TiPlay\0')), minf);
   const tkhd = fullBox('tkhd', 0, 3, u32(0), u32(0), u32(1), u32(0), u32(0), zeros(8), u16(0), u16(0), u16(0), u16(0),
     ...MATRIX.map(u32), u32(width * 0x10000), u32(height * 0x10000));
   const mvhd = fullBox('mvhd', 0, 0, u32(0), u32(0), u32(TIMESCALE), u32(0), u32(0x10000), u16(0x100), zeros(10),

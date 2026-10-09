@@ -157,10 +157,10 @@ class CarPlayHostActivity : ComponentActivity() {
         remoteMfiServer = remoteMfiServer.trim().takeIf { it.isNotEmpty() },
         remoteMfiToken = remoteMfiToken.takeIf { it.isNotEmpty() },
         identification = Iap2IdentificationConfig(
-            name = "TeslaPlay",
+            name = "TiPlay",
             modelIdentifier = normalizedModel(),
             manufacturer = normalizedManufacturer(),
-            serialNumber = "TESLAPLAY-" + DiPlayBootstrap.deviceId(airPlayIdentity).replace(":", ""),
+            serialNumber = "TIPLAY-" + DiPlayBootstrap.deviceId(airPlayIdentity).replace(":", ""),
             firmwareVersion = "0.1.0",
             hardwareVersion = "1.0",
             carPlayUsbInterfaceNumber = 3,
@@ -170,7 +170,7 @@ class CarPlayHostActivity : ComponentActivity() {
             vehicleSpeedEnabled = locationReportingEnabled && headUnitIntegrations() &&
                 com.shilapi.xcertplay.hud.BydOutputSettings.wheelSpeedToIphoneActive(this),
         ),
-        label = "TeslaPlay",
+        label = "TiPlay",
         hostName = "diplay-" + DiPlayBootstrap.deviceId(airPlayIdentity).replace(":", "").lowercase(),
         hostMac = DiPlayBootstrap.deviceId(airPlayIdentity).split(":").map { it.toInt(16).toByte() }.toByteArray(),
         wirelessBluetoothDeviceAddress = DiPlayPreferences.phoneAddress(this),
@@ -3573,7 +3573,7 @@ class CarPlayHostActivity : ComponentActivity() {
         // Only in phone + browser mode, in the same session-aware mode as headUnitIntegrations(): a head unit plays the sound.
         val carBluetoothAudio = CarBluetoothAudio.effective(this, controller ?: CarPlayBackgroundSession.snapshot()?.controller)
         return AirPlayConfig(
-            deviceName = "TeslaPlay",
+            deviceName = "TiPlay",
             deviceId = DiPlayBootstrap.deviceId(airPlayIdentity),
             btMac = DiPlayBluetooth.localAddress(this) ?: DiPlayBootstrap.deviceId(airPlayIdentity),
             sourceVersion = "950.7.1",
@@ -4028,7 +4028,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 "video=${if (airPlayConfig.hevc) "HEVC" else "H.264"} " +
                 "decoder=${if (airPlayConfig.hevc && hevcSoftwareDecoderEnabled) "software" else "hardware"} " +
                 "microphone=${airPlayConfig.microphone} " +
-                "audio=${if (airPlayConfig.receivesAudio) "teslaplay" else "car-bluetooth"} " +
+                "audio=${if (airPlayConfig.receivesAudio) "tiplay" else "car-bluetooth"} " +
                 "location=${if (config.locationReportingEnabled) "enabled" else "disabled"}" +
                 "${if (config.identification.vehicleSpeedEnabled) "+wheel-speed" else ""} " +
                 // Reports say why a session has no BYD outputs, dashboard map or wheel keys.
@@ -4874,7 +4874,7 @@ class CarPlayHostActivity : ComponentActivity() {
         val activeLog = SessionLogFile(logFile)
         runCatching {
             activeLog.reset(
-                "TeslaPlay log started " +
+                "TiPlay log started " +
                     "${SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())} " +
                     "pid=${Process.myPid()} path=${logFile.absolutePath}",
             )

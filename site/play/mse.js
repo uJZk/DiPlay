@@ -1,5 +1,5 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
- * TeslaPlay MSE fallback (contract §7.2, rung 4): §3 records → fragmented MP4 → <video>. For browsers without
+ * TiPlay MSE fallback (contract §7.2, rung 4): §3 records → fragmented MP4 → <video>. For browsers without
  * WebCodecs or outside a secure context, such as the page the phone serves over plain HTTP. */
 import { FLAG, RECORD, RecordError, createRecordStream } from './link.js';
 import { TIMESCALE, annexBToLengthPrefixed, initSegment, mediaSegment, mseType } from './fmp4.js';

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Adapted from WheelPlay (https://github.com/fython/wheelplay), GPL-3.0-only,
-// common/src/main/java/com/shilapi/xcertplay/web/VideoPerformance.kt at commit c1bd077. Modified for TeslaPlay, 2026-10.
+// common/src/main/java/com/shilapi/xcertplay/web/VideoPerformance.kt at commit c1bd077. Modified for TiPlay, 2026-10.
 package com.shilapi.xcertplay.web
 
 /** Fixed-size recent samples, cumulative counters, and monotonic rates; no per-frame logging. */

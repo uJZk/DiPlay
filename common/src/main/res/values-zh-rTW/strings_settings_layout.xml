@@ -33,7 +33,7 @@
     <string name="settings_search_empty">沒有符合的設定。請換個詞試試。</string>
     <string name="settings_ready_wireless">無線 CarPlay 將連線到 %1$s。</string>
     <string name="settings_ready_usb">使用 USB 傳輸線連接 iPhone 以啟動 CarPlay。</string>
-    <string name="settings_connecting_description">TeslaPlay 正在與你的 iPhone 啟動 CarPlay。</string>
+    <string name="settings_connecting_description">TiPlay 正在與你的 iPhone 啟動 CarPlay。</string>
     <string name="settings_choose_iphone_title">選擇你的 iPhone</string>
     <string name="settings_choose_iphone_description">無線 CarPlay 需要先配對 iPhone 才能連線。</string>
     <string name="settings_choose_iphone_action">選擇 iPhone</string>

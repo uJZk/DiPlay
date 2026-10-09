@@ -1,9 +1,9 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
  * Adapted from WheelPlay (https://github.com/fython/wheelplay), GPL-3.0-only,
  * common/src/main/assets/web/app.js at commit c1bd077 (pointer handling, viewport report, reconnect loop, stats getter).
- * Modified for TeslaPlay, 2026-10. Source code: https://github.com/uJZk/DiPlay
+ * Modified for TiPlay, 2026-10. Source code: https://github.com/uJZk/DiPlay
  *
- * Main thread of the TeslaPlay browser link (protocol v1). The video fetch starts here so it gets the page's
+ * Main thread of the TiPlay browser link (protocol v1). The video fetch starts here so it gets the page's
  * local-network treatment. On the Tesla path its body is transferred to decoder-worker.js, which draws on the
  * transferred canvas; other browsers take a later rung of the fallback ladder (link.js choosePath). */
 import {
@@ -14,7 +14,7 @@ import {
 const STRINGS = {
   en: {
     heading: 'Show CarPlay on this screen',
-    intro: 'Join this car to the hotspot of the Android phone that runs TeslaPlay, then enter the pairing code that TeslaPlay shows.',
+    intro: 'Join this car to the hotspot of the Android phone that runs TiPlay, then enter the pairing code that TiPlay shows.',
     codeLabel: 'Pairing code',
     advanced: 'Advanced',
     hostLabel: 'Phone address',
@@ -38,18 +38,18 @@ const STRINGS = {
     phoneConnecting: 'The iPhone is connecting…',
     waitingVideo: 'Waiting for the picture…',
     streaming: '{0} · {1} fps',
-    badCode: 'The pairing code is wrong. Check it in TeslaPlay on the phone.',
+    badCode: 'The pairing code is wrong. Check it in TiPlay on the phone.',
     replaced: 'Another browser took over the display. Connect again to take it back.',
-    protocol: 'TeslaPlay on the phone does not match this page. Update the app.',
+    protocol: 'TiPlay on the phone does not match this page. Update the app.',
     unsupported: 'This browser cannot decode {0}.',
-    unsupportedHevc: 'This browser cannot decode HEVC. Turn off HEVC in TeslaPlay on the phone.',
+    unsupportedHevc: 'This browser cannot decode HEVC. Turn off HEVC in TiPlay on the phone.',
     noVideo: 'This browser cannot show the video ({0}). Open the page over HTTPS in a current Chrome, Edge, Safari or Firefox.',
     invalidCode: 'Enter the 6-digit pairing code.',
     invalidHost: 'Enter an IPv4 address with port, for example 100.109.220.253:8080.',
   },
   zh: {
     heading: '在这块屏幕上显示 CarPlay',
-    intro: '让车辆连接运行 TeslaPlay 的安卓手机热点，然后输入 TeslaPlay 显示的配对码。',
+    intro: '让车辆连接运行 TiPlay 的安卓手机热点，然后输入 TiPlay 显示的配对码。',
     codeLabel: '配对码',
     advanced: '高级',
     hostLabel: '手机地址',
@@ -73,11 +73,11 @@ const STRINGS = {
     phoneConnecting: 'iPhone 正在连接…',
     waitingVideo: '等待画面…',
     streaming: '{0} · {1} fps',
-    badCode: '配对码不正确，请在手机上的 TeslaPlay 中核对。',
+    badCode: '配对码不正确，请在手机上的 TiPlay 中核对。',
     replaced: '另一个浏览器接管了画面。再次连接即可收回。',
-    protocol: '手机上的 TeslaPlay 与本页不匹配，请更新应用。',
+    protocol: '手机上的 TiPlay 与本页不匹配，请更新应用。',
     unsupported: '此浏览器无法解码 {0}。',
-    unsupportedHevc: '此浏览器无法解码 HEVC。请在手机上的 TeslaPlay 中关闭 HEVC。',
+    unsupportedHevc: '此浏览器无法解码 HEVC。请在手机上的 TiPlay 中关闭 HEVC。',
     noVideo: '此浏览器无法显示画面（{0}）。请用新版 Chrome、Edge、Safari 或 Firefox 通过 HTTPS 打开本页。',
     invalidCode: '请输入 6 位配对码。',
     invalidHost: '请输入带端口的 IPv4 地址，例如 100.109.220.253:8080。',
@@ -86,7 +86,7 @@ const STRINGS = {
 const lang = /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en';
 const t = (key, ...args) => (STRINGS[lang][key] ?? STRINGS.en[key]).replace(/\{(\d)\}/g, (_, index) => args[index]);
 const CODEC_NAMES = { avc1: 'H.264', avc3: 'H.264', hvc1: 'HEVC', hev1: 'HEVC', vp8: 'VP8', vp09: 'VP9', av01: 'AV1' };
-const LINK_KEY = 'teslaplay.link', STATS_KEY = 'teslaplay.stats';
+const LINK_KEY = 'tiplay.link', STATS_KEY = 'tiplay.stats';
 const $ = id => document.getElementById(id);
 const stage = $('stage'), touch = $('touch');
 const codecName = codec => CODEC_NAMES[String(codec).split('.')[0]] ?? codec;
@@ -338,7 +338,7 @@ async function connectVideo() {
     if (!helloResponse.ok) throw await httpError(helloResponse);
     const hello = await helloResponse.json();
     if (id !== streamId) return;
-    if (hello.app !== 'TeslaPlay' || hello.protocol !== PROTOCOL) {
+    if (hello.app !== 'TiPlay' || hello.protocol !== PROTOCOL) {
       stop('protocol');
       return;
     }
@@ -473,7 +473,7 @@ function snapshot() {
   const { phone = null, ...rest } = status ?? {};
   return { page: pageStats(), status: status ? rest : null, phone };
 }
-Object.defineProperty(window, 'teslaplayStats', { configurable: true, get: () => JSON.parse(JSON.stringify(snapshot())) });
+Object.defineProperty(window, 'tiplayStats', { configurable: true, get: () => JSON.parse(JSON.stringify(snapshot())) });
 
 // Touch: one overlay element over the picture, which keeps the aspect of the negotiated CarPlay canvas.
 function cancelMove() {

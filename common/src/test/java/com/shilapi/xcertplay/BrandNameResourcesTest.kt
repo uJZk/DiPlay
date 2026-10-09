@@ -8,7 +8,7 @@ import javax.xml.parsers.DocumentBuilderFactory
 class BrandNameResourcesTest {
     private val attribution = "receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay"
 
-    @Test fun userVisibleStringsSayTeslaPlay() {
+    @Test fun userVisibleStringsSayTiPlay() {
         val folders = File("src/main/res").listFiles { f -> f.name.startsWith("values") }!! +
             File("../mobile/src/main/res").listFiles { f -> f.name.startsWith("values") }!!
         val stale = folders.flatMap { folder ->

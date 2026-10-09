@@ -1,7 +1,7 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
  * Adapted from WheelPlay (https://github.com/fython/wheelplay), GPL-3.0-only,
  * common/src/main/assets/web/app.js at commit c1bd077 (mapPoint, control outbox, viewport report).
- * Modified for TeslaPlay, 2026-10.
+ * Modified for TiPlay, 2026-10.
  *
  * Pure helpers shared by the page, the decoder worker and the unit tests. No DOM access here.
  * Page code stays within syntax that Safari 15 and Firefox 115 ESR run (ES2020 modules). */
