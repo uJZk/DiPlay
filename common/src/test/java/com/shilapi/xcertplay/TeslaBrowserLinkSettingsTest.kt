@@ -23,6 +23,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -250,6 +251,39 @@ class TeslaBrowserLinkSettingsTest {
         assertTrue(shown(screen).contains(prefix + new))
         assertTrue(shown(screen).contains("https://ujzk.github.io/DiPlay/play/#c=$new"))
         assertFalse(shown(screen).any { it.contains("#c=$old") })
+    }
+
+    @Config(shadows = [DeniedLocalNetwork::class])
+    @Test fun aDeniedLocalNetworkPermissionIsAskedForUntilAndroidStopsAskingThenTheAppSettingsOpen() {
+        val screen = openConnection()
+        assertTrue(shown(screen).contains(screen.getString(R.string.settings_browser_local_network_denied)))
+        val allow = screen.getString(R.string.settings_browser_local_network_allow)
+        button(screen, allow).performClick()
+        val first = shadowOf(screen).lastRequestedPermission
+        assertEquals(listOf(LocalNetworkPermission.PERMISSION), first?.requestedPermissions?.toList())
+
+        // After a first denial Android still shows its dialog.
+        shadowOf(context.packageManager).setShouldShowRequestPermissionRationale(LocalNetworkPermission.PERMISSION, true)
+        button(screen, allow).performClick()
+        val second = shadowOf(screen).lastRequestedPermission
+        assertTrue("Asked again", second !== first)
+        val asked = generateSequence { shadowOf(screen).nextStartedActivity }.map { it.action }.toList()
+        assertFalse("No settings page while Android still asks: $asked",
+            android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS in asked)
+
+        // Denied for good: a request would return at once, so the button opens the app's settings page instead.
+        shadowOf(context.packageManager).setShouldShowRequestPermissionRationale(LocalNetworkPermission.PERMISSION, false)
+        button(screen, allow).performClick()
+        assertSame("No request without a dialog", second, shadowOf(screen).lastRequestedPermission)
+        val settings = shadowOf(screen).nextStartedActivity
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, settings.action)
+        assertEquals("package:${context.packageName}", settings.dataString)
+    }
+
+    /** Android 17 with the permission denied; Robolectric's platforms are older. */
+    @Implements(LocalNetworkPermission::class, isInAndroidSdk = false)
+    internal class DeniedLocalNetwork {
+        @Implementation fun state(context: Context): LocalNetworkPermission.State = LocalNetworkPermission.State.DENIED
     }
 
     @Implements(HotspotAddresses::class, isInAndroidSdk = false)

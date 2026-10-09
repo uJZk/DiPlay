@@ -2,11 +2,15 @@ package com.shilapi.xcertplay
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
+import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.PersistableBundle
+import android.provider.Settings
 import android.text.InputType
 import android.view.View
 import android.widget.EditText
@@ -116,8 +120,25 @@ internal class TeslaBrowserLinkCard(
                 parent.addView(note(activity.getString(R.string.settings_browser_local_network_denied)).apply {
                     setTextColor(colors.warning)
                 })
-                actionRow(parent, activity.getString(R.string.settings_browser_local_network_allow), requestLocalNetwork)
+                actionRow(parent, activity.getString(R.string.settings_browser_local_network_allow), ::allowLocalNetwork)
             }
+        }
+    }
+
+    // After a denial for good Android answers a request at once, without a dialog: the button would do nothing.
+    private fun allowLocalNetwork() {
+        val action = LocalNetworkPermission.action(LocalNetworkPermission.requestedBefore(app),
+            activity.shouldShowRequestPermissionRationale(LocalNetworkPermission.PERMISSION))
+        if (action == LocalNetworkPermission.Action.REQUEST) {
+            LocalNetworkPermission.markRequested(app)
+            requestLocalNetwork()
+            return
+        }
+        try {
+            activity.startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.fromParts("package", activity.packageName, null)))
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(activity, R.string.open_this_setting_from_your_car_s_settings_app, Toast.LENGTH_LONG).show()
         }
     }
 
