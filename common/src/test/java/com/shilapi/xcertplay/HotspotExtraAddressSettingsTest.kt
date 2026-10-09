@@ -304,7 +304,8 @@ class HotspotExtraAddressSettingsTest {
         awaitThreads("tiplay-shizuku-permission")
 
         assertEquals(HotspotAddressMethod.SHIZUKU, HotspotExtraAddressSettings.method(context))
-        assertEquals(listOf(KeeperStart(defaultAddress, false, "shizuku")), KeeperProbe.starts)
+        // A tap: it also retries a session the ROM blocked.
+        assertEquals(listOf(KeeperStart(defaultAddress, true, "shizuku")), KeeperProbe.starts)
         assertEquals(1, ShizukuProbe.requests.get())
         assertTrue(RootShellProbe.scripts.isEmpty())
         assertTrue(screen.getString(R.string.settings_hotspot_method_shizuku_description, HotspotExtraAddress.DEFAULT) in shown(screen))
@@ -436,7 +437,49 @@ class HotspotExtraAddressSettingsTest {
         choose(screen, HotspotAddressMethod.SHIZUKU)
 
         assertEquals(1, VpnProbe.stops.get())
-        assertEquals(listOf(KeeperStart(defaultAddress, false, "shizuku")), KeeperProbe.starts)
+        assertEquals(listOf(KeeperStart(defaultAddress, true, "shizuku")), KeeperProbe.starts)
+    }
+
+    @Test fun aRevokedVpnStaysOffUntilTheDriverTapsAgain() {
+        HotspotExtraAddressSettings.saveMethod(context, HotspotAddressMethod.VPN)
+        VpnProbe.state = HotspotAddressVpn.State.Revoked
+        VpnProbe.startState = HotspotAddressVpn.State.Starting
+        val screen = openConnection()
+
+        // The resume asked without a tap, so the driver's choice in Android settings stands.
+        assertEquals(listOf(false), VpnProbe.retries)
+        assertTrue(screen.getString(R.string.settings_hotspot_vpn_revoked) in shown(screen))
+        val allow = texts(screen).filterIsInstance<Button>().single { it.text.toString() == screen.getString(R.string.settings_hotspot_vpn_allow) }
+        assertTrue(allow.isShown)
+
+        allow.performClick()
+
+        assertEquals(listOf(false, true), VpnProbe.retries)
+        assertEquals(HotspotAddressVpn.State.Starting, VpnProbe.state)
+        assertNull(shadowOf(screen).nextStartedActivity) // Android still allows the VPN: no consent screen
+
+        // Choosing VPN again in the chooser is a tap too.
+        VpnProbe.state = HotspotAddressVpn.State.Revoked
+        choose(screen, HotspotAddressMethod.VPN)
+        assertTrue(VpnProbe.retries.last())
+        assertEquals(HotspotAddressVpn.State.Starting, VpnProbe.state)
+    }
+
+    @Test fun theVpnRunsOnlyOnThePhonesOwnHotspotLikeTheKeeper() {
+        HotspotExtraAddressSettings.saveMethod(context, HotspotAddressMethod.VPN)
+        AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.EXISTING_WIFI)
+
+        HotspotExtraAddressSettings.sync(context)
+        Robolectric.buildService(DiPlaySessionService::class.java, Intent()).create().startCommand(0, 1)
+
+        assertTrue(VpnProbe.starts.isEmpty())
+        VpnProbe.active = true
+        HotspotExtraAddressSettings.sync(context) // a tunnel from before the link changed closes
+        assertEquals(1, VpnProbe.stops.get())
+
+        AirPlayPersistence.saveWirelessHotspotMode(context, WirelessHotspotMode.MANUAL)
+        HotspotExtraAddressSettings.sync(context)
+        assertEquals(listOf(defaultAddress), VpnProbe.starts)
     }
 
     @Test
@@ -701,9 +744,11 @@ class HotspotExtraAddressSettingsTest {
 
     @Implements(HotspotAddressVpn::class, isInAndroidSdk = false)
     class VpnProbe {
-        @Implementation fun start(context: Context, address: Inet4Address) {
+        @Implementation fun start(context: Context, address: Inet4Address, retry: Boolean) {
             starts += address
-            state = startState
+            retries += retry
+            // Like the real one: a revoke stays until a tap.
+            if (state != HotspotAddressVpn.State.Revoked || retry) state = startState
         }
 
         @Implementation fun stop() {
@@ -730,6 +775,7 @@ class HotspotExtraAddressSettingsTest {
 
         companion object {
             val starts = CopyOnWriteArrayList<Inet4Address>()
+            val retries = CopyOnWriteArrayList<Boolean>()
             val stops = AtomicInteger()
             val queries = AtomicInteger()
             @Volatile var state: HotspotAddressVpn.State = HotspotAddressVpn.State.Off
@@ -738,7 +784,7 @@ class HotspotExtraAddressSettingsTest {
             @Volatile var conflict = HotspotAddressVpn.Conflict.NONE
             @Volatile var consent: Intent? = null
             fun reset() {
-                starts.clear(); stops.set(0); queries.set(0); state = HotspotAddressVpn.State.Off
+                starts.clear(); retries.clear(); stops.set(0); queries.set(0); state = HotspotAddressVpn.State.Off
                 startState = HotspotAddressVpn.State.NeedsConsent; active = false
                 conflict = HotspotAddressVpn.Conflict.NONE; consent = null
             }

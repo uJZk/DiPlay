@@ -72,27 +72,31 @@ internal object HotspotExtraAddressSettings {
     private fun methodAfterSession(context: Context): HotspotAddressMethod =
         if (AirPlayPersistence.isPhoneBrowserMode(context)) method(context) else HotspotAddressMethod.NORMAL
 
-    /** The keeper only touches the phone's own hotspot, never a joined Wi-Fi network (whose link it would disturb). */
+    /**
+     * The keeper only touches the phone's own hotspot, never a joined Wi-Fi network (whose link it would disturb). The
+     * VPN runs only then too: on a joined network the car reaches the extra address through no method.
+     */
     fun manualHotspotLink(context: Context): Boolean =
         AirPlayPersistence.loadWirelessHotspotMode(context) == WirelessHotspotMode.MANUAL
 
     /**
      * Runs what the method in effect needs and stops the rest: leaving Root removes its address, leaving Shizuku cannot
      * (the address goes when the hotspot restarts), leaving VPN closes the tunnel. Cheap and idempotent; safe from any
-     * foreground lifecycle callback. [retryRootDenied] is for the chooser right after a successful root check.
+     * foreground lifecycle callback. [retry] is only for a tap in the chooser: it retries what stopped the method (root
+     * after a successful root check, a ROM that blocked Shizuku, a VPN that was revoked).
      */
-    fun sync(context: Context, retryRootDenied: Boolean = false) {
+    fun sync(context: Context, retry: Boolean = false) {
         val app = context.applicationContext
         val method = effectiveMethod(app)
         if (method.usesKeeper) {
             HotspotExtraAddressKeeper.start(app, address(app),
                 eligible = { effectiveMethod(app) == method && manualHotspotLink(app) },
-                retryRootDenied = retryRootDenied, backend = keeperBackend(method))
+                retryRootDenied = retry, backend = keeperBackend(method))
         } else if (HotspotExtraAddressKeeper.running) {
             HotspotExtraAddressKeeper.stop(removeAddress = true)
         }
-        if (method == HotspotAddressMethod.VPN) {
-            HotspotAddressVpn.start(app, address(app))
+        if (vpnWanted(app, method)) {
+            HotspotAddressVpn.start(app, address(app), retry)
         } else if (HotspotAddressVpn.requested != null || HotspotAddressVpn.active) {
             HotspotAddressVpn.stop()
         }
@@ -106,10 +110,13 @@ internal object HotspotExtraAddressSettings {
         val after = methodAfterSession(context.applicationContext)
         val keeperKeeps = after.usesKeeper && HotspotExtraAddressKeeper.backendId == keeperBackendId(after)
         HotspotExtraAddressKeeper.stop(removeAddress = !keeperKeeps)
-        if (after != HotspotAddressMethod.VPN && (HotspotAddressVpn.requested != null || HotspotAddressVpn.active)) {
+        if (!vpnWanted(context, after) && (HotspotAddressVpn.requested != null || HotspotAddressVpn.active)) {
             HotspotAddressVpn.stop()
         }
     }
+
+    private fun vpnWanted(context: Context, method: HotspotAddressMethod): Boolean =
+        method == HotspotAddressMethod.VPN && manualHotspotLink(context)
 
     /** For the diagnostic report: method, states and the VPN rule's Android class; never the address. */
     fun diagnosticLine(context: Context): String {

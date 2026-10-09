@@ -72,15 +72,16 @@ class HotspotAddressVpnService : VpnService() {
     }
 
     /**
-     * Android drops its binding when the app's VPN slot gets a new tunnel. While this one is still open that means the
-     * wired CarPlay path took the slot (the same package has one VPN), or the system closed it: give way.
+     * Android drops its binding when the app's VPN slot gets a new tunnel. While this one is still open, without a
+     * revoke first, only this package can have replaced it: the wired CarPlay path took the slot (one package has one
+     * VPN). Give way. The new tunnel's addresses may not be visible yet (and Android 9 hides owners), so anything but
+     * another app's VPN counts as the wired one, which TiPlay waits for instead of treating it as a revoke.
      */
     override fun onUnbind(intent: Intent?): Boolean {
         if (intent?.action == SERVICE_INTERFACE && tunnel != null) {
             val next = when (HotspotAddressVpn.conflict(this)) {
-                HotspotAddressVpn.Conflict.WIRED_CARPLAY -> HotspotAddressVpn.State.WiredCarPlayVpn
                 HotspotAddressVpn.Conflict.OTHER_VPN -> HotspotAddressVpn.State.OtherVpn
-                HotspotAddressVpn.Conflict.NONE -> HotspotAddressVpn.State.Revoked
+                HotspotAddressVpn.Conflict.WIRED_CARPLAY, HotspotAddressVpn.Conflict.NONE -> HotspotAddressVpn.State.WiredCarPlayVpn
             }
             HotspotAddressVpn.dependencies.log("VPN binding dropped: $next")
             release(next)

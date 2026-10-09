@@ -153,7 +153,10 @@ internal class HotspotExtraAddressCard(
             !HotspotExtraAddressSettings.manualHotspotLink(app) -> activity.getString(
                 R.string.settings_hotspot_extra_address_manual_only,
                 activity.getString(R.string.built_in_car_hotspot)) to colors.warning
-            method == HotspotAddressMethod.VPN -> vpnStatus().also { showAction = HotspotAddressVpn.state == HotspotAddressVpn.State.NeedsConsent }
+            method == HotspotAddressMethod.VPN -> vpnStatus().also {
+                showAction = HotspotAddressVpn.state == HotspotAddressVpn.State.NeedsConsent ||
+                    HotspotAddressVpn.state == HotspotAddressVpn.State.Revoked
+            }
             !HotspotExtraAddressKeeper.running -> activity.getString(R.string.settings_hotspot_extra_address_paused) to colors.muted
             else -> keeperStatus(HotspotExtraAddressKeeper.state).also {
                 showAction = HotspotExtraAddressKeeper.state == HotspotExtraAddressKeeper.State.ShizukuPermissionNeeded
@@ -208,20 +211,23 @@ internal class HotspotExtraAddressCard(
             .show()
     }
 
-    /** Choosing a method again retries its permission step (root, Shizuku, VPN consent). */
+    /**
+     * Choosing a method again retries its permission step (root, Shizuku, VPN consent) and what stopped it (a ROM that
+     * blocked Shizuku, a revoked VPN).
+     */
     private fun choose(next: HotspotAddressMethod, previous: HotspotAddressMethod) {
         if (next == HotspotAddressMethod.ROOT) return checkRootThenApply(previous)
-        apply(next, previous)
+        apply(next, previous, retry = true)
         when (next) {
-            HotspotAddressMethod.VPN -> if (HotspotAddressVpn.state == HotspotAddressVpn.State.NeedsConsent) allowVpn()
+            HotspotAddressMethod.VPN -> if (HotspotAddressVpn.state == HotspotAddressVpn.State.NeedsConsent) openVpnConsent()
             HotspotAddressMethod.SHIZUKU -> requestShizukuIfNeeded(quiet = true)
             else -> Unit
         }
     }
 
-    private fun apply(next: HotspotAddressMethod, previous: HotspotAddressMethod, retryRootDenied: Boolean = false) {
+    private fun apply(next: HotspotAddressMethod, previous: HotspotAddressMethod, retry: Boolean = false) {
         HotspotExtraAddressSettings.saveMethod(app, next)
-        HotspotExtraAddressSettings.sync(app, retryRootDenied) // starts the new method, cleans up the old one
+        HotspotExtraAddressSettings.sync(app, retry) // starts the new method, cleans up the old one
         if (previous == HotspotAddressMethod.SHIZUKU && next != HotspotAddressMethod.SHIZUKU) {
             Toast.makeText(activity, R.string.settings_hotspot_shizuku_left, Toast.LENGTH_LONG).show()
         }
@@ -242,12 +248,12 @@ internal class HotspotExtraAddressCard(
                 if (activity.isFinishing || activity.isDestroyed) {
                     if (granted) {
                         HotspotExtraAddressSettings.saveMethod(app, HotspotAddressMethod.ROOT)
-                        HotspotExtraAddressSettings.sync(app, retryRootDenied = true)
+                        HotspotExtraAddressSettings.sync(app, retry = true)
                     }
                     return@runOnUiThread
                 }
                 if (granted) {
-                    apply(HotspotAddressMethod.ROOT, previous, retryRootDenied = true)
+                    apply(HotspotAddressMethod.ROOT, previous, retry = true)
                 } else {
                     Toast.makeText(activity, R.string.settings_hotspot_extra_address_root_refused, Toast.LENGTH_LONG).show()
                     rerender()
@@ -256,12 +262,17 @@ internal class HotspotExtraAddressCard(
         }, "tiplay-root-check").start()
     }
 
-    /** Opens Android's VPN consent, unless another VPN or the wired CarPlay VPN would be switched off by it. */
+    /** The "Allow the VPN" button: checks again (another VPN, consent, a revoke), then asks Android if it must. */
     private fun allowVpn() {
-        if (HotspotAddressVpn.conflict(app) != HotspotAddressVpn.Conflict.NONE) {
-            HotspotExtraAddressSettings.sync(app) // reports the conflict
-            return
-        }
+        HotspotExtraAddressSettings.sync(app, retry = true)
+        if (HotspotAddressVpn.state == HotspotAddressVpn.State.NeedsConsent) openVpnConsent()
+    }
+
+    /**
+     * Opens Android's VPN consent. Only after a sync found no other VPN and no wired CarPlay VPN, which the consent
+     * would switch off.
+     */
+    private fun openVpnConsent() {
         val consent = HotspotAddressVpn.consentIntent(activity)
         if (consent == null) {
             HotspotExtraAddressSettings.sync(app)

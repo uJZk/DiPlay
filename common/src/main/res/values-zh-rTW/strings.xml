@@ -290,7 +290,7 @@
     <string name="preparing_mfi_authentication">正在準備 MFi 認證</string>
     <string name="ready">就緒</string>
     <string name="ready_when_you_are">一切就緒</string>
-    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">TiPlay 是 DiPlay（github.com/shihabal3amri/DiPlay）的修改版本，採用 GPL-3.0 授權。DiPlay 的接收器以採用 GPL-3.0 授權的 xcertplay 為基礎，介面沿用採用 AGPL-3.0 授權的 DiAuto 設計。\n\n專案包含 AndroidX、Bouncy Castle、JmDNS 和 SLF4J。本版本附有原始碼和授權聲明。\n\nCarPlay 和 CarPlay 圖示為 Apple Inc. 所有。Tesla 是 Tesla, Inc. 的商標。TiPlay 為獨立專案，與 Apple 和 Tesla 無關。</string>
+    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">TiPlay 是 DiPlay（github.com/shihabal3amri/DiPlay）的修改版本，採用 GPL-3.0 授權。DiPlay 的接收器以採用 GPL-3.0 授權的 xcertplay 為基礎，介面沿用採用 AGPL-3.0 授權的 DiAuto 設計。\n\n專案包含 AndroidX、Bouncy Castle、JmDNS、Shizuku API 和 SLF4J。本版本附有原始碼和授權聲明。\n\nCarPlay 和 CarPlay 圖示為 Apple Inc. 所有。Tesla 是 Tesla, Inc. 的商標。TiPlay 為獨立專案，與 Apple 和 Tesla 無關。</string>
     <string name="reconnecting_to_your_iphone">正在重新連線 iPhone…</string>
     <string name="remote">遠端</string>
     <string name="remote_server_address_contains_u_0000">遠端伺服器位址包含 U+0000</string>

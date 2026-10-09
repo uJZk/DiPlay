@@ -292,7 +292,7 @@
     <string name="preparing_mfi_authentication">Preparing MFi authentication</string>
     <string name="ready">Ready</string>
     <string name="ready_when_you_are">Ready when you are</string>
-    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">TiPlay is a modified version of DiPlay (github.com/shihabal3amri/DiPlay), licensed under GPL-3.0. DiPlay’s receiver is based on xcertplay, licensed under GPL-3.0, and its interface follows DiAuto’s design, licensed under AGPL-3.0.\n\nIncludes AndroidX, Bouncy Castle, JmDNS and SLF4J. Source and license notices accompany this release.\n\nCarPlay and the CarPlay icon belong to Apple Inc. Tesla is a trademark of Tesla, Inc. TiPlay is an independent project, not affiliated with Apple or Tesla.</string>
+    <string name="receiver_based_on_xcertplay_licensed_under_gpl_3_0_diplay">TiPlay is a modified version of DiPlay (github.com/shihabal3amri/DiPlay), licensed under GPL-3.0. DiPlay’s receiver is based on xcertplay, licensed under GPL-3.0, and its interface follows DiAuto’s design, licensed under AGPL-3.0.\n\nIncludes AndroidX, Bouncy Castle, JmDNS, Shizuku API and SLF4J. Source and license notices accompany this release.\n\nCarPlay and the CarPlay icon belong to Apple Inc. Tesla is a trademark of Tesla, Inc. TiPlay is an independent project, not affiliated with Apple or Tesla.</string>
     <string name="reconnecting_to_your_iphone">Reconnecting to your iPhone…</string>
     <string name="remote">Remote</string>
     <string name="remote_server_address_contains_u_0000">Remote server address contains U+0000</string>

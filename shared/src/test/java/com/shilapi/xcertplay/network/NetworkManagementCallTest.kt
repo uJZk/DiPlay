@@ -96,6 +96,15 @@ class NetworkManagementCallTest {
             NetworkManagementCall { service }.setInterfaceConfig("wlan2:tp",
                 InetAddress.getByName("10.176.81.135") as Inet4Address, 32)
         }
+        // Without the alias netd would clear the hotspot's own IPv4 first: never sent, whoever calls.
+        for (name in listOf("wlan2", "wlan2:", "wlan2:xy", "wlan2:tp:tp", ":tp", "abcdefghijklm:tp")) {
+            assertThrows(name, IllegalArgumentException::class.java) {
+                NetworkManagementCall { service }.setInterfaceConfig(name, address, 32)
+            }
+        }
+        assertThrows(IllegalArgumentException::class.java) {
+            NetworkManagementCall { service }.setInterfaceConfig("wlan2:tp", address, 8)
+        }
         assertTrue(service.codes.isEmpty())
     }
 

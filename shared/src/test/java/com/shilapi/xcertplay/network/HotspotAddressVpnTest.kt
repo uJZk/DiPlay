@@ -199,6 +199,37 @@ class HotspotAddressVpnTest {
         assertEquals(State.Revoked, HotspotAddressVpn.state)
         assertFalse(tunnels.single().fileDescriptor.valid())
         assertEquals(1, started.size)
+
+        // An activity resume, a new connection or a new address does not undo the driver's (or the other app's) choice.
+        HotspotAddressVpn.start(context, cgnat)
+        HotspotAddressVpn.start(context, linkLocal)
+        assertEquals(State.Revoked, HotspotAddressVpn.state)
+        assertEquals(1, started.size)
+
+        // Only a tap in the settings starts it again.
+        HotspotAddressVpn.start(context, linkLocal, retry = true)
+        assertEquals(State.Starting, HotspotAddressVpn.state)
+        assertEquals(2, started.size)
+    }
+
+    @Test fun aTapAfterARevokeStillNeverReplacesAnotherVpn() {
+        startService(cgnat).get().onRevoke()
+        networks = listOf(VpnNetwork(Owner.OTHER_APP, emptyList())) // the app that took over
+
+        HotspotAddressVpn.start(context, cgnat, retry = true)
+
+        assertEquals(State.OtherVpn, HotspotAddressVpn.state)
+        assertEquals(1, started.size)
+    }
+
+    @Test fun leavingTheMethodForgetsARevoke() {
+        startService(cgnat).get().onRevoke()
+
+        HotspotAddressVpn.stop()
+        HotspotAddressVpn.start(context, cgnat)
+
+        assertEquals(State.Starting, HotspotAddressVpn.state)
+        assertEquals(2, started.size)
     }
 
     @Test fun theWiredCarPlayVpnTakingTheSlotClosesThisTunnel() {
@@ -209,6 +240,21 @@ class HotspotAddressVpnTest {
 
         assertEquals(State.WiredCarPlayVpn, HotspotAddressVpn.state)
         assertFalse(tunnels.single().fileDescriptor.valid())
+    }
+
+    @Test fun aLostBindingBeforeTheWiredTunnelIsVisibleIsStillTheWiredVpnNotARevoke() {
+        // Android drops the binding right after the wired tunnel takes the slot; its addresses may not be published yet.
+        val service = startService(cgnat)
+        networks = listOf(VpnNetwork(Owner.THIS_APP, listOf(cgnat)))
+
+        service.get().onUnbind(Intent(VpnService.SERVICE_INTERFACE))
+
+        assertEquals(State.WiredCarPlayVpn, HotspotAddressVpn.state)
+        assertFalse(tunnels.single().fileDescriptor.valid())
+        // Once the wired connection is over, the next resume or connection starts the tunnel again.
+        networks = emptyList()
+        HotspotAddressVpn.start(context, cgnat)
+        assertEquals(State.Starting, HotspotAddressVpn.state)
     }
 
     @Test fun aRefusedEstablishMeansConsentIsGone() {

@@ -137,7 +137,12 @@ object ShizukuSystem : ShizukuAccess {
 internal class NetworkManagementCall(private val binder: () -> IBinder?) {
     @SuppressLint("PrivateApi")
     fun setInterfaceConfig(name: String, address: Inet4Address, prefixLength: Int) {
-        require(HotspotExtraAddress.isValidInterfaceName(name.substringBefore(':'))) { "invalid interface name" }
+        // Only ever the labelled alias, whoever calls: on the bare interface netd first clears the hotspot's own IPv4.
+        require(HotspotExtraAddress.aliasName(name.substringBefore(':')) == name) {
+            "interface name must be <iface>:${HotspotExtraAddress.ALIAS}"
+        }
+        // A shorter prefix would also route a whole range to the hotspot.
+        require(prefixLength == 32) { "prefix length must be 32" }
         require(HotspotExtraAddress.isAllowed(address)) { "address must be in 100.64.0.0/10 or 169.254.0.0/16" }
         val remote = binder() ?: throw IllegalStateException("network_management service not found")
         val service = Class.forName("android.os.INetworkManagementService")

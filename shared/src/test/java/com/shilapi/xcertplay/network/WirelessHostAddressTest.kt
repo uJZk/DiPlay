@@ -57,6 +57,12 @@ class WirelessHostAddressTest {
         assertEquals(7, (hosts.last() as Inet6Address).scopeId)
         assertFalse(hosts.any(HotspotExtraAddress::isCgnat))
         assertEquals(2, hosts.size)
+
+        // A 169.254 extra address (any method) is never bound or advertised either.
+        val linkLocal = manualHotspotHostAddresses(listOf(ip("169.254.220.253"), ip("10.176.81.135"), ip("fe80::1")), 7)
+        assertEquals(ip("10.176.81.135"), linkLocal.first())
+        assertFalse(linkLocal.any(HotspotExtraAddress::isAllowed))
+        assertEquals(2, linkLocal.size)
     }
 
     @Test fun manualHotspotWithOnlyTheExtraIpv4KeepsItsLinkLocalAddress() {

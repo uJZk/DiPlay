@@ -39,7 +39,7 @@ object HotspotAddressVpn {
         data object WiredCarPlayVpn : State
         data object Starting : State
         data object Up : State
-        /** The driver turned the VPN off in Android settings, or another VPN app took over. */
+        /** The driver turned the VPN off in Android settings, or another VPN app took over; only a tap starts it again. */
         data object Revoked : State
         data class Failed(val reason: String) : State
     }
@@ -92,11 +92,16 @@ object HotspotAddressVpn {
     /**
      * Holds [address] on the tunnel, or moves the tunnel to it. Without consent it only reports [State.NeedsConsent]:
      * the consent dialog opens only from a tap. Call from the foreground (an activity or the session service).
+     *
+     * After [State.Revoked] (the driver switched the VPN off in Android settings, or another VPN app took over) only a
+     * tap in the settings ([retry]) starts it again: an activity resume or a new connection must not undo that, and
+     * `VpnService.prepare` would switch off the other app's VPN while it is still connecting.
      */
-    fun start(context: Context, address: Inet4Address) {
+    fun start(context: Context, address: Inet4Address, retry: Boolean = false) {
         require(HotspotExtraAddress.isAllowed(address)) { "address must be in 100.64.0.0/10 or 169.254.0.0/16" }
         val app = context.applicationContext
         requested = address
+        if (state == State.Revoked && !retry) return
         if (state == State.Up && service?.heldAddress == address) return
         // Conflicts first: consent for TiPlay would switch another app's VPN off.
         when (conflict(app)) {

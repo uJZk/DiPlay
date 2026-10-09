@@ -69,21 +69,22 @@ object HotspotExtraAddressKeeper {
      * Starts keeping [address] with [backend] (root when null), or checks again at once when it already does. A
      * different address or backend replaces the old session, whose address is removed where its backend can.
      * [eligible] is read before every check (phone + browser mode, method chosen, manual hotspot link).
-     * [retryRootDenied] is for the settings chooser after a successful [checkRoot]; other callers leave a refusal alone.
+     * [retryRootDenied] is for the settings chooser: after a successful [checkRoot], or when the driver chooses Shizuku
+     * again, which also retries a Shizuku session the ROM blocked. Other callers leave a refusal or a block alone.
      */
     fun start(context: Context, address: Inet4Address, eligible: () -> Boolean = { true },
         retryRootDenied: Boolean = false, backend: HotspotAddressBackend? = null) {
         require(HotspotExtraAddress.isAllowed(address)) { "address must be in 100.64.0.0/10 or 169.254.0.0/16" }
         synchronized(lock) {
-            if (retryRootDenied) rootRefused = false
             val chosen = backend ?: RootHotspotAddressBackend(dependencies.shell)
+            val root = chosen.id == RootHotspotAddressBackend.ID
+            if (retryRootDenied && root) rootRefused = false
             val current = session
             if (current != null && current.address == address && current.backend.id == chosen.id) {
                 current.refresh(retryRootDenied)
                 return
             }
             current?.close(removeAddress = true)
-            val root = chosen.id == RootHotspotAddressBackend.ID
             session = Session(context.applicationContext, address, chosen, eligible, dependencies, root && rootRefused)
                 .also(Session::open)
         }
@@ -205,7 +206,7 @@ object HotspotExtraAddressKeeper {
         }
 
         fun refresh(retryRootDenied: Boolean) = post {
-            if (retryRootDenied) loop.clearRootDenied()
+            if (retryRootDenied) loop.clearDenied()
             tick()
         }
 
@@ -333,8 +334,9 @@ internal class HotspotExtraAddressLoop(
         }
     }
 
-    fun clearRootDenied() {
-        if (state != HotspotExtraAddressKeeper.State.RootDenied) return
+    /** The driver chose the method again: forget a root refusal or a ROM block and try once more. */
+    fun clearDenied() {
+        if (state != HotspotExtraAddressKeeper.State.RootDenied && state != HotspotExtraAddressKeeper.State.Blocked) return
         state = HotspotExtraAddressKeeper.State.Off
         failures = 0
         retryAtMillis = null

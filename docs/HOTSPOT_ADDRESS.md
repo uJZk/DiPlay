@@ -25,10 +25,11 @@ Code: `shared/src/main/java/com/shilapi/xcertplay/network/` (`HotspotExtraAddres
 `HotspotExtraAddressKeeper` watches the tethering and Wi-Fi AP broadcasts and polls every 5 s. When the address is
 missing from the hotspot interface it calls its backend, then reads the interface to confirm. Failures back off from
 5 s to 60 s. A root refusal, or a ROM that refuses the shell user, stops the session until the driver chooses the
-method again. Shizuku that is not running, or has not allowed TiPlay yet, is only a waiting state: Shizuku's own events
+method again in the chooser (an activity resume or a new connection does not retry). Shizuku that is not running, or has not allowed TiPlay yet, is only a waiting state: Shizuku's own events
 (binder received or dead, permission answered) trigger a check at once.
 
 The keeper touches only the phone's own hotspot ("Built-in car hotspot" connection), never a joined Wi-Fi network.
+The VPN also runs only with that connection: on a joined network the car cannot reach the extra address at all.
 
 ## Shizuku
 
@@ -39,7 +40,8 @@ Shizuku runs as: the ADB shell user (uid 2000), or root with Sui. It never uses 
 - The shell user holds `CONNECTIVITY_INTERNAL`, which `NetworkManagementService.setInterfaceConfig` accepts. Checked
   on Android 16 with [`tools/shell-address`](../tools/shell-address/README.md); the Android 17 source has the same chain.
 - The interface name carries the alias `:tp` (`wlan2:tp`, at most 15 characters). Without an alias netd first clears
-  the interface's IPv4, which cuts every device off the hotspot.
+  the interface's IPv4, which cuts every device off the hotspot. The call itself (`NetworkManagementCall`) refuses any
+  other name and any prefix but /32 before it reaches the binder, whoever calls it.
 - `IllegalStateException` "File exists" means the address is already there and counts as success. A
   `SecurityException` after Shizuku has allowed TiPlay means the ROM blocks the shell user.
 - Removing needs `NETWORK_STACK`, which the shell user lacks; the address goes when the hotspot restarts.
@@ -95,8 +97,13 @@ TiPlay does not fight other VPNs:
   which would switch that VPN off. An always-on VPN of another app shows up the same way while it runs.
 - The wired CarPlay VPN of TiPlay itself (an IPv6-only tunnel): one package has one VPN slot, and a second `establish`
   would replace the wired tunnel, so TiPlay waits. If the wired path takes the slot while the hotspot tunnel is up,
-  Android drops the hotspot tunnel's binding and TiPlay closes it.
-- The driver turns the VPN off in Android settings (`onRevoke`): TiPlay closes it and does not restart it by itself.
+  Android drops the hotspot tunnel's binding without a revoke (only this package can replace it, and the new tunnel's
+  addresses may not be visible yet): TiPlay closes it and starts it again at the next resume or connection once the
+  wired tunnel is gone.
+- The driver turns the VPN off in Android settings, or another VPN app takes over (`onRevoke`): TiPlay closes it and
+  does not restart it by itself, neither on an activity resume nor on a new connection (`VpnService.prepare` there
+  would also switch off another app's VPN that is still connecting). Only choosing VPN again or the "Allow the VPN"
+  button starts it, after the same check for other VPNs. A TiPlay restart forgets the revoke.
 
 Consent comes from `VpnService.prepare`, opened only from the chooser or the "Allow the VPN" button. The answer needs no
 result handler: when the driver comes back, the activity's `onResume` starts the tunnel if Android allowed it.

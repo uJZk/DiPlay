@@ -311,6 +311,27 @@ class HotspotExtraAddressKeeperTest {
         assertFalse(HotspotExtraAddressKeeper.rootRefused)
     }
 
+    @Test fun choosingShizukuAgainRetriesABlockWithoutForgettingARootRefusal() {
+        val (fake, backend) = shizuku()
+        fake.error = SecurityException("blocked")
+        HotspotExtraAddressKeeper.start(context, first, backend = backend)
+        await { HotspotExtraAddressKeeper.state == State.Blocked }
+        HotspotExtraAddressKeeper.rootRefused = true
+
+        // A resume or a new connection leaves the block alone.
+        HotspotExtraAddressKeeper.start(context, first, backend = ShizukuHotspotAddressBackend(fake))
+        Thread.sleep(200)
+        assertEquals(1, fake.calls.size)
+
+        // The driver chooses Shizuku again in the settings.
+        fake.error = null
+        HotspotExtraAddressKeeper.start(context, first, retryRootDenied = true, backend = ShizukuHotspotAddressBackend(fake))
+        await { HotspotExtraAddressKeeper.state == State.Added("wlan2") }
+        assertEquals(2, fake.calls.size)
+        assertTrue(HotspotExtraAddressKeeper.rootRefused) // only a root check forgets that
+        assertTrue(scripts.isEmpty())
+    }
+
     private fun await(timeoutMillis: Long = 3_000, condition: () -> Boolean) {
         val deadline = System.nanoTime() + timeoutMillis * 1_000_000
         while (!condition()) {

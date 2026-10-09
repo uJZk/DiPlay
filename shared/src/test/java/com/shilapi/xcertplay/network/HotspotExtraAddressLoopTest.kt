@@ -124,7 +124,7 @@ class HotspotExtraAddressLoopTest {
         assertEquals(1, phone.finds)
 
         phone.answer = { RootShell.Result.Done(0, "").also { phone.addresses.getOrPut("wlan2") { mutableSetOf() } += address } }
-        phone.loop.clearRootDenied()
+        phone.loop.clearDenied()
         phone.loop.tick()
         assertEquals(2, phone.scripts.size)
         assertEquals(State.Added("wlan2"), phone.loop.state)
@@ -138,7 +138,7 @@ class HotspotExtraAddressLoopTest {
         assertTrue(phone.scripts.isEmpty())
         assertEquals(0, phone.finds)
 
-        phone.loop.clearRootDenied()
+        phone.loop.clearDenied()
         phone.loop.tick()
         assertEquals(State.Added("wlan2"), phone.loop.state)
         assertEquals(1, phone.scripts.size)
