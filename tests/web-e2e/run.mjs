@@ -388,6 +388,14 @@ async function main() {
     const offline = await download.goto(`${origin}${DOWNLOAD_PATH}`).then(() => null, error => error.message.split('\n')[0]);
     check(offline !== null, `without the page server the download page stays offline (${offline}): the worker never caches it`);
     await download.close();
+    // The pairing link opens offline too: the worker ignores the fragment that holds the code.
+    const decodedCached = eventsOf(phone, 'dec').length;
+    const linked = await context.newPage();
+    const relinked = await linked.goto(pageUrl);
+    await waitFor('decoding from the pairing link without the page server', () => eventsOf(phone, 'dec').length > decodedCached);
+    check(relinked.fromServiceWorker() && await linked.evaluate(() => location.hash === ''),
+      'without the page server the pairing link (#c=) opens the cached page, which decodes again');
+    await linked.close();
 
     // The phone-served copy over plain HTTP is not a secure context: MSE plays VP9 in fragmented MP4 there.
     const address = lanAddress(), vp9 = address && encodeIvf('libvpx-vp9');

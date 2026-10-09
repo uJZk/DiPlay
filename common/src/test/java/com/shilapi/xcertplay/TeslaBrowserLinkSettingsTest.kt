@@ -242,6 +242,28 @@ class TeslaBrowserLinkSettingsTest {
         assertTrue(shown(screen).contains("https://car.example/tiplay/#c=$code"))
     }
 
+    /** A dialog saved unchanged stores nothing, so a later default (a new site address) still applies. */
+    @Test fun savingTheDefaultPageAddressStoresNothing() {
+        val screen = openConnection()
+        val prefs = context.getSharedPreferences("tiplay_browser_link", 0)
+        button(screen, screen.getString(R.string.settings_browser_page_address) + " · " + TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS)
+            .performClick()
+        shadowOf(Looper.getMainLooper()).idle()
+        val dialog = ShadowAlertDialog.getLatestAlertDialog()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        finishProbes()
+        assertFalse(dialog.isShowing)
+        assertFalse(prefs.contains("page_address"))
+        assertEquals(TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS, TeslaBrowserLink.pageAddress(context))
+
+        assertTrue(TeslaBrowserLink.savePageAddress(context, "https://car.example/tiplay/"))
+        assertEquals("https://car.example/tiplay/", prefs.getString("page_address", null))
+        for (default in listOf(" ${TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS} ", TeslaBrowserPageLinks.FORMER_DEFAULT_PAGE_ADDRESS)) {
+            assertTrue(TeslaBrowserLink.savePageAddress(context, default))
+            assertFalse(default, prefs.contains("page_address"))
+        }
+    }
+
     /** Saving the dialog unchanged used to store the default of the time, the page's address before it moved. */
     @Test fun aSavedFormerDefaultPageAddressOpensTheSiteRoot() {
         context.getSharedPreferences("tiplay_browser_link", 0).edit()

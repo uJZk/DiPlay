@@ -7,6 +7,7 @@
 - download/ holds the rest of site/: the download pages that scripts/build_site.py generates, with their assets.
 - play/ holds a forwarder for links to the page's former address: play/index.html opens the site root with the same
   query and fragment, and play/sw.js retires the Service Worker that the page registered there.
+- <language>/ (ar/, zh-Hans/, ...) forwards the download pages' former addresses to download/<language>/.
 
 site/ stays the only copy of these files in git. Run scripts/build_site.py first.
 """
@@ -27,6 +28,13 @@ FORWARD_PAGE = '''<!doctype html>
 </head><body><p>TiPlay moved: <a href="../">open TiPlay</a>.</p></body></html>
 '''
 
+# A download page's former address, before the pages moved to download/.
+MOVED_PAGE = '''<!doctype html>
+<html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="canonical" href="{target}"><meta http-equiv="refresh" content="0; url={target}"><title>TiPlay</title>
+</head><body><p><a href="{target}">TiPlay</a></p></body></html>
+'''
+
 # The worker that play/ registered serves its cached copy of the page. The browser checks play/sw.js for updates on
 # each visit; this version replaces that worker, unregisters it and reloads its pages, which then reach the forwarder.
 RETIRE_WORKER = '''// TiPlay's page moved from play/ to the site root. This worker replaces the one that play/ registered: it
@@ -43,7 +51,9 @@ def assemble(out: Path) -> None:
     if out == ROOT or out in ROOT.parents or out == SITE or SITE in out.parents or out in SITE.parents:
         raise SystemExit(f'Refusing to assemble into {out}: choose a directory outside site/ and not above the repository')
     page = sorted(path.name for path in PAGE.iterdir())
-    clashes = {DOWNLOAD, FORMER} & set(page)
+    editions = sorted(path.name for path in SITE.iterdir()
+                      if path.is_dir() and path != PAGE and (path / 'index.html').is_file())
+    clashes = {DOWNLOAD, FORMER, *editions} & set(page)
     if clashes:
         raise SystemExit(f'site/play/ must not contain {", ".join(sorted(clashes))}: the published site uses those names')
     if not (SITE / 'index.html').is_file():
@@ -58,8 +68,11 @@ def assemble(out: Path) -> None:
     (out / FORMER).mkdir()
     (out / FORMER / 'index.html').write_text(FORWARD_PAGE)
     (out / FORMER / 'sw.js').write_text(RETIRE_WORKER)
+    for edition in editions:
+        (out / edition).mkdir()
+        (out / edition / 'index.html').write_text(MOVED_PAGE.format(lang=edition, target=f'../{DOWNLOAD}/{edition}/'))
     print(f'Assembled {out}: the page ({len(page)} files) at the root, the download pages in {DOWNLOAD}/, '
-          f'a forwarder in {FORMER}/')
+          f'a forwarder in {FORMER}/ and in {", ".join(f"{edition}/" for edition in editions)}')
 
 
 if __name__ == '__main__':

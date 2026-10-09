@@ -48,7 +48,8 @@ Each check prints one `ok -` line, and the script ends with `all checks passed` 
     the display over, and the first page says so and stops instead of taking it back.
 11. The page's Service Worker, whose scope is the site root, controls the download page but answers none of its
     requests; with the page server stopped the download page does not open.
-12. With the page server stopped, a reload is served by the Service Worker and decodes again.
+12. With the page server stopped, a reload and the pairing link (with `#c=`) are served by the Service Worker and decode
+    again.
 13. `mse`: the fake phone serves the page itself on the first non-loopback IPv4 address. That origin is not a secure
     context, so the page plays VP9 in fragmented MP4 through MSE (this Chromium has no H.264 MSE). A garbage frame
     ends that `<video>` with a decode error; the page reconnects with a new media element and plays again.

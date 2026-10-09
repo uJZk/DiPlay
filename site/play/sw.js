@@ -1,7 +1,8 @@
 /*! SPDX-License-Identifier: GPL-3.0-only
  * TiPlay page cache: once loaded, the page opens without internet access. The worker answers only requests for the
- * page's own files in ASSETS (any query), from the cache. Its scope is the page's directory, which is the root of the
- * published site, so every other page there (the download pages under download/) goes to the network untouched.
+ * page's own files in ASSETS, with any query or fragment (the pairing link's #c=), from the cache. Its scope is the
+ * page's directory, which is the root of the published site, so every other page there (the download pages under
+ * download/) goes to the network untouched.
  * Requests to the phone (cross-origin, plain HTTP) are never answered here: a fetch re-issued from the worker might
  * not get the page's local-network and mixed-content treatment.
  *
@@ -27,7 +28,7 @@ self.addEventListener('fetch', event => {
   const { request } = event;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  url.search = '';
+  url.search = url.hash = '';
   if (!OWN.has(url.href)) return;
   event.respondWith(caches.open(CACHE)
     .then(cache => cache.match(request, { ignoreSearch: true }))

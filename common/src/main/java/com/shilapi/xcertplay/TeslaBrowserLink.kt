@@ -240,10 +240,19 @@ internal object TeslaBrowserLink {
     fun pageAddress(context: Context): String =
         TeslaBrowserPageLinks.savedPageAddress(prefs(context).getString(KEY_PAGE_ADDRESS, null))
 
-    /** Saves [text] when it is a valid page address ([TeslaBrowserPageLinks.pageAddress]); false otherwise. */
+    /**
+     * Saves [text] when it is a valid page address ([TeslaBrowserPageLinks.pageAddress]); false otherwise. The default
+     * is not stored, so a dialog saved unchanged follows the default of a later build.
+     */
     fun savePageAddress(context: Context, text: String): Boolean {
         val address = TeslaBrowserPageLinks.pageAddress(text) ?: return false
-        prefs(context).edit().putString(KEY_PAGE_ADDRESS, address).apply()
+        val editor = prefs(context).edit()
+        if (TeslaBrowserPageLinks.savedPageAddress(address) == TeslaBrowserPageLinks.DEFAULT_PAGE_ADDRESS) {
+            editor.remove(KEY_PAGE_ADDRESS)
+        } else {
+            editor.putString(KEY_PAGE_ADDRESS, address)
+        }
+        editor.apply()
         return true
     }
 
