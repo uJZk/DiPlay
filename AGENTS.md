@@ -14,6 +14,8 @@ Run the CI command from `.github/workflows/android.yml` before you report a chan
 
 Set `ANDROID_HOME` or `local.properties` if Gradle cannot find the SDK.
 
+CI also runs the browser page tests with Node 22: `node --test tests/web/*.test.mjs`.
+
 ## Adding or moving a setting
 
 The Settings screen is grouped by driver goal, not by implementation.
