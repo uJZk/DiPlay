@@ -8,8 +8,8 @@ address in that range. The driver picks how, in **Settings → Connection → Te
 |---|---|---|---|
 | Normal (default) | nothing | Adds nothing. Shows the hotspot's IPv4 and warns when it is outside 100.64.0.0/10. For other car browsers, or a hotspot that already uses 100.64. | — |
 | Root | root (Magisk, KernelSU …) | `ip -4 addr replace <address>/32 dev <iface>` through `su`, again after every hotspot restart | `ip -4 addr del …`: the address goes at once |
-| VPN (experimental) | nothing | A VPN that holds the address and nothing else | The VPN closes |
-| Shizuku | Shizuku (ADB) or Sui (root) | `INetworkManagementService.setInterfaceConfig("<iface>:tp", <address>/32)`, again after every hotspot restart | The address stays until the hotspot restarts: the shell user cannot remove it |
+| VPN (experimental) | Android's VPN permission (asked once); no other VPN at the same time | A VPN that holds the address and nothing else | The VPN closes |
+| Shizuku | Shizuku (ADB) or Sui (root), running and allowing TiPlay; without root, Shizuku must be started again after every phone restart (wireless debugging needs Wi-Fi, or a computer over USB) | `INetworkManagementService.setInterfaceConfig("<iface>:tp", <address>/32)`, again after every hotspot restart | The address stays until the hotspot restarts: the shell user cannot remove it. A toast says so, except when the driver switches to Root, which takes the address over and removes it when left |
 
 Every method applies at once; none reconnects CarPlay. The address must be in 100.64.0.0/10 or 169.254.0.0/16 (default
 `100.109.220.253`). The first root prompt, the Shizuku permission request and the VPN consent come only from a tap in

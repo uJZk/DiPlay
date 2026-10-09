@@ -228,7 +228,8 @@ internal class HotspotExtraAddressCard(
     private fun apply(next: HotspotAddressMethod, previous: HotspotAddressMethod, retry: Boolean = false) {
         HotspotExtraAddressSettings.saveMethod(app, next)
         HotspotExtraAddressSettings.sync(app, retry) // starts the new method, cleans up the old one
-        if (previous == HotspotAddressMethod.SHIZUKU && next != HotspotAddressMethod.SHIZUKU) {
+        // Root takes the address over (and removes it when the driver leaves Root), so only the others leave it behind.
+        if (previous == HotspotAddressMethod.SHIZUKU && next != HotspotAddressMethod.SHIZUKU && next != HotspotAddressMethod.ROOT) {
             Toast.makeText(activity, R.string.settings_hotspot_shizuku_left, Toast.LENGTH_LONG).show()
         }
         rerender()

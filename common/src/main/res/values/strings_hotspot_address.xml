@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="settings_hotspot_address_checking">Looking for this phone’s hotspot…</string>
-    <string name="settings_hotspot_current_address">Hotspot address: %1$s</string>
+    <string name="settings_hotspot_current_address">Current hotspot address: %1$s</string>
     <string name="settings_hotspot_address_blocked">The Tesla browser probably cannot open this address. Choose another hotspot address method below.</string>
     <string name="settings_hotspot_not_found">No hotspot found. Turn on this phone’s hotspot.</string>
     <string name="settings_hotspot_address_method">Hotspot address</string>
@@ -10,10 +10,10 @@
     <string name="settings_hotspot_method_vpn">VPN (experimental)</string>
     <string name="settings_hotspot_method_shizuku">Shizuku</string>
     <string name="settings_hotspot_method_vpn_unlikely">Probably does not work on this phone</string>
-    <string name="settings_hotspot_method_normal_description">Adds nothing. Use it for other car browsers, or when the hotspot address is already in 100.64.0.0/10.</string>
+    <string name="settings_hotspot_method_normal_description">Adds no address and needs nothing. Use it for other car browsers, or when the hotspot address is already in 100.64.0.0/10. Applies at once; no reconnect needed.</string>
     <string name="settings_hotspot_method_root_description">Needs root. Adds %1$s to this phone’s hotspot so the Tesla browser can reach TiPlay, and adds it again after the hotspot restarts. Applies at once; no reconnect needed.</string>
-    <string name="settings_hotspot_method_vpn_description">No root. Holds %1$s on a VPN that only TiPlay uses, so other apps are not affected. Applies at once; no reconnect needed.</string>
-    <string name="settings_hotspot_method_shizuku_description">No root. Adds %1$s to this phone’s hotspot through Shizuku, and adds it again after the hotspot restarts. Shizuku cannot remove it; it goes when the hotspot restarts. Applies at once; no reconnect needed.</string>
+    <string name="settings_hotspot_method_vpn_description">No root. Holds %1$s on a VPN that only TiPlay uses, so other apps are not affected. Android asks once to allow the VPN, and no other VPN can be on at the same time. Applies at once; no reconnect needed.</string>
+    <string name="settings_hotspot_method_shizuku_description">No root, but needs Shizuku running with TiPlay allowed. Start Shizuku again after every phone restart, through wireless debugging (needs Wi-Fi) or from a computer over USB. Adds %1$s to this phone’s hotspot, and adds it again after the hotspot restarts. Shizuku cannot remove it, so after you choose another method it stays until the hotspot restarts. Applies at once; no reconnect needed.</string>
     <string name="settings_hotspot_vpn_unlikely_hint">This Android version drops hotspot traffic to a VPN address, so the VPN method probably does not work on this phone. Addresses in 169.254.0.0/16 are exempt: try %1$s.</string>
     <string name="settings_hotspot_extra_address_value">Address</string>
     <string name="settings_hotspot_extra_address_value_hint">An address in 100.64.0.0/10, the range the Tesla browser opens, or in 169.254.0.0/16 for the VPN method. Applies at once.</string>
@@ -26,7 +26,7 @@
     <string name="settings_hotspot_extra_address_failed">Could not add the address. TiPlay tries again shortly.</string>
     <string name="settings_hotspot_extra_address_paused">Paused. TiPlay adds the address again when it opens or connects.</string>
     <string name="settings_hotspot_extra_address_manual_only">Works only when the connection uses “%1$s”.</string>
-    <string name="settings_hotspot_shizuku_not_running">Shizuku is not running. Start it again after every phone restart; wireless debugging needs Wi-Fi or USB.</string>
+    <string name="settings_hotspot_shizuku_not_running">Shizuku is not running. Start it again after every phone restart, through wireless debugging (needs Wi-Fi) or from a computer over USB.</string>
     <string name="settings_hotspot_shizuku_permission">Shizuku has not allowed TiPlay yet.</string>
     <string name="settings_hotspot_shizuku_allow">Allow TiPlay in Shizuku</string>
     <string name="settings_hotspot_shizuku_denied">Shizuku did not allow TiPlay. Allow TiPlay in the Shizuku app, then come back here.</string>
@@ -39,6 +39,6 @@
     <string name="settings_hotspot_vpn_other">Another VPN is on. TiPlay does not replace it: turn the other VPN off, then come back here.</string>
     <string name="settings_hotspot_vpn_wired">TiPlay’s wired CarPlay connection is using the VPN. The hotspot address VPN starts after that connection ends.</string>
     <string name="settings_hotspot_vpn_revoked">The VPN was turned off in Android settings or by another VPN app.</string>
-    <string name="settings_hotspot_vpn_failed">Could not start the VPN.</string>
+    <string name="settings_hotspot_vpn_failed">Could not start the VPN. TiPlay tries again when it opens or connects; if it keeps failing, choose another method.</string>
     <string name="settings_hotspot_vpn_no_consent_screen">This phone cannot show Android’s VPN permission screen.</string>
 </resources>

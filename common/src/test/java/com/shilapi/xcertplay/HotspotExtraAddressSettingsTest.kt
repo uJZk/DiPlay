@@ -105,6 +105,21 @@ class HotspotExtraAddressSettingsTest {
         assertEquals(HotspotAddressMethod.ROOT, HotspotExtraAddressSettings.method(context))
     }
 
+    @Test fun aDriverWhoHadTheOldSwitchOnStaysOnRootWithoutAnotherRootPrompt() {
+        context.getSharedPreferences("tiplay_hotspot_address", 0).edit()
+            .putBoolean("hotspot_extra_address_enabled", true).commit()
+
+        val screen = openConnection()
+
+        assertEquals(screen.getString(R.string.settings_hotspot_address_method) + " · " +
+            screen.getString(R.string.settings_hotspot_method_root), chooserRow(screen).text.toString())
+        assertTrue(screen.getString(R.string.settings_hotspot_method_root_description, HotspotExtraAddress.DEFAULT) in shown(screen))
+        // Root was granted when the switch was turned on: the keeper starts on resume and nothing asks again.
+        assertEquals(listOf(KeeperStart(defaultAddress, false, "root")), KeeperProbe.starts)
+        assertTrue(RootShellProbe.scripts.isEmpty())
+        assertEquals(HotspotAddressMethod.ROOT, HotspotExtraAddressSettings.method(context))
+    }
+
     @Test fun theChosenMethodIsSavedByNameAndReplacesTheOldSwitch() {
         val prefs = context.getSharedPreferences("tiplay_hotspot_address", 0)
         prefs.edit().putBoolean("hotspot_extra_address_enabled", true).commit()
@@ -362,6 +377,21 @@ class HotspotExtraAddressSettingsTest {
 
         assertEquals(listOf(true), KeeperProbe.stops) // the keeper asks; Shizuku cannot remove it
         assertEquals(screen.getString(R.string.settings_hotspot_shizuku_left), ShadowToast.getTextOfLatestToast())
+    }
+
+    @Test fun leavingShizukuForRootSaysNothingBecauseRootTakesTheAddressOver() {
+        RootShellProbe.answer = RootShell.Result.Done(0, "0")
+        HotspotExtraAddressSettings.saveMethod(context, HotspotAddressMethod.SHIZUKU)
+        val screen = openConnection()
+        KeeperProbe.reset()
+
+        choose(screen, HotspotAddressMethod.ROOT)
+        finishRootCheck()
+
+        // Root keeps the same address and removes it when the driver leaves Root: nothing is left behind.
+        assertEquals(HotspotAddressMethod.ROOT, HotspotExtraAddressSettings.method(context))
+        assertEquals(listOf(KeeperStart(defaultAddress, true, "root")), KeeperProbe.starts)
+        assertNull(ShadowToast.getTextOfLatestToast())
     }
 
     // --- VPN -------------------------------------------------------------------------------------------------
