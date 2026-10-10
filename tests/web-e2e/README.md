@@ -26,6 +26,8 @@ NODE_PATH=/tmp/pw/node_modules node tests/web-e2e/run.mjs
 ```
 
 Each check prints one `ok -` line, and the script ends with `all checks passed` or `FAILED: <reason>` (exit code 1).
+Both scripts launch Chromium with `--no-proxy-server`: their loopback and LAN HTTP servers must be reached directly,
+even when the environment configures a system proxy.
 
 ## What it checks
 

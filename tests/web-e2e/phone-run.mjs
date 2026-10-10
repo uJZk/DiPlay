@@ -312,7 +312,8 @@ async function main() {
   // Chrome counts this container's LAN address as public; a hotspot address is local, so make it local here too.
   const address = lanAddress();
   const browser = await chromium.launch({ executablePath: CHROMIUM,
-    args: address ? [`--ip-address-space-overrides=${address}:${phone.port}=local`] : [] });
+    // Keep the local test servers out of any system proxy, including their LAN address.
+    args: ['--no-proxy-server', ...(address ? [`--ip-address-space-overrides=${address}:${phone.port}=local`] : [])] });
   const sessions = new Set();
   try {
     const local = `http://127.0.0.1:${phone.port}`;

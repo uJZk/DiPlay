@@ -2,6 +2,11 @@
 
 Instructions for coding agents that work on TiPlay.
 
+## Current progress
+
+See `docs/E2E-VALIDATION-2026-10-10.md` for the latest local browser E2E results,
+the system-proxy fix, pre-existing uncommitted changes and remaining vehicle checks.
+
 ## Checks
 
 Run the CI command from `.github/workflows/android.yml` before you report a change as done:

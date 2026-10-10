@@ -262,7 +262,8 @@ async function main() {
   checkH264Muxing();
   const pageServer = await startPageServer();
   const origin = `http://127.0.0.1:${pageServer.address().port}`;
-  const browser = await chromium.launch({ executablePath: CHROMIUM });
+  // These servers are local, including the non-loopback address used by the MSE check.
+  const browser = await chromium.launch({ executablePath: CHROMIUM, args: ['--no-proxy-server'] });
   const context = await browser.newContext({ viewport: { width: 1000, height: 700 }, deviceScaleFactor: 1.5, hasTouch: true, locale: 'en-US' });
   let frames = encodeIvf('libvpx');
   if (frames) log(`encoded ${frames.length} VP8 frames with ffmpeg/libvpx`);
