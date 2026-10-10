@@ -12,6 +12,12 @@ The protocol and the reasons behind it are in [the plan](todo.md) (Chinese).
 
 ## 1. Publish the page
 
+Deployment update (2026-10-10): this repository now resolves to `uJZk/TiPlay` and the live page is
+`https://ujzk.github.io/TiPlay/`. In the installed APK, set **CarPlay settings → More Connection settings →
+Car browser → Browser page address** to this URL. The code default and the older examples below still use
+`/DiPlay/`; GitHub repository redirects do not make that the live Pages address. Custom page addresses remain editable.
+The existing Pages workflow uses `SITE_BASE_URL=https://ujzk.github.io/TiPlay/`.
+
 The car opens a public HTTPS page: the browser decodes video with WebCodecs, which needs a secure context, and Chrome
 lets an HTTPS page `fetch` plain HTTP from a local IP address such as `100.109.220.253`.
 

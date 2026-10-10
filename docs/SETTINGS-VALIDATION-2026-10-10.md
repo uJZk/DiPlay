@@ -34,7 +34,11 @@ OEM 默认名称改为 TiPlay，用户保存的自定义名称保留。连接用
 
 浏览器通过现有认证状态通道报告 `prefers-color-scheme`，应用接收并更新 CarPlay 明暗主题。
 页面新增 `appearance.js`，Service Worker 缓存版本和资源清单同步更新。
-线上页面需要与 APK 一起更新，旧页面不会上报主题。
+线上页面已通过现有 GitHub Pages 工作流更新，旧缓存页面不会上报主题。
+仓库的旧地址 `uJZk/DiPlay` 已重定向到 `uJZk/TiPlay`；这个 fork 原先未启用 Pages。
+收尾时启用 workflow 发布，并设置 `SITE_BASE_URL=https://ujzk.github.io/TiPlay/`。
+实际页面为 <https://ujzk.github.io/TiPlay/>；当前 APK 的默认页面地址仍为 `/DiPlay/`，
+在“更多连接设置 → 车机浏览器 → 浏览器页面地址”改为新地址。自定义地址不自动覆盖。
 
 ## 验证与安装
 
@@ -53,6 +57,8 @@ OEM 默认名称改为 TiPlay，用户保存的自定义名称保留。连接用
 - Node 22 浏览器测试：50 个通过，0 失败。
 - 站点生成、发布目录组装和主题模块/Service Worker 资源检查通过。
 - 公共源码凭据保护检查通过。
+- Pages [发布运行](https://github.com/uJZk/TiPlay/actions/runs/38063633794)成功，线上首页、
+  `appearance.js`、`app.js` 和 `sw.js` 均返回 HTTP 200，且主题模块引用与缓存清单正确。
 
 最终 debug APK 已覆盖安装到已授权的 Android 16 手机，包名 `com.ujzk.tiplay.hudtest`，
 保留热点和配对配置，并打开设置菜单供用户检查。
@@ -68,6 +74,7 @@ APK SHA-256：`444044add7a3ed27435ab09b50d5a2a5086a0c17dc23ef05f03657a0ebeccbba`
 3. 验证汽车蓝牙音乐、导航、Siri 和通话，30 分钟行驶、熄屏、热点重启和离线缓存。
 4. 在手机权限受限时实测热点名称读取和手动密码回退；不承诺所有 ROM 都能读取。
 5. 单独调查本地 JDK/加密提供者相关的 8 个已有测试失败；不得称完整 CI 全绿。
+6. 后续统一代码中仍使用 `/DiPlay/` 的默认 Pages 地址；本次通过可编辑的页面地址使用新站点。
 
 GitHub Pages 通过 `.github/workflows/pages.yml` 发布，main 上的 `site/**` 修改会自动触发。
-收尾推送后检查该次部署结果；APK 安装不等于发布 APK release。
+本次部署结果已核验；APK 安装不等于发布 APK release。
