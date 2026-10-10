@@ -21,7 +21,7 @@ class CarButtonDefaultsTest {
     private val context get() = RuntimeEnvironment.getApplication()
 
     @Test fun phoneBrowserModeRenamesOnlyTheBydDefault() {
-        assertEquals("Tesla", CarButtonDefaults.label(AirPlayPersistence.DEFAULT_OEM_LABEL, phoneBrowser = true))
+        assertEquals("TiPlay", CarButtonDefaults.label(AirPlayPersistence.DEFAULT_OEM_LABEL, phoneBrowser = true))
         assertEquals(AirPlayPersistence.DEFAULT_OEM_LABEL,
             CarButtonDefaults.label(AirPlayPersistence.DEFAULT_OEM_LABEL, phoneBrowser = false))
         assertEquals("My car", CarButtonDefaults.label("My car", phoneBrowser = true))

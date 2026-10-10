@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_more_options">More %1$s settings</string>
+    <string name="settings_additional_save_hint">Changes on this page are saved individually. Settings that reconnect CarPlay say so in their description or action button. Unsaved changes in the CarPlay settings menu are retained while you visit this page.</string>
+    <string name="settings_hotspot_read">Read device hotspot</string>
+    <string name="settings_hotspot_read_hint">Attempts to read the hotspot. Name and password remain editable; enter the password manually if it cannot be read. Saved entries are kept until you choose Read.</string>
+    <string name="settings_hotspot_read_unavailable">The system did not allow reading the hotspot. Enter its name and password manually.</string>
+    <string name="settings_browser_canvas">Browser canvas</string>
+    <string name="settings_video_reconnect_hint">Video changes take effect after you choose Save and reconnect.</string>
+    <string name="settings_browser_permissions">Nearby devices connects your iPhone. Allow local network access for the car browser. Audio uses the car Bluetooth connection.</string>
+    <string name="settings_hevc_experimental">HEVC (H.265) (experimental)</string>
+</resources>

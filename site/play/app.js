@@ -11,6 +11,7 @@ import {
   isCode, linkFromAddress, linkLocation, mapPoint, newSessionId, normalizeHost, PROBE_CODECS, supportedCodecs,
   timeoutSignal, viewportFor,
 } from './link.js';
+import { followAppearance } from './appearance.js';
 
 const STRINGS = {
   en: {
@@ -126,6 +127,7 @@ let session = null, active = false, phase = 'ready', notice = null;
 let attempt = 0, reconnects = 0, retryTimer = null, retryAt = 0, streamId = 0, videoAbort = null, lastError = null;
 let config = null, live = false, status = null, unsupported = null, videoStats = {};
 let outbox = null, heartbeatTimer = null, statsTimer = null, viewportTimer = null, lastViewport = '';
+const reportAppearance = followAppearance(window.matchMedia('(prefers-color-scheme: dark)'), () => outbox);
 let movePending = false, fitRequestedAt = 0, wakeLock = null, resumeOnShow = false;
 let statsVisible = false;
 try { statsVisible = localStorage.getItem(STATS_KEY) === '1'; } catch (_) {}
@@ -289,6 +291,7 @@ function start() {
   $('panel').hidden = true;
   stage.hidden = false;
   outbox = createControlOutbox({ send: postControl, heldContacts: () => slots.contacts(), onStatus: applyStatus, onError: controlFailed });
+  reportAppearance();
   heartbeatTimer = setInterval(() => outbox.heartbeat(), 400);
   statsTimer = setInterval(() => outbox.push({ k: 'st', v: flatStats(pageStats()) }, 'latest'), 5000);
   outbox.heartbeat();

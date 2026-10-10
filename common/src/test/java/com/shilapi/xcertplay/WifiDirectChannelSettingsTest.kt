@@ -99,7 +99,8 @@ class WifiDirectChannelSettingsTest {
     }
 
     private fun controls() = LinearLayout(activity).also {
-        DiPlayActivity::class.java.getDeclaredMethod("wirelessLinkControls", LinearLayout::class.java)
+        if (AirPlayPersistence.loadWirelessHotspotMode(activity) == WirelessHotspotMode.WIFI_P2P)
+        DiPlayActivity::class.java.getDeclaredMethod("wifiDirectChannelControl", LinearLayout::class.java)
             .apply { isAccessible = true }.invoke(activity, it)
     }
 

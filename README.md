@@ -55,7 +55,7 @@ See [DiPlay 0.2.13 release notes](docs/RELEASE-NOTES-0.2.13.md) and [validation]
 
 ## Report a problem
 
-Report TiPlay problems in this repository, not in the DiPlay tracker. Reproduce the problem on the latest TiPlay build, then use **Settings → Diagnostics → Save diagnostic report**. Android 10+ normally saves to **Downloads/TiPlay**; Android 9 uses the document picker. If unavailable, use **View report** or **Share** from the confirmation, which identifies external/private fallback storage. Review the `.txt` and add it to a matching [existing issue](https://github.com/uJZk/DiPlay/issues), or [create one](https://github.com/uJZk/DiPlay/issues/new/choose). Include vehicle/head-unit model, exact firmware and Android/DiLink, phone/iOS, connection backend, relevant settings, steps and failure time. Reports are shared only when you choose; never post your hotspot password.
+Report TiPlay problems in this repository, not in the DiPlay tracker. Reproduce the problem on the latest TiPlay build, then use **CarPlay settings → More Diagnostics settings → Save diagnostic report**. Android 10+ normally saves to **Downloads/TiPlay**; Android 9 uses the document picker. If unavailable, use **View report** or **Share** from the confirmation, which identifies external/private fallback storage. Review the `.txt` and add it to a matching [existing issue](https://github.com/uJZk/DiPlay/issues), or [create one](https://github.com/uJZk/DiPlay/issues/new/choose). Include vehicle/head-unit model, exact firmware and Android/DiLink, phone/iOS, connection backend, relevant settings, steps and failure time. Reports are shared only when you choose; never post your hotspot password.
 
 ## Documentation
 

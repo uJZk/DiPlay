@@ -111,41 +111,55 @@ class CarPlayHostSettingsTest {
         assertTrue(field("menuOpen") as Boolean)
     }
 
-    @Test fun fullSettingsShortcutDiscardsPreviewWithoutRestartingTheSession() {
+    @Test fun additionalSettingsRetainPreviewWithoutRestartingTheSession() {
         val controller = attachController()
         invoke("openSettingsMenu")
         val original = AirPlayPersistence.loadDisplayScalePercent(activity)
-        resolutionSlider().progress = 0
-        fullSettingsButton().performClick()
-        assertFalse(field("menuOpen") as Boolean)
-        assertNull(field("settingsBaseline"))
-        assertEquals(original, field("displayScalePercent"))
+        setField("displayScalePercent", 30)
+        setField("displayScaleTenths", 3)
+        additionalSettingsButton().performClick()
+        assertTrue(field("menuOpen") as Boolean)
+        assertNotNull(field("settingsBaseline"))
+        assertEquals(30, field("displayScalePercent"))
         assertEquals(original, AirPlayPersistence.loadDisplayScalePercent(activity))
         assertSame(controller, field("controller"))
         assertEquals(0, field("restartGeneration"))
         val intent = shadowOf(activity).nextStartedActivity
         assertEquals(DiPlayActivity::class.java.name, intent.component!!.className)
         assertEquals("settings", intent.getStringExtra("page"))
+        assertEquals(SettingsCategory.CONNECTION, CarPlaySettingsNavigation.category(intent))
     }
 
-    @Test fun returningFromFullSettingsReloadsSavedConnectionPreferences() {
+    @Test fun cancellingSettingsOpenedFromHomeDoesNotStartAConnection() {
+        setField("settingsOnlyLaunch", true)
+        invoke("openSettingsMenu")
+        invoke("cancelSettingsEdits")
+        assertTrue(activity.isFinishing)
+        assertTrue(controllers.constructed().isEmpty())
+    }
+
+    @Test fun returningFromAdditionalSettingsKeepsUnsavedHostPreferences() {
         attachController()
         invoke("openSettingsMenu")
-        fullSettingsButton().performClick()
-        AirPlayPersistence.saveMfiTarget(activity, MfiTarget.LOCAL)
-        AirPlayPersistence.saveWirelessHotspotMode(activity, WirelessHotspotMode.MANUAL)
-        AirPlayPersistence.saveManualHotspotSsid(activity, "Updated in full settings")
+        setField("displayScalePercent", 30)
+        setField("displayScaleTenths", 3)
+        setField("advancedAudioChannelMappingSupported", true)
+        setField("advancedAudioChannelMapping", true)
+        additionalSettingsButton().performClick()
         invoke("onResume")
-        assertEquals(MfiTarget.LOCAL, field("mfiTarget"))
-        assertEquals(WirelessHotspotMode.MANUAL, field("wirelessHotspotMode"))
-        assertEquals("Updated in full settings", field("manualHotspotSsid"))
+        assertEquals(30, field("displayScalePercent"))
+        assertTrue(field("advancedAudioChannelMapping") as Boolean)
+        assertTrue(field("menuOpen") as Boolean)
+        invoke("cancelSettingsEdits")
+        assertEquals(AirPlayPersistence.loadDisplayScalePercent(activity), field("displayScalePercent"))
     }
 
     @Test fun openingAndCancellingKeepsTheCurrentControllerAndRestoresControls() {
         val controller = attachController()
         invoke("openSettingsMenu")
         val original = AirPlayPersistence.loadDisplayScaleTenths(activity)
-        resolutionSlider().progress = 0
+        setField("displayScalePercent", 30)
+        setField("displayScaleTenths", 3)
         gestureButton().performClick()
         assertEquals(3, AirPlayPersistence.loadSettingsGestureFingers(activity))
         invoke("cancelSettingsEdits")
@@ -154,7 +168,7 @@ class CarPlayHostSettingsTest {
         assertEquals(original, field("displayScaleTenths"))
         assertEquals(3, field("gestureFingerCount"))
         invoke("openSettingsMenu")
-        assertEquals(original * 10 - CarPlayDisplayScale.MIN_PERCENT, resolutionSlider().progress)
+        assertEquals(original * 10, field("displayScalePercent"))
         assertEquals(activity.getString(R.string.settings_gesture_fingers, 3), gestureButton().text)
     }
 
@@ -162,12 +176,8 @@ class CarPlayHostSettingsTest {
         for (percent in listOf(73, 157, 160)) {
             AirPlayPersistence.saveDisplayScalePercent(activity, percent)
             invoke("openSettingsMenu")
-            val slider = resolutionSlider()
-            assertEquals(percent - CarPlayDisplayScale.MIN_PERCENT, slider.progress)
-            val listener = SeekBar::class.java.getDeclaredField("mOnSeekBarChangeListener")
-                .apply { isAccessible = true }.get(slider) as SeekBar.OnSeekBarChangeListener
-            listener.onProgressChanged(slider, 0, true)
-            assertEquals(percent, AirPlayPersistence.loadDisplayScalePercent(activity))
+            assertEquals(percent, field("displayScalePercent"))
+            assertFalse(views(menu()).filterIsInstance<SeekBar>().any { it.max == CarPlayDisplayScale.MAX_PERCENT - CarPlayDisplayScale.MIN_PERCENT })
             invoke("cancelSettingsEdits")
             assertEquals(percent, field("displayScalePercent"))
             assertEquals(percent, AirPlayPersistence.loadDisplayScalePercent(activity))
@@ -178,12 +188,63 @@ class CarPlayHostSettingsTest {
         }
     }
 
-    @Test fun resolutionEndpointLabelsMatchTheActualSliderRange() {
+    @Test fun resolutionSliderAndItsEndpointLabelsAreHidden() {
         invoke("openSettingsMenu")
         val labels = views(menu()).filterIsInstance<TextView>().map { it.text.toString() }.toList()
-        assertTrue(labels.contains(activity.getString(R.string.custom_resolution_summary, 30)))
-        assertTrue(labels.contains(activity.getString(R.string.custom_resolution_summary, 160)))
+        assertFalse(labels.contains(activity.getString(R.string.custom_resolution_summary, 30)))
+        assertFalse(labels.contains(activity.getString(R.string.custom_resolution_summary, 160)))
         assertFalse(labels.contains("2.0x"))
+    }
+
+    @Test fun browserMenuKeepsEditableHotspotFieldsAndHidesInapplicableControls() {
+        AirPlayPersistence.saveWirelessHotspotMode(activity, WirelessHotspotMode.MANUAL)
+        AirPlayPersistence.saveManualHotspotSsid(activity, "Manual hotspot")
+        AirPlayPersistence.saveManualHotspotPassphrase(activity, "manual123")
+        invoke("openSettingsMenu")
+        val fields = views(menu()).filterIsInstance<android.widget.EditText>().toList()
+        assertTrue(fields.any { it.text.toString() == "Manual hotspot" })
+        assertTrue(fields.any { it.text.toString() == "manual123" })
+        val labels = views(menu()).filterIsInstance<TextView>().map { it.text.toString() }.toList()
+        for (id in listOf(R.string.wi_fi_p2p_5_ghz, R.string.resolution, R.string.advanced_audio_channel_mapping,
+            R.string.report_location_to_iphone, R.string.hide_top_bar, R.string.hide_bottom_bar)) {
+            assertFalse("Hidden setting: ${activity.getString(id)}", labels.contains(activity.getString(id)))
+        }
+        assertTrue(labels.contains(activity.getString(R.string.settings_hotspot_read)))
+        assertTrue(labels.contains(activity.getString(R.string.settings_advanced)))
+        assertTrue(labels.contains(activity.getString(R.string.settings_hevc_experimental)))
+        assertFalse(labels.contains(activity.getString(R.string.hevc_software_decoder)))
+        assertFalse(labels.contains(activity.getString(R.string.debug_logs)))
+        val summary = field("resolutionPreviewView") as TextView
+        assertTrue(summary.text.contains(activity.getString(R.string.settings_browser_canvas)))
+        assertFalse(summary.text.contains(activity.getString(R.string.preview_fullscreen)))
+        assertFalse(summary.text.contains(activity.getString(R.string.preview_location_reporting)))
+        val headings = listOf(R.string.connection, R.string.automatic_connection, R.string.settings_display,
+            R.string.settings_vehicle, R.string.settings_advanced, R.string.diagnostics)
+            .map { labels.indexOf(activity.getString(it)) }
+        assertTrue(headings.all { it >= 0 })
+        assertEquals(headings.sorted(), headings)
+    }
+
+    @Test fun browserFrameRateUsesADraftUntilSaveAndReconnectAndCancelRestoresIt() {
+        AirPlayPersistence.saveFps(activity, 60)
+        invoke("loadPersistedSettings")
+        invoke("openSettingsMenu")
+        fun chooseThirty() {
+            views(menu()).filterIsInstance<Button>()
+                .first { it.text.toString().startsWith(activity.getString(R.string.frame_rate) + " · ") }
+                .performClick()
+            val dialog = org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog()
+            dialog.listView.performItemClick(View(activity), 0, 0)
+        }
+        chooseThirty()
+        assertEquals(30, field("fps"))
+        assertEquals(60, AirPlayPersistence.loadFps(activity))
+        invoke("cancelSettingsEdits")
+        assertEquals(60, field("fps"))
+        invoke("openSettingsMenu")
+        chooseThirty()
+        invoke("saveSettingsAndReconnect")
+        assertEquals(30, AirPlayPersistence.loadFps(activity))
     }
 
     @Test fun resumingWithTheMenuOpenPreservesUnsavedConnectionEdits() {
@@ -203,7 +264,8 @@ class CarPlayHostSettingsTest {
     @Test fun savingPersistsSettingsAndRestartsOnce() {
         attachController()
         invoke("openSettingsMenu")
-        resolutionSlider().progress = 0
+        setField("displayScalePercent", 30)
+        setField("displayScaleTenths", 3)
         gestureButton().performClick()
         invoke("saveSettingsAndReconnect")
         assertFalse(field("menuOpen") as Boolean)
@@ -538,8 +600,8 @@ class CarPlayHostSettingsTest {
         .first { it.max == CarPlayDisplayScale.MAX_PERCENT - CarPlayDisplayScale.MIN_PERCENT }
     private fun gestureButton() = views(menu()).filterIsInstance<Button>()
         .first { it.text == activity.getString(R.string.settings_gesture_fingers, field("gestureFingerCount")) }
-    private fun fullSettingsButton() = views(menu()).filterIsInstance<Button>()
-        .first { it.text == activity.getString(R.string.app_name) + " " + activity.getString(R.string.settings) }
+    private fun additionalSettingsButton() = views(menu()).filterIsInstance<Button>()
+        .first { it.text == activity.getString(R.string.settings_more_options, activity.getString(R.string.connection)) }
     private fun views(view: View): Sequence<View> = sequence {
         yield(view)
         if (view is ViewGroup) for (index in 0 until view.childCount) yieldAll(views(view.getChildAt(index)))

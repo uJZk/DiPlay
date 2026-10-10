@@ -90,6 +90,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun searchOpensTheCategoryThatOwnsTheSetting() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         val screen = openSettings()
         val index = ReflectionHelpers.callInstanceMethod<List<Any>>(screen, "buildSettingsSearchIndex")
         val results = ReflectionHelpers.callInstanceMethod<List<Any>>(screen, "searchSettings",
@@ -160,6 +161,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun cardControlsShareOneHeightAndGap() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         val screen = openSettings()
         descendants(screen.window.decorView)
             .first { it.contentDescription == screen.getString(R.string.settings_open_category,
@@ -207,6 +209,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun tappingAToggleRowChangesTheSetting() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         AirPlayPersistence.saveHideTopBar(context, false)
         AirPlayPersistence.saveHideBottomBar(context, false)
         val screen = openSettings()
@@ -220,6 +223,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun compactDetailReturnsToOverviewBeforeLeavingSettings() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         val screen = openSettings()
         descendants(screen.window.decorView)
             .single { it.contentDescription == screen.getString(R.string.settings_open_category,
@@ -253,6 +257,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun quickFullScreenChangesBothExistingPreferencesTogether() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         AirPlayPersistence.saveHideTopBar(context, false)
         AirPlayPersistence.saveHideBottomBar(context, false)
         val screen = openSettings()
@@ -319,6 +324,7 @@ class AdaptiveSettingsUiTest {
     }
 
     @Test fun displayOpensPictureAdjustments() {
+        useHeadUnitMode() // Retained upstream controls are not part of the browser profile.
         val screen = openSettings()
         descendants(screen.window.decorView)
             .single { it.contentDescription == screen.getString(R.string.settings_open_category,
@@ -364,7 +370,7 @@ class AdaptiveSettingsUiTest {
             assertFalse(text(it), text(it) in display)
         }
         assertTrue(text(R.string.settings_tesla_browser) in connection)
-        assertTrue(text(R.string.settings_phone_browser_mode) in connection)
+        assertFalse(text(R.string.settings_phone_browser_mode) in connection)
         listOf(display, audio, vehicle, advanced).forEach {
             assertFalse(text(R.string.settings_phone_browser_mode) in it)
         }
@@ -374,7 +380,7 @@ class AdaptiveSettingsUiTest {
         val phonePages = listOf(R.string.connection, R.string.settings_display, R.string.audio, R.string.settings_navigation,
             R.string.settings_vehicle, R.string.diagnostics, R.string.settings_advanced).associateWith(::visibleIn)
         phonePages.forEach { (category, page) ->
-            assertEquals(text(category), category == R.string.audio,
+            assertEquals(text(category), false,
                 page.any { it.startsWith(text(R.string.settings_car_bluetooth_audio)) })
             // The hotspot address chooser helps the car browser connect: Connection only.
             assertEquals(text(category), category == R.string.connection,
@@ -385,6 +391,7 @@ class AdaptiveSettingsUiTest {
     @Test
     @Config(sdk = [28, 33])
     fun experimentalCallProcessingIsOptInAndMarksTheActiveSessionForReconnect() {
+        useHeadUnitMode()
         assertFalse(AirPlayPersistence.loadCallEchoCancellation(context))
         assertFalse(AirPlayPersistence.loadCallVoiceFilter(context))
         val screen = openSettings()
@@ -417,43 +424,13 @@ class AdaptiveSettingsUiTest {
         }
     }
 
-    @Test fun carBluetoothSoundIsOffByDefaultAndMarksTheActiveSessionForReconnect() {
-        assertEquals(CarBluetoothAudio.OFF, AirPlayPersistence.loadCarBluetoothAudio(context))
-        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.PHONE_BROWSER) // only a car browser offers it
+    @Test fun carBluetoothSoundIsFixedAndHasNoAudioSetting() {
+        BrowserSettingsPolicy.activate(context)
         val screen = openSettings()
-        val session = mock(CarPlayController::class.java)
-        var stops = 0
-        CarPlayBackgroundSession.store(session, mock(AndroidMediaSink::class.java), 800, 480, Any(),
-            CarPlaySessionDisplay(800, 480, Surface.ROTATION_0, false, false, 800, 480)) { stops++ }
-        CarPlayBackgroundSession.active = true
-        try {
-            PendingReconnect.clear()
-            ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.AUDIO)
-            ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
-            val title = screen.getString(R.string.settings_car_bluetooth_audio)
-            val setting = descendants(screen.window.decorView).filterIsInstance<Button>()
-                .single { it.text.startsWith(title) }
-            assertEquals("$title · ${screen.getString(R.string.settings_car_bluetooth_audio_off)}", setting.text.toString())
-            setting.performClick()
-            val dialog = ShadowAlertDialog.getLatestAlertDialog()
-            assertEquals(0, dialog.listView.checkedItemPosition)
-            // Applies at the next connection: the dialog saves, it does not offer to reconnect now.
-            assertEquals(screen.getString(R.string.save), dialog.getButton(AlertDialog.BUTTON_POSITIVE).text.toString())
-            dialog.listView.performItemClick(null, 1, 1L)
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-            shadowOf(Looper.getMainLooper()).idle()
-
-            assertEquals(CarBluetoothAudio.ON, AirPlayPersistence.loadCarBluetoothAudio(context))
-            assertEquals("$title · ${screen.getString(R.string.settings_car_bluetooth_audio_on)}", setting.text.toString())
-            assertTrue(PendingReconnect.isPending(session))
-            assertEquals(View.VISIBLE, ReflectionHelpers.getField<View>(screen, "reconnectBar").visibility)
-            assertSame(session, CarPlayBackgroundSession.snapshot()?.controller)
-            assertEquals(0, stops)
-            assertEquals(null, shadowOf(screen).nextStartedActivity)
-        } finally {
-            CarPlayBackgroundSession.clear()
-            PendingReconnect.clear()
-        }
+        ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.AUDIO)
+        ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
+        assertEquals(CarBluetoothAudio.ON, AirPlayPersistence.loadCarBluetoothAudio(context))
+        assertFalse(texts(screen).any { it.text.toString().startsWith(screen.getString(R.string.settings_car_bluetooth_audio)) })
     }
 
     @Test

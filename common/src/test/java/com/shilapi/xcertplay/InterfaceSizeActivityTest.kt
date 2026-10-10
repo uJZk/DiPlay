@@ -39,6 +39,7 @@ class InterfaceSizeActivityTest {
         val activity = controller.get()
         activity.setTheme(android.R.style.Theme_Material_NoActionBar)
         controller.setup()
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         try {
             ReflectionHelpers.setField(activity, "page", "settings")
             ReflectionHelpers.setField(activity, "settingsCategory", SettingsCategory.DISPLAY)
@@ -102,6 +103,7 @@ class InterfaceSizeActivityTest {
         val activity = controller.get()
         activity.setTheme(android.R.style.Theme_Material_NoActionBar)
         controller.setup()
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         try {
             ReflectionHelpers.setField(activity, "page", "settings")
             ReflectionHelpers.setField(activity, "settingsCategory", SettingsCategory.DISPLAY)
@@ -144,6 +146,7 @@ class InterfaceSizeActivityTest {
         val activity = controller.get()
         activity.setTheme(android.R.style.Theme_Material_NoActionBar)
         controller.setup()
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         try {
             val configuration = activity.resources.configuration
             assertEquals(720, configuration.smallestScreenWidthDp)

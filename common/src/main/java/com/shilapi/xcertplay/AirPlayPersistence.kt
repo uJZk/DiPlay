@@ -109,7 +109,7 @@ object AirPlayPersistence {
 
     const val DEFAULT_MANUFACTURER = "TiPlay"
     const val DEFAULT_MODEL = "TiPlay"
-    const val DEFAULT_OEM_LABEL = "BYD"
+    const val DEFAULT_OEM_LABEL = "TiPlay"
     const val DEFAULT_MFI_I2C_PATH = "/dev/i2c-1"
 
     fun loadAmbientDelaySeconds(context: Context): Int =

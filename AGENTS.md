@@ -4,8 +4,10 @@ Instructions for coding agents that work on TiPlay.
 
 ## Current progress
 
-See `docs/E2E-VALIDATION-2026-10-10.md` for the latest local browser E2E results,
-the system-proxy fix, pre-existing uncommitted changes and remaining vehicle checks.
+See `docs/SETTINGS-VALIDATION-2026-10-10.md` for the current browser settings profile,
+device installation, verification results and remaining vehicle checks.
+`docs/E2E-VALIDATION-2026-10-10.md` records the earlier local browser E2E results
+and system-proxy fix.
 
 ## Checks
 

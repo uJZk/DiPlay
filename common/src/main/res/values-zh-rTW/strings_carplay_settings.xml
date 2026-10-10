@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_more_options">更多%1$s設定</string>
+    <string name="settings_additional_save_hint">本頁設定分別儲存；涉及重新連線的設定會在說明或按鈕中提示。返回 CarPlay 設定選單後，主選單中尚未儲存的修改仍會保留。</string>
+    <string name="settings_hotspot_read">讀取本機熱點</string>
+    <string name="settings_hotspot_read_hint">嘗試讀取本機熱點。名稱和密碼仍可手動編輯；無法讀取密碼時請手動輸入。已有內容不會自動覆蓋，點選讀取才會匯入。</string>
+    <string name="settings_hotspot_read_unavailable">系統未允許讀取熱點，請手動輸入名稱和密碼。</string>
+    <string name="settings_browser_canvas">瀏覽器畫面</string>
+    <string name="settings_video_reconnect_hint">畫面設定修改後，點擊「儲存並重新連線」生效。</string>
+    <string name="settings_browser_permissions">附近裝置權限用於連接 iPhone，區域網路權限用於連接車機瀏覽器。聲音透過汽車藍牙播放。</string>
+    <string name="settings_hevc_experimental">HEVC (H.265)（實驗性）</string>
+</resources>

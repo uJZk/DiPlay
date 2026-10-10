@@ -11,12 +11,12 @@ import java.io.ByteArrayOutputStream
  *
  * A head unit keeps upstream's BYD logo (res/raw/ic_car_home.png) and label. In phone + browser mode, TiPlay's
  * default for cars such as Tesla, the BYD logo would be wrong, so CarPlay gets a neutral car drawn from the Vehicle
- * settings icon and, while the driver keeps the default label, the label "Tesla". A custom icon or label always
+ * settings icon and, while the driver keeps the default label, the label "TiPlay". A custom icon or label always
  * wins. Like the other /info fields, the button changes at the next CarPlay connection.
  */
 internal object CarButtonDefaults {
     /** The label phone + browser mode sends instead of the head-unit default [AirPlayPersistence.DEFAULT_OEM_LABEL]. */
-    const val PHONE_BROWSER_LABEL = "Tesla"
+    const val PHONE_BROWSER_LABEL = "TiPlay"
 
     /** The size of the packaged head-unit icon, so the iPhone gets the same icon size in both modes. */
     const val ICON_SIZE_PX = 192
@@ -26,7 +26,7 @@ internal object CarButtonDefaults {
     private const val CAR_COLOR = 0xFF1C1C1E.toInt()
     private const val CAR_SIZE_PX = 120
 
-    /** The label CarPlay shows under the button: [saved], or "Tesla" in phone + browser mode for the BYD default. */
+    /** The label CarPlay shows under the button: [saved], or "TiPlay" in phone + browser mode for the BYD default. */
     fun label(saved: String, phoneBrowser: Boolean): String =
         if (phoneBrowser && saved == AirPlayPersistence.DEFAULT_OEM_LABEL) PHONE_BROWSER_LABEL else saved
 

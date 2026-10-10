@@ -188,7 +188,7 @@ class CarPlayHostResolutionTest {
 
         AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.PHONE_BROWSER)
         val phone = config(100)
-        assertEquals("Tesla", phone.oemLabel)
+        assertEquals("TiPlay", phone.oemLabel)
         val icon = phone.icons.single()
         assertEquals(CarButtonDefaults.ICON_SIZE_PX, icon.widthPixels)
         assertEquals(CarButtonDefaults.ICON_SIZE_PX, icon.heightPixels)

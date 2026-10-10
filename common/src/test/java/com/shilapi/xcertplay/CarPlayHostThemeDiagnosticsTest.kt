@@ -30,6 +30,7 @@ class CarPlayHostThemeDiagnosticsTest {
 
     @Before fun setUp() {
         activity = Robolectric.buildActivity(CarPlayHostActivity::class.java).get()
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         (getField("airPlayCommandExecutor") as ExecutorService).shutdownNow()
         commands = PausedExecutorService()
         setField("airPlayCommandExecutor", commands)

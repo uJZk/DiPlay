@@ -99,7 +99,7 @@ class CarPlayHostBrowserLinkTest {
         assertNull(config.cluster)
         assertFalse(config.videoInCar)
         assertNull(get("pendingViewAreas"))
-        assertEquals("Tesla", config.oemLabel)
+        assertEquals("TiPlay", config.oemLabel)
         assertEquals("The head-unit settings stay as saved", 160, AirPlayPersistence.loadDisplayScalePercent(activity))
         assertTrue(DisplayDiagnosticSnapshot.report(activity).contains("Phone + browser canvas=1182x920"))
     }
@@ -109,6 +109,19 @@ class CarPlayHostBrowserLinkTest {
         assertEquals(1280, config.main.widthPixels)
         assertEquals(720, config.main.heightPixels)
         assertEquals(60, config.main.fps)
+    }
+
+    @Test fun selectedFrameRateReachesTheIphoneAndBrowserStream() {
+        set("fps", 30)
+        assertEquals(30, config(1080, 2200).main.fps)
+        val sink = sink(1280, 720)
+        val teed = engineSink(sink)
+        teed.onVideoCodec(110, VideoCodec.H264)
+        teed.onScreenStreamActive(110, true)
+        assertEquals(30, TeslaBrowserLink.hub.info()?.fps)
+        assertTrue(DisplayDiagnosticSnapshot.report(activity).contains("fps=30"))
+        set("fps", 60)
+        assertEquals("Editing a draft keeps the active stream unchanged", 30, TeslaBrowserLink.hub.info()?.fps)
     }
 
     @Test fun aHeadUnitKeepsItsOwnWindowAsTheCanvas() {

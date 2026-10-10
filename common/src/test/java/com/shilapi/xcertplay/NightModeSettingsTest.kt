@@ -33,10 +33,11 @@ class NightModeSettingsTest {
     private lateinit var page: LinearLayout
 
     @Before fun setUp() {
-        controller = Robolectric.buildActivity(DiPlayActivity::class.java)
+        controller = Robolectric.buildActivity(DiPlayActivity::class.java, android.content.Intent(org.robolectric.RuntimeEnvironment.getApplication(), DiPlayActivity::class.java).putExtra("page", "settings"))
         activity = controller.get()
         activity.setTheme(android.R.style.Theme_Material_NoActionBar)
         activity.getSharedPreferences("xcertplay_airplay", 0).edit().clear().commit()
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         CarPlayBackgroundSession.clear()
         controller.setup().visible()
     }
@@ -206,6 +207,7 @@ class NightModeSettingsTest {
     }
 
     private fun renderSettings() {
+        AirPlayPersistence.saveRunMode(activity, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         page = LinearLayout(activity)
         DiPlayActivity::class.java.getDeclaredMethod("displaySettings", LinearLayout::class.java)
             .apply { isAccessible = true }.invoke(activity, page)

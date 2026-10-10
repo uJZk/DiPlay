@@ -69,9 +69,11 @@ the new files.
 
 ## 2. Set up TiPlay
 
-Open **Settings → Connection → Tesla browser (experimental)**.
+Open **CarPlay settings → More Connection settings → Car browser (experimental)**.
 
-- **Phone and car browser** is on by default. Turn it off only when TiPlay runs on a car head unit.
+- CarPlay always appears in the car browser; there is no run-mode switch. Sound stays on the iPhone-to-car Bluetooth connection.
+- CarPlay day/night appearance follows the light/dark theme reported by the browser. The bundled page is updated with the APK; a hosted page must also be updated.
+- Hotspot name and password remain editable. TiPlay tries to read the hotspot using available permissions; if reading fails, enter the details manually.
 - The status line says whether the link listens on port 8080, whether another app uses the port (TiPlay keeps trying),
   and on Android 17 whether TiPlay has local network access. Tap **Allow local network access** if it does not.
 - **Page address** is the HTTPS page. It must start with `https://`.
@@ -130,7 +132,9 @@ app. It needs no internet access and no pairing code to load.
 ## 6. Picture size
 
 CarPlay's canvas is the size of the page's video area in device pixels (CSS pixels × device pixel ratio, rounded down to
-even numbers, at most 3840 × 2160 in either orientation), at 60 fps. Before any browser has reported its size, TiPlay
+even numbers, at most 3840 × 2160 in either orientation), at 60 fps by default. Choose 30–60 fps under
+**CarPlay settings → Display → Frame rate**. Both frame rate and **Advanced → HEVC** changes take effect only
+after **Save and reconnect**; cancelling leaves the current session unchanged. Before any browser has reported its size, TiPlay
 uses 1280 × 720. CarPlay's physical size follows the page's CSS size (0.2646 mm per CSS pixel), so its controls are as
 large as the browser's own text. The head unit's resolution, CarPlay size, safe area, dock, split screen, turning screen
 and side panel settings do not apply.

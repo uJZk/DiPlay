@@ -645,7 +645,11 @@ class HotspotExtraAddressSettingsTest {
         KeeperProbe.running = true
         VpnProbe.active = true
 
-        phoneModeSwitch(screen).performClick()
+        // Exercise the retained backend transition; the product no longer exposes this switch.
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.HEAD_UNIT)
+        HotspotExtraAddressSettings.sync(context)
+        TeslaBrowserLink.sync(context)
+        ReflectionHelpers.callInstanceMethod<Unit>(screen, "markReconnectNeeded")
 
         assertEquals(CarPlayRunMode.HEAD_UNIT, AirPlayPersistence.loadRunMode(context))
         assertEquals(listOf(true), KeeperProbe.stops)
@@ -661,7 +665,11 @@ class HotspotExtraAddressSettingsTest {
         KeeperProbe.running = true
         KeeperProbe.backendId = "root"
 
-        phoneModeSwitch(screen).performClick()
+        // Exercise the retained backend transition; the product no longer exposes this switch.
+        AirPlayPersistence.saveRunMode(context, CarPlayRunMode.HEAD_UNIT)
+        HotspotExtraAddressSettings.sync(context)
+        TeslaBrowserLink.sync(context)
+        ReflectionHelpers.callInstanceMethod<Unit>(screen, "markReconnectNeeded")
 
         // The run mode applies at the next connection, so the car's page keeps its address for this session.
         assertTrue(PendingReconnect.isPending(session))

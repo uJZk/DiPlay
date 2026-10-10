@@ -17,10 +17,11 @@ object DisplaySettingsSection {
         context: Context,
         checked: Boolean,
         theme: SettingsTheme = SettingsTheme.OVERLAY,
+        title: String? = null,
         onChanged: (Boolean) -> Unit,
     ): SettingsWidgets.SwitchRowResult = SettingsWidgets.createSwitchRow(
         context = context,
-        label = if (theme.isOverlay) "HEVC (H.265)" else context.getString(R.string.efficient_video),
+        label = title ?: if (theme.isOverlay) "HEVC (H.265)" else context.getString(R.string.efficient_video),
         description = if (theme.isOverlay) context.getString(R.string.hevc_h_265_video_transport)
         else context.getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility),
         checked = checked,

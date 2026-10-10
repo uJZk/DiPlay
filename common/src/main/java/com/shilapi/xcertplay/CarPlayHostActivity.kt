@@ -201,6 +201,9 @@ class CarPlayHostActivity : ComponentActivity() {
     // The page's button says "Apply and reconnect", which is the driver's consent to reconnect (AGENTS.md).
     private val browserLinkHost = object : TeslaBrowserLink.Host {
         override fun log(message: String) = AsyncDiagnosticLog.append(sessionLog, message)
+        override fun onBrowserTheme(night: Boolean) {
+            nightModeController.systemChanged(night)
+        }
         override fun onBrowserFit() {
             val running = sessionDisplay?.takeIf { controller != null && !headUnitIntegrations() }
             TeslaBrowserLink.fitReason(this@CarPlayHostActivity,
@@ -429,6 +432,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private var vpnReady = false
     private var hotspotStatus = HotspotStatus(state = "off")
     private var menuOpen = false
+    private var settingsOnlyLaunch = false
     private var latestStage = "Preparing CarPlay"
     private var darkMode = false
     private var paintWaitingScreen: () -> Unit = {}
@@ -576,6 +580,7 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        BrowserSettingsPolicy.activate(this)
         NavigationWidgetUpdater.attach(applicationContext)
         CarPlayCallKeys.install(applicationContext) // its keys check the run mode when they arrive
         CenterMapOverlay.requestShow = ::showCenterMap
@@ -585,7 +590,9 @@ class CarPlayHostActivity : ComponentActivity() {
         if (isIphoneUsbAttachment(intent)) {
             AirPlayPersistence.saveWirelessEnabled(this, false)
         }
-        if (runCatching { DiPlayBootstrap.ensure(this, AirPlayPersistence.loadMfiTarget(this)) }.isFailure) {
+        if (!intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false) &&
+            savedInstanceState?.getBoolean(CarPlaySettingsNavigation.MENU) != true &&
+            runCatching { DiPlayBootstrap.ensure(this, AirPlayPersistence.loadMfiTarget(this)) }.isFailure) {
             startActivity(Intent(this, DiPlayActivity::class.java))
             finish(); return
         }
@@ -598,7 +605,7 @@ class CarPlayHostActivity : ComponentActivity() {
         initializeSessionLog()
         lastConfiguration = Configuration(resources.configuration)
         darkMode = savedInstanceState?.getBoolean("carplay_night_active")
-            ?: nightModeOrNull(resources.configuration.uiMode) ?: false
+            ?: BrowserAppearance.night
         logThemeState(ThemeModeDiagnostics.Source.CREATE, resources.configuration)
         advancedAudioChannelMappingSupported =
             resources.getBoolean(R.bool.config_advanced_audio_channel_mapping)
@@ -630,6 +637,13 @@ class CarPlayHostActivity : ComponentActivity() {
         microphoneAvailable =
             checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         microphonePermissionResolved = microphoneAvailable
+        if (intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false) ||
+            savedInstanceState?.getBoolean(CarPlaySettingsNavigation.MENU) == true) {
+            settingsOnlyLaunch = savedInstanceState?.getBoolean("settings_only_launch") ?: !reusedBackgroundSession
+            intent.removeExtra(CarPlaySettingsNavigation.MENU)
+            openSettingsMenu()
+            return
+        }
         if (reusedBackgroundSession) {
             updateDebugOverlays()
         } else if (microphonePermissionResolved) {
@@ -641,13 +655,13 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun loadPersistedSettings() {
         carPlayDock = CarPlayDock.load(this)
-        carPlayNightMode = AirPlayPersistence.loadCarPlayNightMode(this)
+        carPlayNightMode = if (AirPlayPersistence.isPhoneBrowserMode(this)) CarPlayNightMode.SYSTEM else AirPlayPersistence.loadCarPlayNightMode(this)
         ambientLightThreshold = AirPlayPersistence.loadAmbientLightThreshold(this)
         ambientDelaySeconds = AirPlayPersistence.loadAmbientDelaySeconds(this)
         nightSchedule = AirPlayPersistence.loadCarPlayNightSchedule(this)
         nightModeController.configure(
             carPlayNightMode,
-            nightModeOrNull(resources.configuration.uiMode) ?: false,
+            (if (AirPlayPersistence.isPhoneBrowserMode(this)) BrowserAppearance.night else nightModeOrNull(resources.configuration.uiMode) ?: false),
             ambientLightThreshold,
             ambientDelaySeconds,
             nightSchedule,
@@ -790,6 +804,10 @@ class CarPlayHostActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false)) {
+            intent.removeExtra(CarPlaySettingsNavigation.MENU)
+            openSettingsMenu()
+        }
         if (isIphoneUsbAttachment(intent)) {
             if (wirelessEnabled) {
                 if (menuOpen) cancelSettingsEdits()
@@ -825,11 +843,11 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        val savedNightMode = AirPlayPersistence.loadCarPlayNightMode(this)
+        val savedNightMode = if (AirPlayPersistence.isPhoneBrowserMode(this)) CarPlayNightMode.SYSTEM else AirPlayPersistence.loadCarPlayNightMode(this)
         val savedThreshold = AirPlayPersistence.loadAmbientLightThreshold(this)
         val savedDelay = AirPlayPersistence.loadAmbientDelaySeconds(this)
         val savedSchedule = AirPlayPersistence.loadCarPlayNightSchedule(this)
-        val systemNight = nightModeOrNull(resources.configuration.uiMode) ?: false
+        val systemNight = if (AirPlayPersistence.isPhoneBrowserMode(this)) BrowserAppearance.night else nightModeOrNull(resources.configuration.uiMode) ?: false
         if (savedNightMode != carPlayNightMode || savedThreshold != ambientLightThreshold ||
             savedDelay != ambientDelaySeconds || savedSchedule != nightSchedule) {
             carPlayNightMode = savedNightMode
@@ -863,7 +881,7 @@ class CarPlayHostActivity : ComponentActivity() {
             requestLocationPermission()
         }
         wirelessPermissionsReady = !wirelessEnabled || hasRequiredWirelessPermissions()
-        advancedAudioChannelMapping =
+        if (!menuOpen) advancedAudioChannelMapping =
             advancedAudioChannelMappingSupported &&
                 AirPlayPersistence.loadAdvancedAudioChannelMapping(this)
         if (DiLink51ClusterLayout.automatic(this) && clusterMonitor == null) {
@@ -1225,6 +1243,8 @@ class CarPlayHostActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putBoolean("carplay_night_active", darkMode)
+        outState.putBoolean(CarPlaySettingsNavigation.MENU, menuOpen)
+        outState.putBoolean("settings_only_launch", settingsOnlyLaunch)
         super.onSaveInstanceState(outState)
     }
 
@@ -1708,6 +1728,8 @@ class CarPlayHostActivity : ComponentActivity() {
             ).apply { topMargin = dp(6) },
         )
 
+        CarPlaySettingsNavigation.addPage(content, SettingsCategory.CONNECTION, ::openAdditionalSettings)
+
         content.addView(
             settingsCategoryHeader(getString(R.string.automatic_connection)),
             LinearLayout.LayoutParams(
@@ -1730,48 +1752,12 @@ class CarPlayHostActivity : ComponentActivity() {
             ).apply { topMargin = dp(12) },
         )
 
-        content.addView(
-            settingsCategoryHeader(getString(R.string.settings_navigation)),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(36) },
-        )
-        content.addView(
-            buildLocationReportingSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(12) },
-        )
-
-        if (advancedAudioChannelMappingSupported) {
-            content.addView(
-                settingsCategoryHeader(getString(R.string.audio)),
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = dp(36) },
-            )
-            content.addView(
-                settingsSwitchRow(
-                    label = getString(R.string.advanced_audio_channel_mapping),
-                    checked = advancedAudioChannelMapping,
-                    description = getString(R.string.use_usage_content_type_routing_instead_of_stream_type),
-                ) { checked ->
-                    advancedAudioChannelMapping = checked
-                    appendLog(
-                        "Advanced audio channel mapping ${if (checked) "enabled" else "disabled"}; " +
-                            "applies when settings close",
-                    )
-                    updateResolutionMenu()
-                },
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = dp(12) },
-            )
-        }
+        content.addView(settingsCategoryHeader(getString(R.string.settings_display)))
+        content.addView(BrowserSettingsPresentation.frameRate(this, { fps }) { selected ->
+            fps = selected
+            updateResolutionMenu()
+        }, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
+        content.addView(menuText(getString(R.string.settings_video_reconnect_hint), 16f, MENU_SECONDARY))
 
         content.addView(
             settingsCategoryHeader(getString(R.string.settings_vehicle)),
@@ -1781,11 +1767,18 @@ class CarPlayHostActivity : ComponentActivity() {
             ).apply { topMargin = dp(36) },
         )
         content.addView(
-            buildIdentitySettingsSection(),
+            buildDrivingSideSection(),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(12) },
+        )
+        content.addView(
+            buildIdentitySettingsSection(),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(26) },
         )
         content.addView(
             buildAirPlayIconSection(),
@@ -1794,109 +1787,20 @@ class CarPlayHostActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(26) },
         )
-        content.addView(
-            buildDrivingSideSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(26) },
-        )
-        content.addView(
-            buildDockSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(26) },
-        )
-        content.addView(
-            settingsCategoryHeader(getString(R.string.settings_display)),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(40) },
-        )
-
-        val resolutionControl = DisplaySettingsSection.createResolutionSlider(
-            context = this,
-            initialPercent = displayScalePercent,
-            theme = SettingsTheme.OVERLAY,
-        ) { percent ->
-            displayScalePercent = percent
-            displayScaleTenths = CarPlayDisplayScale.sanitize((percent + 5) / 10)
-            updateResolutionMenu()
+        if (!AirPlayPersistence.isPhoneBrowserMode(this)) {
+            CarPlaySettingsNavigation.addPage(content, SettingsCategory.VEHICLE, ::openAdditionalSettings)
         }
-        val resolutionValue = resolutionControl.valueTextView
-        content.addView(
-            resolutionControl.container,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ),
-        )
-
-        content.addView(
-            buildStepSliderSection(
-                title = getString(R.string.frame_rate),
-                values = (
-                    AirPlayDisplaySettings.MIN_FPS..AirPlayDisplaySettings.MAX_FPS
-                    step AirPlayDisplaySettings.FPS_STEP
-                    ).toList(),
-                selectedValue = fps,
-                label = { "$it fps" },
-                onValueChanged = { value ->
-                    fps = value
-                    updateResolutionMenu()
-                },
-            ),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(24) },
-        )
-
-        content.addView(
-            settingsChoiceRow(
-                label = getString(R.string.physical_size_basis),
-                options = listOf(
-                    AirPlayPhysicalSizeBasis.WIDTH to getString(R.string.widest_width),
-                    AirPlayPhysicalSizeBasis.HEIGHT to getString(R.string.longest_height),
-                ),
-                selected = physicalSizeBasis,
-            ) { value ->
-                physicalSizeBasis = value
-                updateResolutionMenu()
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(24) },
-        )
-
-        content.addView(
-            buildStepSliderSection(
-                title = getString(R.string.physical_length),
-                values = (
-                    AirPlayDisplaySettings.MIN_WIDTH_PHYSICAL_MM..
-                        AirPlayDisplaySettings.MAX_WIDTH_PHYSICAL_MM
-                    step AirPlayDisplaySettings.WIDTH_PHYSICAL_MM_STEP
-                    ).toList(),
-                selectedValue = widthPhysicalMm,
-                label = { "$it mm" },
-                onValueChanged = { value ->
-                    widthPhysicalMm = value
-                    updateResolutionMenu()
-                },
-            ),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(16) },
-        )
+        val resolutionValue: TextView? = null
+        content.addView(settingsCategoryHeader(getString(R.string.settings_advanced)))
+        if (headUnitIntegrations()) {
+            CarPlaySettingsNavigation.addPage(content, SettingsCategory.ADVANCED, ::openAdditionalSettings)
+        }
 
         val hevcRow = DisplaySettingsSection.createHevcRow(
             context = this,
             checked = hevcEnabled,
             theme = SettingsTheme.OVERLAY,
+            title = getString(R.string.settings_hevc_experimental),
         ) { checked ->
             if (hevcEnabled == checked) return@createHevcRow
             hevcEnabled = checked
@@ -1913,6 +1817,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(30) },
         )
+        content.addView(menuText(getString(R.string.settings_video_reconnect_hint), 16f, MENU_SECONDARY))
 
         val softwareHevcRow = DisplaySettingsSection.createSoftwareHevcRow(
             context = this,
@@ -1927,7 +1832,7 @@ class CarPlayHostActivity : ComponentActivity() {
             )
             updateResolutionMenu()
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        if (headUnitIntegrations() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             content.addView(
                 softwareHevcRow.rowView,
                 LinearLayout.LayoutParams(
@@ -1938,35 +1843,20 @@ class CarPlayHostActivity : ComponentActivity() {
         }
 
         content.addView(
-            buildSafeAreaSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(30) },
-        )
-
-        content.addView(
-            buildFullscreenSection(),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply { topMargin = dp(12) },
-        )
-
-        content.addView(
             settingsCategoryHeader(getString(R.string.diagnostics)),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(40) },
         )
-        content.addView(
+        if (headUnitIntegrations()) content.addView(
             buildDebugLogsSection(),
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(12) },
         )
+        CarPlaySettingsNavigation.addPage(content, SettingsCategory.DIAGNOSTICS, ::openAdditionalSettings)
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             content.addView(
@@ -2049,15 +1939,16 @@ class CarPlayHostActivity : ComponentActivity() {
         content.addView(gestureButton, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(12) })
 
         val openDiPlaySettingsButton = Button(this).apply {
-            text = "${getString(R.string.app_name)} ${getString(R.string.settings)}"
+            text = getString(R.string.about)
             isAllCaps = false
             textSize = 17f
             setTextColor(Color.WHITE)
             backgroundTintList = ColorStateList.valueOf(MENU_TRACK_OFF)
             minHeight = dp(52)
             setOnClickListener {
-                cancelSettingsEdits()
-                showDiPlayHome("settings")
+                startActivity(Intent(this@CarPlayHostActivity, DiPlayActivity::class.java)
+                    .putExtra("page", "about").putExtra(CarPlaySettingsNavigation.MENU, true)
+                    .addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
             }
         }
         content.addView(
@@ -2161,6 +2052,11 @@ class CarPlayHostActivity : ComponentActivity() {
         AirPlayPersistence.saveHideTopBar(this, hideTopBar)
         AirPlayPersistence.saveHideBottomBar(this, hideBottomBar)
         AirPlayPersistence.saveSafeAreaDrawOutside(this, safeAreaDrawOutside)
+    }
+
+    private fun openAdditionalSettings(category: SettingsCategory) {
+        controller?.sendTouch(emptyList())
+        startActivity(CarPlaySettingsNavigation.pageIntent(this, category))
     }
 
     private fun captureSettingsBaseline(): SettingsBaseline {
@@ -3007,9 +2903,6 @@ class CarPlayHostActivity : ComponentActivity() {
             setPadding(0, dp(8), 0, 0)
         }
         val modes = buildList {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                add(WirelessHotspotMode.WIFI_P2P to getString(R.string.wi_fi_p2p_5_ghz))
-            }
             add(WirelessHotspotMode.MANUAL to getString(R.string.built_in_car_hotspot))
             add(WirelessHotspotMode.EXISTING_WIFI to getString(R.string.existing_wifi_title))
         }
@@ -3160,6 +3053,7 @@ class CarPlayHostActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply { topMargin = dp(8) },
         )
+        LocalHotspotAutofill.attach(manualFields)
         manualHotspotFields = manualFields
         manualHotspotErrorView = error
         val existingFields = LinearLayout(this).apply {
@@ -3323,6 +3217,10 @@ class CarPlayHostActivity : ComponentActivity() {
 
     private fun updateResolutionMenu() {
         resolutionValueView?.text = "${displayScalePercent}%"
+        if (!headUnitIntegrations()) {
+            resolutionPreviewView?.text = BrowserSettingsPresentation.summary(this, fps, hevcEnabled, widthPhysicalMm)
+            return
+        }
         val native = activeDisplaySize ?: currentActivitySize()
         val resolution = if (native == null) {
             getString(R.string.handshake_resolution_waiting_for_display)
@@ -3378,12 +3276,6 @@ class CarPlayHostActivity : ComponentActivity() {
             append(getString(R.string.preview_location_reporting))
                 .append(if (locationReportingEnabled) getString(R.string.enabled_value) else getString(R.string.disabled_value))
                 .append('\n')
-            if (advancedAudioChannelMappingSupported) {
-                append(getString(R.string.preview_audio_channel_mapping))
-                    .append(if (advancedAudioChannelMapping) getString(R.string.mapping_aaos_buses) else getString(R.string.mapping_mobile_compatible))
-                    .append('\n')
-            }
-            append(safeAreaSummary())
         }
     }
 
@@ -3611,7 +3503,7 @@ class CarPlayHostActivity : ComponentActivity() {
     }
 
     /**
-     * Phone + browser mode (TiPlay): the canvas is the car browser's last viewport at 60 fps ([TeslaBrowserCanvas]).
+     * Phone + browser mode (TiPlay): the canvas is the car browser's last viewport ([TeslaBrowserCanvas]).
      * The head unit's resolution, icon size, safe area, dock, split screen, turning screen, side panel and dashboard
      * map do not apply. Every other field is the same as at the end of [createAirPlayConfig].
      */
@@ -3623,12 +3515,12 @@ class CarPlayHostActivity : ComponentActivity() {
             heightPixels = plan.height,
             widthPhysicalMm = plan.widthMm,
             heightPhysicalMm = plan.heightMm,
-            fps = TeslaBrowserCanvas.FPS,
+            fps = fps,
             primaryInputDevice = if (knobPrimary) 3 else 1,
         )
         pendingViewAreas = null
-        val summary = "${plan.describe()} phoneView=${size.width}x${size.height} " +
-            "codec=${if (hevcEnabled) "HEVC" else "H.264"} softwareHevc=$hevcSoftwareDecoderEnabled"
+        val summary = "${plan.describe(fps)} phoneView=${size.width}x${size.height} " +
+            "codec=${if (hevcEnabled) "HEVC" else "H.264"}"
         displayDiagnosticAttempt = DisplayDiagnosticSnapshot.begin(this, summary,
             "Decoder capability check skipped: phone + browser mode", summary)
         appendLog(summary)
@@ -3856,7 +3748,7 @@ class CarPlayHostActivity : ComponentActivity() {
     private fun createMediaEngine(sink: AndroidMediaSink, receivesAudio: Boolean): CarPlayMediaEngine =
         CarPlayMediaEngine(
             // Phone + browser mode: the main screen also goes to the car's browser, untouched.
-            sink = TeslaBrowserLink.tee(sink, phoneBrowser = !headUnitIntegrations(), sink.videoWidth, sink.videoHeight),
+            sink = TeslaBrowserLink.tee(sink, phoneBrowser = !headUnitIntegrations(), sink.videoWidth, sink.videoHeight, fps),
             microphoneEnabled = microphoneAvailable && receivesAudio,
             audioCaptureDirectory = if (receivesAudio) audioCaptureDirectory() else null,
         )
@@ -4181,7 +4073,7 @@ class CarPlayHostActivity : ComponentActivity() {
         lastConfiguration = Configuration(newConfig)
         nightModeDiagnosticSource = source
         try {
-            nightModeOrNull(newConfig.uiMode)?.let { nightModeController.systemChanged(it) }
+            nightModeController.systemChanged(if (AirPlayPersistence.isPhoneBrowserMode(this)) BrowserAppearance.night else nightModeOrNull(newConfig.uiMode) ?: darkMode)
         } finally {
             nightModeDiagnosticSource = ThemeModeDiagnostics.Source.CARPLAY_MODE
         }
@@ -4618,6 +4510,10 @@ class CarPlayHostActivity : ComponentActivity() {
         if (!menuOpen) return
         if (!validateMfiSettings()) return
         if (!validateManualHotspotSettings()) return
+        val baseline = settingsBaseline
+        if (!CarPlaySettingsPermissions.readyToSave(this, autoStartOnBoot, wirelessHotspotMode) {
+            if (menuOpen && settingsBaseline === baseline) saveSettingsAndReconnect()
+        }) return
         persistMenuSettings()
         settingsBaseline = null
         finishSettingsMenu("Settings saved", reconnect = true)
@@ -4648,6 +4544,16 @@ class CarPlayHostActivity : ComponentActivity() {
         failurePendingAfterMenu = null
         val recoveryPending = recoveryPendingAfterMenu || failure != null
         recoveryPendingAfterMenu = false
+        if (settingsOnlyLaunch && controller == null) {
+            if (reconnect) {
+                settingsOnlyLaunch = false
+                if (microphonePermissionResolved) requestStartupPrerequisites()
+                else microphonePermission.launch(Manifest.permission.RECORD_AUDIO)
+            } else {
+                finish()
+            }
+            return
+        }
         if (reconnect) {
             startupRetryBudget.manualRetry()
             startupRetryStopped = false

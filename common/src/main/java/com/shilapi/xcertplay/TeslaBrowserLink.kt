@@ -66,6 +66,7 @@ internal object TeslaBrowserLink {
         /** The driver pressed "Apply and reconnect" in the browser: the CarPlay screen decides whether to reconnect. */
         fun onBrowserFit()
         fun onBrowserViewport(viewport: BrowserViewport) {}
+        fun onBrowserTheme(night: Boolean) {}
     }
 
     const val PORT = BrowserLinkServer.DEFAULT_PORT
@@ -166,7 +167,10 @@ internal object TeslaBrowserLink {
         if (requested.compareAndSet(true, false)) worker.execute(::reconcile)
     }
 
-    fun attachHost(host: Host) = this.host.set(host)
+    fun attachHost(host: Host) {
+        this.host.set(host)
+        main.post { if (this.host.get() === host) host.onBrowserTheme(BrowserAppearance.night) }
+    }
 
     fun detachHost(host: Host) {
         this.host.compareAndSet(host, null)
@@ -176,9 +180,9 @@ internal object TeslaBrowserLink {
      * The engine's sink for a new session: in phone + browser mode the Android [sink] with a tap that feeds the main
      * screen into [hub]; otherwise [sink] itself. [width] × [height] is the negotiated canvas.
      */
-    fun tee(sink: MediaSink, phoneBrowser: Boolean, width: Int, height: Int): MediaSink {
+    fun tee(sink: MediaSink, phoneBrowser: Boolean, width: Int, height: Int, fps: Int = TeslaBrowserCanvas.FPS): MediaSink {
         if (!phoneBrowser) return sink
-        val web = WebMediaSink(hub, width, height, TeslaBrowserCanvas.FPS)
+        val web = WebMediaSink(hub, width, height, fps)
         taps[sink] = web
         val reported = AtomicBoolean(false)
         return VideoTeeMediaSink(sink, web) { error ->
@@ -355,6 +359,7 @@ internal object TeslaBrowserLink {
             }
         }
         override fun onBrowserStats(stats: Map<String, Any?>) {
+            BrowserAppearance.update(stats)?.let { night -> main.post { host.get()?.onBrowserTheme(night) } }
             val now = clock()
             synchronized(statsLock) {
                 val last = lastStatsLog

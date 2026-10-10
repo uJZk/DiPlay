@@ -136,6 +136,7 @@ class DiPlayActivity : ComponentActivity() {
     private var settingsCategory = SettingsCategory.OVERVIEW
     private var connectionSettingsReturnCategory: SettingsCategory? = null
     private var settingsSectionFilter: Set<SettingsSection>? = null
+    private var hostSettingsPage = false
     private var clusterSafeAreaDialog: Dialog? = null
     private var clusterContentRequestVersion = 0L
     private var pendingCarHotspotSetup = false
@@ -277,6 +278,10 @@ class DiPlayActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Normal entry and the host's pages use TiPlay's browser profile. Keep the upstream internal page API.
+        if (intent.getStringExtra("page") != "settings" || intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false)) {
+            BrowserSettingsPolicy.activate(this)
+        }
         // Back on the home page finishes this activity while the session runs on, so the icon lands here.
         if (savedInstanceState == null && isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession()) {
             openProjection(); finish(); return
@@ -307,6 +312,12 @@ class DiPlayActivity : ComponentActivity() {
         connectionSettingsReturnCategory = savedInstanceState?.getString("connection_settings_return_category")
             ?.let { runCatching { SettingsCategory.valueOf(it) }.getOrNull() }
         page = savedInstanceState?.getString("page") ?: intent.getStringExtra("page") ?: "home"
+        hostSettingsPage = intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false)
+        CarPlaySettingsNavigation.category(intent)?.let {
+            hostSettingsPage = true
+            settingsCategory = savedInstanceState?.getString("settings_category")
+                ?.let { name -> SettingsCategory.valueOf(name) } ?: it
+        }
         render()
         scheduleAutomaticVehicleValidation()
         handleWirelessRecovery()
@@ -326,6 +337,9 @@ class DiPlayActivity : ComponentActivity() {
         if (isLauncherIntent(intent) && CarPlayBackgroundSession.hasSession()) {
             page = "home"; render(); openProjection(); return
         }
+        hostSettingsPage = intent.getBooleanExtra(CarPlaySettingsNavigation.MENU, false) ||
+            CarPlaySettingsNavigation.category(intent) != null
+        CarPlaySettingsNavigation.category(intent)?.let { settingsCategory = it }
         page = intent.getStringExtra("page") ?: "home"; render()
         automaticVehicleValidationStarted = false
         scheduleAutomaticVehicleValidation()
@@ -452,7 +466,7 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private val isExpandedSettingsLayout: Boolean
-        get() = resources.configuration.let {
+        get() = !hostSettingsPage && resources.configuration.let {
             SettingsLayoutPolicy.isExpanded(it.screenWidthDp, it.screenHeightDp, it.fontScale)
         }
 
@@ -555,6 +569,11 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun navigateBack() {
+        if (hostSettingsPage) {
+            startActivity(CarPlaySettingsNavigation.menuIntent(this))
+            finish()
+            return
+        }
         val returnCategory = connectionSettingsReturnCategory
         when {
             page == "connection" && returnCategory != null -> {
@@ -583,7 +602,7 @@ class DiPlayActivity : ComponentActivity() {
         gravity = Gravity.CENTER_VERTICAL
         addView(button(getString(R.string.back), false, ::navigateBack),
             LinearLayout.LayoutParams(if (compact) dp(78) else dp(112), if (compact) dp(44) else dp(52)))
-        addView(label(getString(R.string.settings), if (compact) 20 else 26, TEXT, true).apply {
+        addView(label(getString(if (hostSettingsPage) R.string.carplay_settings else R.string.settings), if (compact) 20 else 26, TEXT, true).apply {
             setPadding(dp(12), 0, dp(12), 0)
         }, LinearLayout.LayoutParams(0, if (compact) dp(44) else dp(52), 1f))
         addView(button(getString(R.string.settings_search), false) { showSettingsSearch() },
@@ -609,7 +628,7 @@ class DiPlayActivity : ComponentActivity() {
                 gravity = Gravity.CENTER_VERTICAL
             }
             val usbBtn = button(getString(R.string.connect_with_usb), false) { connect(false) }
-            val settingsBtn = button(getString(R.string.settings), false) { page = "settings"; render() }
+            val settingsBtn = button(getString(R.string.settings), false) { startActivity(CarPlaySettingsNavigation.menuIntent(this)) }
             buttonRow.addView(usbBtn, LinearLayout.LayoutParams(0, dp(38), 1f))
             buttonRow.addView(space(8), LinearLayout.LayoutParams(dp(8), 1))
             buttonRow.addView(settingsBtn, LinearLayout.LayoutParams(0, dp(38), 1f))
@@ -678,7 +697,7 @@ class DiPlayActivity : ComponentActivity() {
         }
         right.addView(button(getString(R.string.connect_with_usb), false) { connect(false) }, matchButton())
         right.addView(label(getString(R.string.plug_your_iphone_into_a_usb_data_port_allow_carplay_when_y), 14, MUTED).apply { gravity = Gravity.CENTER; setPadding(dp(8), dp(10), dp(8), dp(24)) })
-        right.addView(button(getString(R.string.settings), false) { page = "settings"; render() }, matchButton())
+        right.addView(button(getString(R.string.settings), false) { startActivity(CarPlaySettingsNavigation.menuIntent(this)) }, matchButton())
         right.addView(label(getString(R.string.make_diplay_feel_right_for_your_car), 14, MUTED).apply { gravity = Gravity.CENTER; setPadding(0, dp(10), 0, dp(24)) })
         right.addView(label("${getString(R.string.home_public_preview)}${version()}", 12, MUTED).apply { letterSpacing = .08f })
         if (wide) {
@@ -799,6 +818,7 @@ class DiPlayActivity : ComponentActivity() {
     })
 
     private fun settingsCategoryContent(content: LinearLayout) {
+        if (hostSettingsPage) content.addView(label(getString(R.string.settings_additional_save_hint), 14, MUTED))
         when (settingsCategory) {
             SettingsCategory.OVERVIEW -> settingsOverview(content)
             SettingsCategory.CONNECTION -> connectionSettings(content)
@@ -972,6 +992,7 @@ class DiPlayActivity : ComponentActivity() {
         toggle(this, getString(R.string.connect_when_diplay_opens),
             getString(R.string.default_connection_description),
             DiPlayPreferences.autoConnect(this@DiPlayActivity)) { DiPlayPreferences.saveAutoConnect(this@DiPlayActivity, it) }
+        if (!AirPlayPersistence.isPhoneBrowserMode(this@DiPlayActivity)) {
         appearanceControl(this)
         toggle(this, getString(R.string.full_screen), getString(R.string.settings_full_screen_description),
             AirPlayPersistence.loadHideTopBar(this@DiPlayActivity) && AirPlayPersistence.loadHideBottomBar(this@DiPlayActivity)) { enabled ->
@@ -981,6 +1002,7 @@ class DiPlayActivity : ComponentActivity() {
         toggle(this, getString(R.string.report_location_to_iphone),
             "${getString(R.string.location_reporting_reconnects)} ${getString(R.string.sends_precise_android_location_as_carplay_gps_data_when_th)}",
             AirPlayPersistence.loadLocationReportingEnabled(this@DiPlayActivity), save = ::onLocationReportingChanged)
+        }
         Unit
     }
 
@@ -1074,9 +1096,11 @@ class DiPlayActivity : ComponentActivity() {
     private fun buildSettingsSearchIndex(): List<SettingsSearchResult> {
         val selected = settingsCategory
         // Category names first, so a card that only links to a category cannot claim its name.
-        val index = SettingsCategory.entries.associateByTo(linkedMapOf(), ::settingsCategoryTitle)
+        val categories = SettingsCategory.entries.filter { it != SettingsCategory.OVERVIEW } +
+            if (hostSettingsPage) emptyList() else listOf(SettingsCategory.OVERVIEW)
+        val index = categories.associateByTo(linkedMapOf(), ::settingsCategoryTitle)
         try {
-            for (category in SettingsCategory.entries.filter { it != SettingsCategory.OVERVIEW } + SettingsCategory.OVERVIEW) {
+            for (category in categories) {
                 settingsCategory = category
                 val titles = mutableListOf(settingsCategoryTitle(category))
                 searchIndexSink = titles
@@ -1201,7 +1225,7 @@ class DiPlayActivity : ComponentActivity() {
         sections: Set<SettingsSection>,
     ) {
         val previous = settingsSectionFilter
-        settingsSectionFilter = sections
+        settingsSectionFilter = if (hostSettingsPage) CarPlaySettingsNavigation.additionalSections(sections) else sections
         try {
             allSettingsSections(content)
         } finally {
@@ -1234,14 +1258,6 @@ class DiPlayActivity : ComponentActivity() {
         filteredSection(content, SettingsSection.TESLA_BROWSER,
             getString(R.string.settings_tesla_browser), R.drawable.ic_dp_connection) { card ->
             val phoneBrowser = AirPlayPersistence.isPhoneBrowserMode(this)
-            toggle(card, getString(R.string.settings_phone_browser_mode),
-                getString(R.string.settings_phone_browser_mode_description), phoneBrowser) {
-                AirPlayPersistence.saveRunMode(this, if (it) CarPlayRunMode.PHONE_BROWSER else CarPlayRunMode.HEAD_UNIT)
-                HotspotExtraAddressSettings.sync(this) // the extra hotspot address exists only in phone mode
-                TeslaBrowserLink.sync(this) // so does the car browser's link; a running session keeps its mode
-                render() // the head-unit cards come and go with the mode
-                markReconnectNeeded()
-            }
             if (phoneBrowser) {
                 teslaBrowserLinkSettings(card)
                 hotspotAddressSettings(card)
@@ -1271,7 +1287,7 @@ class DiPlayActivity : ComponentActivity() {
             }
             // Starting with the car, USB prompts and ADB grants belong to a head unit; a phone connects wirelessly.
             if (!AirPlayPersistence.isPhoneBrowserMode(this)) {
-                adbToggle(card, R.string.open_after_the_car_starts,
+                if (!hostSettingsPage) adbToggle(card, R.string.open_after_the_car_starts,
                     R.string.availability_depends_on_your_head_unit_s_startup_settings,
                     read = { AirPlayPersistence.loadAutoStartOnBoot(this) },
                     needsAdb = { CarHotspotSettings.enabled(this) &&
@@ -1354,23 +1370,25 @@ class DiPlayActivity : ComponentActivity() {
                 startActivity(Intent(this, CarPlayHostActivity::class.java)
                     .putExtra("picture_controls", true).addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT))
             }, matchButton(0, 56).apply { bottomMargin = dp(24) })
-            carPlaySizeControl(card)
-            resolutionSettingControl(
-                card, R.string.resolution, R.string.custom_resolution_hint,
-                CarPlayDisplayScale.MIN_PERCENT..CarPlayDisplayScale.MAX_PERCENT, 100,
-                R.string.custom_resolution_summary,
-                { AirPlayPersistence.loadDisplayScalePercent(this) }, reconnects = true,
-                save = { AirPlayPersistence.saveDisplayScalePercent(this, it) },
-            )
-            choice(card, getString(R.string.frame_rate), listOf(getString(R.string.s_30_fps_lighter_load), getString(R.string.s_60_fps_smoother_motion)), if (AirPlayPersistence.loadFps(this) == 60) 1 else 0) { AirPlayPersistence.saveFps(this, if (it == 1) 60 else 30) }
-            carPlayDockControl(card)
-            addSystemBarControls(
-                hideTopBar = AirPlayPersistence.loadHideTopBar(this),
-                hideBottomBar = AirPlayPersistence.loadHideBottomBar(this),
-                onHideTopBarChanged = { AirPlayPersistence.saveHideTopBar(this, it) },
-                onHideBottomBarChanged = { AirPlayPersistence.saveHideBottomBar(this, it) },
-            ) { label, checked, onChanged ->
-                toggle(card, getString(label), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), checked, save = onChanged)
+            if (!hostSettingsPage) {
+                carPlaySizeControl(card)
+                resolutionSettingControl(
+                    card, R.string.resolution, R.string.custom_resolution_hint,
+                    CarPlayDisplayScale.MIN_PERCENT..CarPlayDisplayScale.MAX_PERCENT, 100,
+                    R.string.custom_resolution_summary,
+                    { AirPlayPersistence.loadDisplayScalePercent(this) }, reconnects = true,
+                    save = { AirPlayPersistence.saveDisplayScalePercent(this, it) },
+                )
+                choice(card, getString(R.string.frame_rate), listOf(getString(R.string.s_30_fps_lighter_load), getString(R.string.s_60_fps_smoother_motion)), if (AirPlayPersistence.loadFps(this) == 60) 1 else 0) { AirPlayPersistence.saveFps(this, if (it == 1) 60 else 30) }
+                carPlayDockControl(card)
+                addSystemBarControls(
+                    hideTopBar = AirPlayPersistence.loadHideTopBar(this),
+                    hideBottomBar = AirPlayPersistence.loadHideBottomBar(this),
+                    onHideTopBarChanged = { AirPlayPersistence.saveHideTopBar(this, it) },
+                    onHideBottomBarChanged = { AirPlayPersistence.saveHideBottomBar(this, it) },
+                ) { label, checked, onChanged ->
+                    toggle(card, getString(label), getString(R.string.hide_the_car_s_system_bars_while_carplay_is_open), checked, save = onChanged)
+                }
             }
             toggle(card, getString(R.string.adapt_pip_resolution), getString(R.string.adapt_pip_resolution_description), AirPlayPersistence.loadAdaptPipResolution(this)) {
                 AirPlayPersistence.saveAdaptPipResolution(this, it)
@@ -1411,7 +1429,7 @@ class DiPlayActivity : ComponentActivity() {
         // Opt-in controls that can cost sound or video on some head units.
         filteredSection(content, SettingsSection.ADVANCED_MEDIA,
             getString(R.string.settings_advanced_media), R.drawable.ic_dp_advanced) { card ->
-            toggle(card, getString(R.string.efficient_video), getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) { AirPlayPersistence.saveHevcEnabled(this, it); markReconnectNeeded() }
+            if (!hostSettingsPage) toggle(card, getString(R.string.efficient_video), getString(R.string.use_hevc_leave_off_for_the_widest_head_unit_compatibility), AirPlayPersistence.loadHevcEnabled(this)) { AirPlayPersistence.saveHevcEnabled(this, it); markReconnectNeeded() }
             toggle(card, getString(R.string.smooth_video), getString(R.string.smooth_video_description),
                 AirPlayPersistence.loadSmoothVideo(this)) {
                 AirPlayPersistence.saveSmoothVideo(this, it)
@@ -1428,7 +1446,7 @@ class DiPlayActivity : ComponentActivity() {
                 markReconnectNeeded()
             }
             audioFocusControls(card)
-            if (resources.getBoolean(R.bool.config_advanced_audio_channel_mapping)) {
+            if (!hostSettingsPage && resources.getBoolean(R.bool.config_advanced_audio_channel_mapping)) {
                 toggle(card, getString(R.string.advanced_audio_channel_mapping),
                     getString(R.string.use_usage_content_type_routing_instead_of_stream_type),
                     AirPlayPersistence.loadAdvancedAudioChannelMapping(this)) {
@@ -1447,7 +1465,6 @@ class DiPlayActivity : ComponentActivity() {
         filteredSection(content, SettingsSection.AUDIO_ROUTING,
             getString(R.string.audio_routing), R.drawable.ic_dp_audio) { card ->
             // Only a car browser needs it (its audience sees it, so it stays in Audio); a head unit plays the sound.
-            if (AirPlayPersistence.isPhoneBrowserMode(this)) carBluetoothAudioControl(card)
             mediaChannelControl(card)
             navigationChannelControl(card)
             val bufferPresets = com.shilapi.xcertplay.media.MediaAudioBuffer.presets
@@ -1678,7 +1695,8 @@ class DiPlayActivity : ComponentActivity() {
         }
         filteredSection(content, SettingsSection.PERMISSIONS_AND_HELP,
             getString(R.string.permissions_and_connection_help), R.drawable.ic_dp_permissions) { card ->
-            card.addView(label(getString(R.string.nearby_devices_connects_your_iphone_microphone_enables_sir), 16, MUTED))
+            card.addView(label(getString(if (AirPlayPersistence.isPhoneBrowserMode(this))
+                R.string.settings_browser_permissions else R.string.nearby_devices_connects_your_iphone_microphone_enables_sir), 16, MUTED))
             card.addView(button(getString(R.string.app_permissions), false) { openSystem(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))) }, matchButton(16, 60))
             card.addView(button(getString(R.string.bluetooth_settings), false) { openSystem(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) }, matchButton(10, 60))
             card.addView(button(getString(R.string.wireless_connection_help), false) { wirelessHelp() }, matchButton(10, 60))
@@ -1949,12 +1967,11 @@ class DiPlayActivity : ComponentActivity() {
     }
 
     private fun wirelessLinkControls(parent: LinearLayout) {
-        val mode = if (pendingCarHotspotSetup) WirelessHotspotMode.MANUAL else AirPlayPersistence.loadWirelessHotspotMode(this)
-        val modes = listOf(WirelessHotspotMode.MANUAL, WirelessHotspotMode.WIFI_P2P, WirelessHotspotMode.EXISTING_WIFI)
-        val titles = listOf(getString(R.string.built_in_car_hotspot), getString(R.string.wifi_direct), getString(R.string.existing_wifi_title))
+        val mode = if (pendingCarHotspotSetup) WirelessHotspotMode.MANUAL else AirPlayPersistence.loadWirelessHotspotMode(this).let { if (it == WirelessHotspotMode.WIFI_P2P) WirelessHotspotMode.MANUAL else it }
+        val modes = listOf(WirelessHotspotMode.MANUAL, WirelessHotspotMode.EXISTING_WIFI)
+        val titles = listOf(getString(R.string.built_in_car_hotspot), getString(R.string.existing_wifi_title))
         val descriptions = listOf(
             getString(R.string.hotspot_mode_manual_desc),
-            getString(R.string.hotspot_mode_p2p_desc),
             getString(R.string.existing_wifi_description)
         )
         val wide = resources.configuration.screenWidthDp >= 850
@@ -1994,11 +2011,6 @@ class DiPlayActivity : ComponentActivity() {
                 }
             }, matchButton(12, 60))
             parent.addView(label(if (pendingCarHotspotSetup) getString(R.string.finish_setup_save_your_hotspot_details_to_use_this_mode) else if (carHotspotOff()) getString(R.string.hotspot_details_off) else getString(R.string.hotspot_details_saved), 15, if (carHotspotOff()) WARNING else MUTED).apply { setPadding(0, dp(12), 0, 0) })
-            val join = hotspotJoinControls ?: HotspotJoinControls(this,
-                { CarPlayBackgroundSession.hasSession() }, beforeAction = { startupHotspotCancelled = true },
-                labelFactory = { label(it, 15, MUTED) }, buttonFactory = { title, click -> button(title, false, click) })
-                .also { hotspotJoinControls = it }
-            parent.addView(join.build())
         } else if (mode == WirelessHotspotMode.EXISTING_WIFI) {
             parent.addView(label(getString(R.string.existing_wifi_instructions), 16, MUTED))
             parent.addView(button(getString(R.string.open_car_wi_fi_settings), false) { openCarClientWifiSettings() }, matchButton(12, 60))
@@ -2048,20 +2060,6 @@ class DiPlayActivity : ComponentActivity() {
         parent.addView(label(getString(R.string.wifi_direct_channel_description), 15, MUTED).apply {
             setPadding(0, dp(6), 0, dp(12))
         })
-    }
-
-    // Applies at the next connection: saving only shows "Reconnect now" and never drops the session.
-    private fun carBluetoothAudioControl(parent: LinearLayout) {
-        val modes = CarBluetoothAudio.entries
-        choice(parent, getString(R.string.settings_car_bluetooth_audio), listOf(
-            getString(R.string.settings_car_bluetooth_audio_off),
-            getString(R.string.settings_car_bluetooth_audio_on),
-            getString(R.string.settings_car_bluetooth_audio_alternative),
-        ), modes.indexOf(AirPlayPersistence.loadCarBluetoothAudio(this)), reconnects = false) {
-            AirPlayPersistence.saveCarBluetoothAudio(this, modes[it])
-            markReconnectNeeded()
-        }
-        parent.addView(label(getString(R.string.settings_car_bluetooth_audio_description), 14, MUTED))
     }
 
     private fun mediaChannelControl(parent: LinearLayout) {
@@ -2180,6 +2178,7 @@ class DiPlayActivity : ComponentActivity() {
             if (action == android.view.inputmethod.EditorInfo.IME_ACTION_DONE) { hideKeyboard(); true } else false
         }
         fields.addView(ssid); fields.addView(password)
+        if (!existingWifi) LocalHotspotAutofill.attach(fields, ssid, password)
         fields.addView(CheckBox(this).apply {
             text = getString(R.string.show_password)
             setOnCheckedChangeListener { _, checked ->
@@ -4229,7 +4228,7 @@ class DiPlayActivity : ComponentActivity() {
 
     // The phone + browser run mode also hides the cards for head-unit hardware.
     private fun showsSection(key: SettingsSection): Boolean =
-        settingsSectionFilter?.contains(key) != false &&
+        (!AirPlayPersistence.isPhoneBrowserMode(this) || BrowserSettingsPolicy.shows(key)) && settingsSectionFilter?.contains(key) != false &&
             (key !in SettingsInformationArchitecture.headUnitOnlySections || !AirPlayPersistence.isPhoneBrowserMode(this))
 
     // Routing changes affect the live cluster surface as soon as the host resumes.

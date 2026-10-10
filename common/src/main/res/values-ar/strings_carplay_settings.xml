@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_more_options">المزيد من إعدادات %1$s</string>
+    <string name="settings_additional_save_hint">تُحفظ تغييرات هذه الصفحة بشكل منفصل. توضح الإعدادات التي تعيد اتصال CarPlay ذلك في الوصف أو الزر. تبقى التغييرات غير المحفوظة في قائمة إعدادات CarPlay أثناء زيارة هذه الصفحة.</string>
+    <string name="settings_hotspot_read">قراءة نقطة اتصال الجهاز</string>
+    <string name="settings_hotspot_read_hint">محاولة قراءة نقطة الاتصال. يمكن تعديل الاسم وكلمة المرور يدويًا. أدخل كلمة المرور يدويًا إذا تعذرت قراءتها. تبقى القيم المحفوظة حتى تضغط على القراءة.</string>
+    <string name="settings_hotspot_read_unavailable">لم يسمح النظام بقراءة نقطة الاتصال. أدخل الاسم وكلمة المرور يدويًا.</string>
+    <string name="settings_browser_canvas">مساحة عرض المتصفح</string>
+    <string name="settings_video_reconnect_hint">تُطبّق تغييرات الفيديو بعد اختيار الحفظ وإعادة الاتصال.</string>
+    <string name="settings_browser_permissions">تتيح الأجهزة القريبة توصيل iPhone. اسمح بالوصول إلى الشبكة المحلية لمتصفح السيارة. يستخدم الصوت اتصال بلوتوث السيارة.</string>
+    <string name="settings_hevc_experimental">HEVC (H.265) (تجريبي)</string>
+</resources>

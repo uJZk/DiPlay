@@ -70,16 +70,15 @@ class PhoneBrowserModeSettingsTest {
     }
 
     // The default mode is the switch's "on"; turning it off is the way back to head-unit mode.
-    @Test fun aFreshInstallShowsTheRunModeSwitchOnInTheTeslaBrowserCard() {
+    @Test fun aFreshInstallHasBrowserConnectionSettingsWithoutARunModeSwitch() {
         val screen = openSettings()
         ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
-
-        assertTrue(runModeSwitch(screen).isChecked)
+        assertFalse(descendants(screen.window.decorView).filterIsInstance<Switch>().any {
+            it.contentDescription == screen.getString(R.string.settings_phone_browser_mode)
+        })
+        assertEquals(CarPlayRunMode.PHONE_BROWSER, AirPlayPersistence.loadRunMode(context))
         assertTrue(texts(screen).any { it.text == screen.getString(R.string.settings_tesla_browser) })
-        assertTrue(texts(screen).any { it.text == screen.getString(R.string.settings_phone_browser_mode_description) })
-        // Only the card says experimental; the switch is the run mode itself.
-        assertFalse(screen.getString(R.string.settings_phone_browser_mode).contains("experimental"))
     }
 
     @Test
@@ -100,7 +99,7 @@ class PhoneBrowserModeSettingsTest {
         val bydIcon = android.graphics.BitmapFactory.decodeResource(context.resources, R.raw.ic_car_home)
 
         val (phoneName, phonePreview) = carButton()
-        assertEquals("Tesla", phoneName)
+        assertEquals("TiPlay", phoneName)
         assertTrue(phonePreview.sameAs(phoneIcon))
         assertFalse(phonePreview.sameAs(bydIcon))
 
@@ -130,11 +129,11 @@ class PhoneBrowserModeSettingsTest {
         val phone = titles()
 
         headUnitControls.forEach { assertFalse(screen.getString(it), screen.getString(it) in phone) }
-        assertTrue(screen.getString(R.string.settings_phone_browser_mode) in phone)
+        assertFalse(screen.getString(R.string.settings_phone_browser_mode) in phone)
         assertTrue(screen.getString(R.string.settings_tesla_browser) in phone)
         // Car Bluetooth sound is the other way round: only a car browser offers it.
         assertFalse(screen.getString(R.string.settings_car_bluetooth_audio) in headUnit)
-        assertTrue(screen.getString(R.string.settings_car_bluetooth_audio) in phone)
+        assertFalse(screen.getString(R.string.settings_car_bluetooth_audio) in phone)
     }
 
     @Test fun phoneModeHidesTheHeadUnitCardsWhereDriversLook() {
@@ -154,7 +153,7 @@ class PhoneBrowserModeSettingsTest {
         assertFalse(screen.getString(R.string.open_after_the_car_starts) in connection)
         assertFalse(screen.getString(R.string.usb_auto_confirm_title) in connection)
         assertFalse(screen.getString(R.string.btn_auto_apply_permissions) in connection)
-        assertTrue(screen.getString(R.string.location) in navigation)
+        assertFalse(screen.getString(R.string.location) in navigation)
         assertFalse(screen.getString(R.string.byd_navigation) in navigation)
         assertFalse(screen.getString(R.string.settings_byd_navigation_unavailable) in navigation)
         assertTrue(screen.getString(R.string.car_button_in_carplay) in vehicle)
@@ -186,37 +185,21 @@ class PhoneBrowserModeSettingsTest {
 
     @Test
     @Config(sdk = [28, 33])
-    fun switchingTheRunModeMarksTheActiveSessionForReconnect() {
+    fun openingBrowserSettingsDoesNotDropTheActiveSession() {
         val screen = openSettings()
         val session = mock(CarPlayController::class.java)
         var stops = 0
         CarPlayBackgroundSession.store(session, mock(AndroidMediaSink::class.java), 800, 480, Any(),
             CarPlaySessionDisplay(800, 480, Surface.ROTATION_0, false, false, 800, 480)) { stops++ }
         CarPlayBackgroundSession.active = true
-        try {
-            ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
-            listOf(CarPlayRunMode.HEAD_UNIT, CarPlayRunMode.PHONE_BROWSER).forEach { mode ->
-                PendingReconnect.clear()
-                ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
-                val setting = runModeSwitch(screen)
-                assertEquals(mode == CarPlayRunMode.HEAD_UNIT, setting.isChecked)
-                setting.performClick()
-
-                assertEquals(mode, AirPlayPersistence.loadRunMode(context))
-                assertEquals(mode == CarPlayRunMode.PHONE_BROWSER, runModeSwitch(screen).isChecked)
-                // The card list follows the mode at once; CarPlay only picks it up at the next connection.
-                assertEquals(mode == CarPlayRunMode.HEAD_UNIT,
-                    texts(screen).any { it.text == screen.getString(R.string.open_after_the_car_starts) })
-                assertTrue(PendingReconnect.isPending(session))
-                assertEquals(View.VISIBLE, ReflectionHelpers.getField<View>(screen, "reconnectBar").visibility)
-                assertSame(session, CarPlayBackgroundSession.snapshot()?.controller)
-                assertEquals(0, stops)
-                assertEquals(null, shadowOf(screen).nextStartedActivity)
-            }
-        } finally {
-            CarPlayBackgroundSession.clear()
-            PendingReconnect.clear()
-        }
+        BrowserSettingsPolicy.activate(context)
+        ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
+        ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
+        assertFalse(descendants(screen.window.decorView).filterIsInstance<Switch>().any {
+            it.contentDescription == screen.getString(R.string.settings_phone_browser_mode)
+        })
+        assertSame(session, CarPlayBackgroundSession.snapshot()?.controller)
+        assertEquals(0, stops)
     }
 
     private fun runModeSwitch(screen: DiPlayActivity): Switch =

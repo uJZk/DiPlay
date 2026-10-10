@@ -113,19 +113,18 @@ class TeslaBrowserLinkSettingsTest {
         assertFalse(TeslaBrowserLink.hasPairingCode(context))
     }
 
-    @Test fun openingTiPlayStartsTheLinkAndTheRunModeSwitchStopsIt() {
+    @Test fun openingTiPlayKeepsTheBrowserLinkWithoutAStopSwitch() {
         val screen = openSettings()
         assertTrue(TeslaBrowserLink.awaitIdle())
         assertEquals(TeslaBrowserLink.State.Listening(8080), TeslaBrowserLink.state)
         assertEquals(1, servers.get())
-
         ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.CONNECTION)
         ReflectionHelpers.callInstanceMethod<Unit>(screen, "render")
-        descendants(screen.window.decorView).filterIsInstance<android.widget.Switch>()
-            .single { it.contentDescription == screen.getString(R.string.settings_phone_browser_mode) }.performClick()
-        assertTrue(TeslaBrowserLink.awaitIdle())
-        assertEquals(CarPlayRunMode.HEAD_UNIT, AirPlayPersistence.loadRunMode(context))
-        assertEquals(TeslaBrowserLink.State.Stopped, TeslaBrowserLink.state)
+        assertFalse(descendants(screen.window.decorView).filterIsInstance<android.widget.Switch>().any {
+            it.contentDescription == screen.getString(R.string.settings_phone_browser_mode)
+        })
+        assertEquals(CarPlayRunMode.PHONE_BROWSER, AirPlayPersistence.loadRunMode(context))
+        assertEquals(TeslaBrowserLink.State.Listening(8080), TeslaBrowserLink.state)
     }
 
     @Test fun buildingTheSearchIndexStartsNoLinkMakesNoCodeAndProbesNoNetwork() {

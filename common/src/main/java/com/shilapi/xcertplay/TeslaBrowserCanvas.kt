@@ -38,9 +38,9 @@ internal object TeslaBrowserCanvas {
         val size: BrowserSize get() = BrowserSize(width, height)
 
         /** One line for the session log: sizes only. */
-        fun describe(): String = "Phone + browser canvas=${width}x$height " +
+        fun describe(fps: Int = FPS): String = "Phone + browser canvas=${width}x$height " +
             (if (fromViewport) "from the browser's viewport" else "default (no browser size yet)") +
-            " physical=${widthMm}x${heightMm}mm (${if (fromCss) "CSS size" else "CarPlay size preset"}) fps=$FPS"
+            " physical=${widthMm}x${heightMm}mm (${if (fromCss) "CSS size" else "CarPlay size preset"}) fps=$fps"
     }
 
     /** The canvas for [viewport] (null before any browser reported one); [presetWidthMm] is the CarPlay-size preset. */

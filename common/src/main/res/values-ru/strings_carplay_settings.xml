@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_more_options">Другие настройки: %1$s</string>
+    <string name="settings_additional_save_hint">Изменения на этой странице сохраняются отдельно. Настройки, требующие переподключения CarPlay, указывают это в описании или на кнопке. Несохранённые изменения в меню настроек CarPlay сохраняются на время посещения этой страницы.</string>
+    <string name="settings_hotspot_read">Прочитать точку доступа устройства</string>
+    <string name="settings_hotspot_read_hint">Попытка прочитать точку доступа. Имя и пароль можно редактировать. Если пароль недоступен, введите его вручную. Сохранённые данные сохраняются до нажатия кнопки чтения.</string>
+    <string name="settings_hotspot_read_unavailable">Система запретила чтение точки доступа. Введите имя и пароль вручную.</string>
+    <string name="settings_browser_canvas">Область браузера</string>
+    <string name="settings_video_reconnect_hint">Изменения видео применяются после выбора «Сохранить и переподключить».</string>
+    <string name="settings_browser_permissions">Доступ к устройствам поблизости подключает iPhone. Разрешите доступ к локальной сети для браузера автомобиля. Звук передаётся по Bluetooth автомобиля.</string>
+    <string name="settings_hevc_experimental">HEVC (H.265) (экспериментально)</string>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_more_options">更多%1$s设置</string>
+    <string name="settings_additional_save_hint">本页设置分别保存；涉及重连的设置会在说明或按钮中提示。返回 CarPlay 设置菜单后，主菜单中尚未保存的修改仍会保留。</string>
+    <string name="settings_hotspot_read">读取本机热点</string>
+    <string name="settings_hotspot_read_hint">尝试读取本机热点。名称和密码仍可手动编辑；无法读取密码时请手动输入。已有内容不会自动覆盖，点击“读取本机热点”才会导入。</string>
+    <string name="settings_hotspot_read_unavailable">系统未允许读取热点，请手动输入名称和密码。</string>
+    <string name="settings_browser_canvas">浏览器画面</string>
+    <string name="settings_video_reconnect_hint">画面设置修改后，点击“保存并重新连接”生效。</string>
+    <string name="settings_browser_permissions">附近设备权限用于连接 iPhone，本地网络权限用于连接车机浏览器。声音通过汽车蓝牙播放。</string>
+    <string name="settings_hevc_experimental">HEVC (H.265)（实验性）</string>
+</resources>

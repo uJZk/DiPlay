@@ -87,6 +87,8 @@ class SystemBarSettingsTest {
     }
 
     private fun openSettings() {
+        // Exercise the retained upstream head-unit API; browser-profile visibility is tested separately.
+        AirPlayPersistence.saveRunMode(context, com.shilapi.xcertplay.orchestration.CarPlayRunMode.HEAD_UNIT)
         controller = Robolectric.buildActivity(DiPlayActivity::class.java,
             Intent(context, DiPlayActivity::class.java).putExtra("page", "settings")).setup()
         descendants(activity.window.decorView)

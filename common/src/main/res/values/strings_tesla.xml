@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="settings_tesla_browser">Tesla browser (experimental)</string>
-    <string name="settings_phone_browser_mode">Phone and car browser</string>
+    <string name="settings_tesla_browser">Car browser (experimental)</string>
+    <string name="settings_phone_browser_mode">Show CarPlay in the car browser</string>
     <string name="settings_phone_browser_mode_description">For an Android phone that shares its hotspot with the car: the car’s browser shows CarPlay, and head-unit features (BYD HUD and dashboard, ADB, steering-wheel keys) stay off. Turn it off on a car head unit. Applies at the next connection.</string>
 </resources>

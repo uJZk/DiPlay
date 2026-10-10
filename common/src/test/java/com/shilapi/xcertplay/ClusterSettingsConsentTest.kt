@@ -49,6 +49,7 @@ class ClusterSettingsConsentTest {
         screen = activity.get()
         screen.setTheme(android.R.style.Theme_Material_NoActionBar)
         activity.setup().visible()
+        useHeadUnitMode(app) // This fixture exercises the retained upstream head-unit API.
         ReflectionHelpers.setField(screen, "setupError", null)
         ReflectionHelpers.setField(screen, "page", "settings")
         ReflectionHelpers.setField(screen, "settingsCategory", SettingsCategory.ADVANCED)
